@@ -116,16 +116,16 @@ function EagleCanvas(canvasId) {
 	}
 
 	this.hitTestFunctions = {};
-	
-	this.hitTestFunctions[EagleCanvas.LayerId.BOTTOM_COPPER] = function(that,x,y) {
-		return that.hitTestElements(that.eagleLayersByName['Bottom'],x,y)
-			|| that.hitTestSignals(that.eagleLayersByName['Bottom'],x,y);
-	}
 
-	this.hitTestFunctions[EagleCanvas.LayerId.TOP_COPPER] = function(that,x,y) {
-		return that.hitTestElements(that.eagleLayersByName['Top'],x,y)
-			|| that.hitTestSignals(that.eagleLayersByName['Top'],x,y);
-	}
+	this.hitTestFunctions[EagleCanvas.LayerId.BOTTOM_COPPER] = function(x,y) {
+		return this.hitTestElements (this.eagleLayersByName['Bottom'],x,y)
+			|| this.hitTestSignals  (this.eagleLayersByName['Bottom'],x,y);
+	}.bind (this);
+
+	this.hitTestFunctions[EagleCanvas.LayerId.TOP_COPPER] = function(x,y) {
+		return this.hitTestElements (this.eagleLayersByName['Top'],x,y)
+			|| this.hitTestSignals  (this.eagleLayersByName['Top'],x,y);
+	}.bind (this);
 
 
 }
@@ -149,7 +149,24 @@ EagleCanvas.prototype.setScale = function(scale) {
 	this.scale = scale;
 	var canvas = document.getElementById(this.canvasId);
 	canvas.width = scale * this.nativeSize[0];
-	canvas.height = scale * this.nativeSize[1];
+	var context = canvas.getContext('2d'),
+		devicePixelRatio = window.devicePixelRatio || 1,
+		backingStoreRatio =
+			context.webkitBackingStorePixelRatio ||
+			context.mozBackingStorePixelRatio ||
+			context.msBackingStorePixelRatio ||
+			context.oBackingStorePixelRatio ||
+			context.backingStorePixelRatio || 1,
+		ratio = devicePixelRatio / backingStoreRatio;
+
+	canvas.width  = scale * this.nativeSize[0] * ratio;
+	canvas.height = scale * this.nativeSize[1] * ratio;
+
+	canvas.style.width  = scale * this.nativeSize[0] + "px";
+	canvas.style.height = scale * this.nativeSize[1] + "px";
+
+	this.ratio = ratio;
+
 	this.draw();
 }
 
@@ -435,15 +452,15 @@ EagleCanvas.prototype.draw = function() {
 
 	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 	ctx.save();
-	
-	ctx.transform(this.scale * (this.boardFlipped ? -1.0 : 1.0), 
-	              0, 
-								0, 
-								-this.scale, 
-								0, 
+
+	ctx.transform(this.scale * this.ratio * (this.boardFlipped ? -1.0 : 1.0),
+				  0,
+								0,
+								-this.scale*this.ratio,
+								0,
 								ctx.canvas.height);
 	ctx.translate( (this.boardFlipped ? -this.nativeBounds[2] : -(this.nativeBounds[0])),
-	               -this.nativeBounds[1]);
+				   -this.nativeBounds[1]);
 
 	var layerOrder = this.boardFlipped ? this.reverseRenderLayerOrder : this.renderLayerOrder;
 	for (var layerKey in layerOrder) {
@@ -633,10 +650,10 @@ EagleCanvas.prototype.dimCanvas = function(ctx, alpha) {
 EagleCanvas.prototype.hitTest = function(x,y) {
 	var canvas = document.getElementById(this.canvasId);
 	//Translate screen to model coordinates
-	x = x / this.scale;	
-	y = (canvas.height - y) / this.scale;
-	y += this.nativeBounds[1];
-	x = this.boardFlipped ? (this.nativeBounds[2]-x) : (x+this.nativeBounds[0]);
+	var rx = x / this.scale;
+	var ry = (canvas.height / this.ratio - y) / this.scale;
+	ry += this.nativeBounds[1];
+	rx = this.boardFlipped ? (this.nativeBounds[2]-rx) : (rx+this.nativeBounds[0]);
 
 	var layerOrder = (this.boardFlipped) ? this.reverseRenderLayerOrder : this.renderLayerOrder;
 	for (var i = layerOrder.length-1; i >= 0; i--) {
@@ -644,7 +661,7 @@ EagleCanvas.prototype.hitTest = function(x,y) {
 		if (!this.visibleLayers[layerId]) { continue; }
 		var hitTestFunc = this.hitTestFunctions[layerId];
 		if (!hitTestFunc) { continue; }
-		var hit = hitTestFunc(this,x,y);
+		var hit = hitTestFunc (rx, ry);
 		if (hit) { return hit; }
 	}
 	return null;
