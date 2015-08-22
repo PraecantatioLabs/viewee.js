@@ -109,3 +109,8 @@ html, body {
 	border:				1px solid black;
 	opacity:			0.5;
 }
+
+select.board {
+	min-width: 100px;
+	margin: 10px;
+}
