@@ -1,3 +1,15 @@
+(function (root, factory) {
+	if(typeof define === "function" && define.amd) {
+		define(function(){
+			return factory();
+		});
+	} else if(typeof module === "object" && module.exports) {
+		module.exports = factory();
+	} else {
+		root.EagleCanvas = factory();
+	}
+}(this, function () {
+
 var p = function(o){ console.log(o) }
 // -----------------------
 // --- ENUMS, DEFAULTS ---
@@ -881,3 +893,7 @@ EagleCanvas.prototype.scaleToFit = function(a) {
 	this.maxScale = scale * 10;
 	this.setScale(scale);
 }
+
+	return EagleCanvas;
+
+}));
