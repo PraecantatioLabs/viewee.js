@@ -52,9 +52,10 @@ function stupidWebfontTrick(eagle) {
 	selectItem(null)
 }
 function init() {
-		eaglecanvas = new EagleCanvas('canvas');
-		eaglecanvas.loadURL('board.brd', stupidWebfontTrick);
-		eaglecanvas.setScaleToFit('outer');
+	eaglecanvas = new EagleCanvas('#canvas');
+	eaglecanvas.setScaleToFit('#outer');
+	eaglecanvas.loadURL('board.brd', stupidWebfontTrick);
+
 }
 
 function showFrontSide(e) {
