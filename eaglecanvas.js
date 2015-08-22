@@ -81,33 +81,44 @@ function EagleCanvas(canvasSelector) {
 	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_COPPER] = function(that,ctx) {
 		that.drawSignalWires(that.eagleLayersByName['Bottom'],ctx);
 		that.drawElements(that.eagleLayersByName['Bottom'],ctx);
+		that.drawPlainTexts(that.eagleLayersByName['Bottom'],ctx);
 	}
 
 	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_SILKSCREEN] = function(that,ctx) {
 		that.drawElements(that.eagleLayersByName['bNames'],ctx);
 		that.drawElements(that.eagleLayersByName['bValues'],ctx);
 		that.drawElements(that.eagleLayersByName['bPlace'],ctx);
+		that.drawPlainTexts(that.eagleLayersByName['bNames'],ctx);
+		that.drawPlainTexts(that.eagleLayersByName['bValues'],ctx);
 	}
 
 	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_DOCUMENTATION] = function(that,ctx) {
 		that.drawElements(that.eagleLayersByName['bKeepout'],ctx);
 		that.drawElements(that.eagleLayersByName['bDocu'],ctx);
+		that.drawPlainTexts(that.eagleLayersByName['bKeepout'],ctx);
+		that.drawPlainTexts(that.eagleLayersByName['bDocu'],ctx);
 	}
 
 	this.layerRenderFunctions[EagleCanvas.LayerId.TOP_COPPER] = function(that,ctx) {
 		that.drawSignalWires(that.eagleLayersByName['Top'],ctx);
 		that.drawElements   (that.eagleLayersByName['Top'],ctx);
+		that.drawPlainTexts(that.eagleLayersByName['Top'],ctx);
 	}
 
 	this.layerRenderFunctions[EagleCanvas.LayerId.TOP_SILKSCREEN] = function(that,ctx) {
 		that.drawElements(that.eagleLayersByName['tNames'],ctx);
 		that.drawElements(that.eagleLayersByName['tValues'],ctx);
 		that.drawElements(that.eagleLayersByName['tPlace'],ctx);
+		that.drawPlainTexts(that.eagleLayersByName['tNames'],ctx);
+		that.drawPlainTexts(that.eagleLayersByName['tValues'],ctx);
+
 	}
 
 	this.layerRenderFunctions[EagleCanvas.LayerId.TOP_DOCUMENTATION] = function(that,ctx) {
 		that.drawElements(that.eagleLayersByName['tKeepout'],ctx);
 		that.drawElements(that.eagleLayersByName['tDocu'],ctx);
+		that.drawPlainTexts(that.eagleLayersByName['tKeepout'],ctx);
+		that.drawPlainTexts(that.eagleLayersByName['tDocu'],ctx);
 	}
 
 	this.layerRenderFunctions[EagleCanvas.LayerId.DIM_BOARD] = function(that,ctx) {
@@ -115,16 +126,11 @@ function EagleCanvas(canvasSelector) {
 	}	
 
 	this.layerRenderFunctions[EagleCanvas.LayerId.VIAS] = function(that,ctx) {
-		that.drawSignalVias('1-16',ctx, '#0b0');
+		that.drawSignalVias('1-16',ctx, that.viaPadColor());
 	}
 
 	this.layerRenderFunctions[EagleCanvas.LayerId.OUTLINE] = function(that,ctx) {
 		that.drawPlainWires(that.eagleLayersByName['Dimension'],ctx);
-	}
-
-	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_COPPER] = function(that,ctx) {
-		that.drawSignalWires(that.eagleLayersByName['Bottom'],ctx);
-		that.drawElements   (that.eagleLayersByName['Bottom'],ctx);
 	}
 
 	this.hitTestFunctions = {};
@@ -311,11 +317,22 @@ EagleCanvas.prototype.parse = function() {
 		var pkg = packages[packageIdx];
 		var packageName = pkg.getAttribute('name');
 
+		var descriptionEls = pkg.getElementsByTagName('description');
+		if (descriptionEls && descriptionEls.length)
+			var description = descriptionEls[0].textContent;
+
 		var packageSmds = [];
 		var smds = pkg.getElementsByTagName('smd');
 		for (var smdIdx = 0; smdIdx < smds.length; smdIdx++) {
 			var smd = smds[smdIdx];
 			packageSmds.push(this.parseSmd(smd));
+		}
+
+		var packagePads = [];
+		var pads = pkg.getElementsByTagName('pad');
+		for (var padIdx = 0; padIdx < pads.length; padIdx++) {
+			var pad = pads[padIdx];
+			packagePads.push(this.parsePad(pad));
 		}
 
 		var packageWires = [];
@@ -343,21 +360,38 @@ EagleCanvas.prototype.parse = function() {
 		}
 
 
-		var packageDict = {'smds':packageSmds, 'wires':packageWires, 'texts':packageTexts, 'bbox':bbox};
+		var packageDict = {
+			'smds':packageSmds,
+			'wires':packageWires,
+			'texts':packageTexts,
+			'bbox':bbox,
+			'pads':packagePads,
+			description: description
+		};
 		this.packagesByName[packageName] = packageDict;
 	}
 
 	this.plainWires = {};
+	this.plainTexts = {};
 	var plains = this.boardXML.getElementsByTagName('plain');	//Usually only one
 	for (var plainIdx = 0; plainIdx < plains.length; plainIdx++) {
 		var plain = plains[plainIdx],
-		    wires = plain.getElementsByTagName('wire');
+			wires = plain.getElementsByTagName('wire'),
+			texts = plain.getElementsByTagName('text');
 		for (var wireIdx = 0; wireIdx < wires.length; wireIdx++) {
 			var wire = wires[wireIdx],
 			    wireDict = this.parseWire(wire),
 			    layer = wireDict.layer;
 			if (!this.plainWires[layer]) this.plainWires[layer] = [];
 			this.plainWires[layer].push(wireDict);
+		}
+
+		for (var textIdx = 0; textIdx < texts.length; textIdx++) {
+			var text = texts[textIdx],
+				textDict = this.parseText(text),
+				layer = textDict.layer;
+			if (!this.plainTexts[layer]) this.plainTexts[layer] = [];
+			this.plainTexts[layer].push(textDict);
 		}
 	}
 }
@@ -376,11 +410,38 @@ EagleCanvas.prototype.parseSmd = function(smd) {
 	        'layer': smd.getAttribute('layer')};
 }
 
+EagleCanvas.prototype.parseRect = function(rect) {
+	return {'x1'   : parseFloat(rect.getAttribute('x1')),
+			'y1'   : parseFloat(rect.getAttribute('y1')),
+			'x2'   : parseFloat(rect.getAttribute('x2')),
+			'y2'   : parseFloat(rect.getAttribute('y2')),
+			'layer': rect.getAttribute('layer')};
+}
+
+
+EagleCanvas.prototype.parsePad = function(pad) {
+	var drill = parseFloat(pad.getAttribute('drill'));
+	var diameter = parseFloat(pad.getAttribute('diameter'));
+	// TODO: use proper measurements
+	if (isNaN (diameter)) diameter = drill * 1.5;
+	var padRot = pad.getAttribute('rot') || "R0"
+	return {
+		'x':parseFloat(pad.getAttribute('x')),
+		'y':parseFloat(pad.getAttribute('y')),
+		'drill':drill,
+		'name': pad.getAttribute('name'),
+		'diameter':diameter,
+		'rot': padRot
+	};
+}
+
 EagleCanvas.prototype.parseVia = function(via) {
-	return {'x':parseFloat(via.getAttribute('x')), 
-	        'y':parseFloat(via.getAttribute('y')), 
- 	        'drill':parseFloat(via.getAttribute('drill')), 
-	        'layers':via.getAttribute('extent')};
+	return {'x':parseFloat(via.getAttribute('x')),
+			'y':parseFloat(via.getAttribute('y')),
+			 'drill':parseFloat(via.getAttribute('drill')),
+			'layers':via.getAttribute('extent'),
+			'shape': via.getAttribute('shape')
+		   };
 }
 
 EagleCanvas.prototype.parseWire = function(wire) {
@@ -398,12 +459,15 @@ EagleCanvas.prototype.parseWire = function(wire) {
 EagleCanvas.prototype.parseText = function(text) {
 	var content = text.textContent;
 	if (!content) content = "";
+	var textRot = text.getAttribute('rot') || "R0"
 	return {'x'      : parseFloat(text.getAttribute('x')),
-	        'y'      : parseFloat(text.getAttribute('y')),
-	        'size'   : parseFloat(text.getAttribute('size')),
-	        'layer'  : parseInt(text.getAttribute('layer')),
-	        'font'   : text.getAttribute('font'),
-	        'content': content};
+			'y'      : parseFloat(text.getAttribute('y')),
+			'size'   : parseFloat(text.getAttribute('size')),
+			'layer'  : parseInt(text.getAttribute('layer')),
+			'ratio'  : parseInt(text.getAttribute('ratio')),
+			'rot'    : textRot,
+			'font'   : text.getAttribute('font'),
+			'content': content};
 }
 
 EagleCanvas.prototype.parseElement = function(elem) {
@@ -538,11 +602,51 @@ EagleCanvas.prototype.drawSignalVias = function(layersName, ctx, color) {
 		var layerVias = layerItems['vias'] || [];
 		layerVias.forEach(function(via) {
 			ctx.beginPath();
+			// TODO: make sure calculations is correct
 			ctx.arc(via.x, via.y, 0.75 * via.drill, 0, 2 * Math.PI, false);
 			ctx.lineWidth = 0.5 * via.drill;
 			ctx.stroke();
 		})
 	}
+}
+
+EagleCanvas.prototype.drawPlainTexts = function (layer, ctx) {
+
+	if (!layer) return;
+
+	var layerTexts = this.plainTexts[layer.number] || [];
+
+	var color = this.layerColor(layer.color);
+
+	layerTexts.forEach (function (text) {
+	var x = text.x,
+		y = text.y,
+		rot = text.rot || "",
+		size = text.size;
+
+	//rotation from 90.1 to 270 causes Eagle to draw labels 180 degrees rotated with top right anchor point
+	var degrees  = parseFloat(rot.substring((rot.indexOf('M')==0) ? 2 : 1)),
+		flipText = ((degrees > 90) && (degrees <=270)),
+		textRot  = this.matrixForRot(rot),
+		fontSize = 10;
+
+	var content = text.content
+
+	ctx.save();
+	ctx.fillStyle = color;
+	ctx.font = ''+fontSize+'pt vector';	//Use a regular font size - very small sizes seem to mess up spacing / kerning
+	ctx.translate(x,y);
+	ctx.transform(textRot[0],textRot[2],textRot[1],textRot[3],0,0);
+	var scale = size / fontSize;
+	ctx.scale(scale,-scale);
+	if (flipText) {
+		var metrics = ctx.measureText(content);
+		ctx.translate(metrics.width,-fontSize);	//Height is not calculated - we'll use the font's 10pt size and hope it fits
+		ctx.scale(-1,-1);
+	}
+	ctx.fillText(content, 0, 0);
+	ctx.restore();
+	}, this)
 }
 
 EagleCanvas.prototype.drawElements = function(layer, ctx) {
@@ -600,9 +704,25 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 			ctx.stroke();
 		}, this)
 
+		// TODO: pads can be rotated too
+		pkg.pads.forEach(function(pad) {
+			var layerNum = pad.layer;
+			// We don't need to check layers, pads is pass through all layers
+			var x = elem.x + rotMat[0]*pad.x + rotMat[1]*pad.y,
+				y = elem.y + rotMat[2]*pad.x + rotMat[3]*pad.y;
+
+			ctx.beginPath();
+			// TODO: make sure calculations is correct
+			ctx.lineWidth = (pad.diameter - pad.drill) / 2;
+			ctx.arc(x, y, pad.drill * 0.75, 0, Math.PI * 2, false);
+			ctx.strokeStyle = this.viaPadColor();
+			ctx.stroke();
+		}, this)
+
 		var smashed = elem.smashed,
 		    textCollection = smashed ? elem.attributes : pkg.texts;	//smashed : use element attributes instead of package texts
 		for (var textIdx in textCollection) {
+			if (!textCollection.hasOwnProperty (textIdx)) continue;
 			var text = textCollection[textIdx];
 			var layerNum = text.layer;
 			if ((!elem.smashed) && (elem.mirror)) { 
@@ -706,6 +826,7 @@ EagleCanvas.prototype.hitTestElements = function(layer, x, y) {
 		}
 
 		for (var smdIdx in pkg.smds) {
+			if (!pkg.smds.hasOwnProperty(smdIdx)) continue;
 			var smd = pkg.smds[smdIdx];
 			var layerNum = smd.layer;
 			if (elem.mirror) layerNum = this.mirrorLayer(layerNum);
@@ -740,6 +861,7 @@ EagleCanvas.prototype.hitTestSignals = function(layer, x, y) {
 		var layerWires = layerItems['wires'];
 		if (!layerWires) { continue; }
 		for (var wireIdx in layerWires) {
+			if (!layerWires.hasOwnProperty(wireIdx)) continue;
 			var wire = layerWires[wireIdx],
 			    x1 = wire.x1,
 			    y1 = wire.y1,
@@ -801,6 +923,10 @@ EagleCanvas.prototype.layerColor = function(colorIdx) {
 EagleCanvas.prototype.highlightColor = function(colorIdx) {
 	var rgb = this.colorPalette[colorIdx];
 	return 'rgb('+(rgb[0]+50)+','+(rgb[1]+50)+','+(rgb[2]+50)+')';
+}
+
+EagleCanvas.prototype.viaPadColor = function () {
+	return "#0b0";
 }
 
 EagleCanvas.prototype.matrixForRot = function(rot) {
