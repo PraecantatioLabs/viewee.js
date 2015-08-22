@@ -148,7 +148,6 @@ EagleCanvas.prototype.getScale = function(scale) {
 EagleCanvas.prototype.setScale = function(scale) {
 	this.scale = scale;
 	var canvas = document.getElementById(this.canvasId);
-	canvas.width = scale * this.nativeSize[0];
 	var context = canvas.getContext('2d'),
 		devicePixelRatio = window.devicePixelRatio || 1,
 		backingStoreRatio =
