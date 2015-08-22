@@ -449,11 +449,12 @@ EagleCanvas.prototype.parseWire = function(wire) {
 	if (width <= 0.0) width = this.minLineWidth;
 
 	return {'x1':parseFloat(wire.getAttribute('x1')),
-        	'y1':parseFloat(wire.getAttribute('y1')),
-        	'x2':parseFloat(wire.getAttribute('x2')),
-        	'y2':parseFloat(wire.getAttribute('y2')),
-        	'width':width,
-        	'layer':parseInt(wire.getAttribute('layer'))};
+			'y1':parseFloat(wire.getAttribute('y1')),
+			'x2':parseFloat(wire.getAttribute('x2')),
+			'y2':parseFloat(wire.getAttribute('y2')),
+			'curve':parseInt(wire.getAttribute('curve')),
+			'width':width,
+			'layer':parseInt(wire.getAttribute('layer'))};
 }
 
 EagleCanvas.prototype.parseText = function(text) {
@@ -547,6 +548,26 @@ EagleCanvas.prototype.draw = function() {
 	ctx.restore();
 }
 
+EagleCanvas.prototype.drawWire = function (wire, ctx) {
+	if (wire.curve) {
+		var dx = wire.x2 - wire.x1;
+		var dy = wire.y2 - wire.y1;
+		var radius = Math.sqrt (Math.pow (dx, 2) + Math.pow (dy, 2)) / 2;
+		var start,
+			angle = Math.PI * (180 / wire.curve);
+		if (Math.abs (dx) < Math.abs (dy)) {
+			start = (dx > 0 ? -1 : 1) * Math.PI * 0.5;
+		} else {
+			start = dy > 0 ? 0 : Math.PI
+		}
+		ctx.arc (wire.x1 + dx/2, wire.y1 + dy/2, radius, start, start + angle);
+	} else {
+		ctx.moveTo(wire.x1, wire.y1);
+		ctx.lineTo(wire.x2, wire.y2);
+	}
+
+}
+
 EagleCanvas.prototype.drawPlainWires = function(layer, ctx) {
 	if (!layer) { return; }
 
@@ -556,11 +577,10 @@ EagleCanvas.prototype.drawPlainWires = function(layer, ctx) {
 	var layerWires = this.plainWires[layer.number] || [];
 	layerWires.forEach(function(wire){
 		ctx.beginPath();
-		ctx.moveTo(wire.x1, wire.y1);
-		ctx.lineTo(wire.x2, wire.y2);
+		this.drawWire (wire, ctx);
 		ctx.lineWidth = wire.width;
 		ctx.stroke();
-	})
+	}, this);
 }
 
 EagleCanvas.prototype.drawSignalWires = function(layer, ctx) {
@@ -582,11 +602,10 @@ EagleCanvas.prototype.drawSignalWires = function(layer, ctx) {
 		var layerWires = layerItems['wires'] || [];
 		layerWires.forEach(function(wire) {
 			ctx.beginPath();
-			ctx.moveTo(wire.x1, wire.y1);
-			ctx.lineTo(wire.x2, wire.y2);
+			this.drawWire (wire, ctx);
 			ctx.lineWidth = wire.width;
 			ctx.stroke();
-		})
+		}, this)
 	}
 }
 
