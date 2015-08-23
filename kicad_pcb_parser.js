@@ -258,8 +258,6 @@ KicadNewParser.prototype.parseGrText = function (cmd) {
 			cmd.attrs.effects[eff.name] = eff.args;
 		}
 	}, this);
-	// console.log (fontEffects);
-	//this.extractAttrs (cmd.attrs.effects);
 	var text = {
 		x: parseFloat (cmd.attrs.at[0]),
 		y: parseFloat (cmd.attrs.at[1]),
@@ -273,7 +271,6 @@ KicadNewParser.prototype.parseGrText = function (cmd) {
 	text.rot = "R" + rotate;
 
 	if (cmd.attrs.effects.justify) {
-		console.log (cmd.attrs.effects.justify);
 		if (cmd.attrs.effects.justify.indexOf ("mirror") > -1)
 		text.rot = "M"+text.rot;
 	}
@@ -351,13 +348,18 @@ KicadNewParser.prototype.cmdDone = function () {
 		// console.log (this.cmd, line, netName);
 		if (!this.board.signalItems[netName]) this.board.signalItems[netName] = {};
 		var signalLayerItems = this.board.signalItems[netName];
-		var layers = entity.layers || [entity.layer];
-		layers.forEach (function (layer) {
-			var eagleLayerNumber = this.eagleLayer (layer).number;
-			if (!signalLayerItems[eagleLayerNumber])
-				signalLayerItems[eagleLayerNumber] = {wires: [], vias: []};
-			signalLayerItems[eagleLayerNumber][entType].push (entity);
-		}, this);
+		var eagleLayerNumber;
+		if (entity.layers) {
+			eagleLayerNumber = entity.layers.map (function (layer) {
+				return this.eagleLayer (layer).number;
+			}, this).join ("-");
+		} else {
+			eagleLayerNumber = this.eagleLayer (entity.layer).number;
+		}
+
+		if (!signalLayerItems[eagleLayerNumber])
+			signalLayerItems[eagleLayerNumber] = {wires: [], vias: []};
+		signalLayerItems[eagleLayerNumber][entType].push (entity);
 
 		if (entType === 'vias') {
 			console.log (entity.drill);
