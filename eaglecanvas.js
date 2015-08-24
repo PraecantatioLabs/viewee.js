@@ -884,7 +884,7 @@ EagleCanvas.prototype.hitTestElements = function(layer, x, y) {
 
 	for (var elemKey in this.elements) {
 		var elem = this.elements[elemKey],
-		    pkg = this.packagesByName[elem.pkg];
+			pkg = typeof elem.pkg === "string" ? this.packagesByName[elem.pkg] : elem.pkg;
 
 		var rotMat = elem.matrix;
 
