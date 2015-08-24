@@ -268,7 +268,21 @@ KicadNewParser.prototype.parseLine = function (cmd) {
 		layer: cmd.attrs.layer[0]
 	};
 	if (cmd.name === "gr_arc") {
-		line.curve = parseFloat (cmd.attrs.angle[0]);
+		var angle = parseFloat (cmd.attrs.angle[0])/180 * Math.PI;
+		var dx = line.x1 - line.x2,
+			dy = line.y1 - line.y2;
+		var arc = {
+			x: line.x1,
+			y: line.y1,
+			width: line.width,
+			layer: line.layer,
+			curve: angle,
+			angle: angle,
+			radius: Math.sqrt (dx * dx + dy * dy),
+			// TODO: why to add Math.PI?
+			start: Math.PI + Math.atan2 (dy, dx)
+		};
+		return arc;
 	}
 	return line;
 }

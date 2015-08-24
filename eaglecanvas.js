@@ -448,13 +448,51 @@ EagleCanvas.prototype.parseWire = function(wire) {
 	var width = parseFloat(wire.getAttribute('width'));
 	if (width <= 0.0) width = this.minLineWidth;
 
-	return {'x1':parseFloat(wire.getAttribute('x1')),
-			'y1':parseFloat(wire.getAttribute('y1')),
-			'x2':parseFloat(wire.getAttribute('x2')),
-			'y2':parseFloat(wire.getAttribute('y2')),
-			'curve':parseInt(wire.getAttribute('curve')),
-			'width':width,
-			'layer':parseInt(wire.getAttribute('layer'))};
+	var layer = parseInt(wire.getAttribute('layer'));
+
+	var x1 = parseFloat(wire.getAttribute('x1')),
+		y1 = parseFloat(wire.getAttribute('y1')),
+		x2 = parseFloat(wire.getAttribute('x2')),
+		y2 = parseFloat(wire.getAttribute('y2'));
+
+	var curve = parseInt(wire.getAttribute('curve'));
+
+	if (curve) {
+
+		var dx = x2 - x1;
+		var dy = y2 - y1;
+		var x = x1 + dx/2;
+		var y = y1 + dy/2;
+		var radius = Math.sqrt (Math.pow (dx, 2) + Math.pow (dy, 2)) / 2;
+		var angle = Math.PI * (180 / curve);
+		var start;
+		if (Math.abs (dx) < Math.abs (dy)) {
+			start = (dx > 0 ? -1 : 1) * Math.PI * 0.5;
+		} else {
+			start = dy > 0 ? 0 : Math.PI
+		}
+
+		return {
+			x: x,
+			y: y,
+			radius: radius,
+			start: start,
+			angle: angle,
+			curve: curve,
+			width: width,
+			layer: layer
+		}
+	}
+
+	return {
+		'x1':x1,
+		'y1':y1,
+		'x2':x2,
+		'y2':y2,
+		'width':width,
+		'layer':layer
+	};
+
 }
 
 EagleCanvas.prototype.parseText = function(text) {
@@ -550,17 +588,7 @@ EagleCanvas.prototype.draw = function() {
 
 EagleCanvas.prototype.drawWire = function (wire, ctx) {
 	if (wire.curve) {
-		var dx = wire.x2 - wire.x1;
-		var dy = wire.y2 - wire.y1;
-		var radius = Math.sqrt (Math.pow (dx, 2) + Math.pow (dy, 2)) / 2;
-		var start,
-			angle = Math.PI * (180 / wire.curve);
-		if (Math.abs (dx) < Math.abs (dy)) {
-			start = (dx > 0 ? -1 : 1) * Math.PI * 0.5;
-		} else {
-			start = dy > 0 ? 0 : Math.PI
-		}
-		ctx.arc (wire.x1 + dx/2, wire.y1 + dy/2, radius, start, start + angle);
+		ctx.arc (wire.x, wire.y, wire.radius, wire.start, wire.start + wire.angle);
 	} else {
 		ctx.moveTo(wire.x1, wire.y1);
 		ctx.lineTo(wire.x2, wire.y2);
