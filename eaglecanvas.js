@@ -336,24 +336,17 @@ EagleCanvas.prototype.parse = function() {
 		}
 
 		var packageWires = [];
-		var bbox = [EagleCanvas.LARGE_NUMBER,EagleCanvas.LARGE_NUMBER,-EagleCanvas.LARGE_NUMBER,-EagleCanvas.LARGE_NUMBER];
 		var wires = pkg.getElementsByTagName('wire');
 		for (var wireIdx = 0; wireIdx < wires.length; wireIdx++) {
 			var wire = wires[wireIdx];
 			var wireDict = this.parseWire(wire);
-			if (wireDict.x1 < bbox[0]) { bbox[0] = wireDict.x1; }
-			if (wireDict.x1 > bbox[2]) { bbox[2] = wireDict.x1; }
-			if (wireDict.y1 < bbox[1]) { bbox[1] = wireDict.y1; }
-			if (wireDict.y1 > bbox[3]) { bbox[3] = wireDict.y1; }
-			if (wireDict.x2 < bbox[0]) { bbox[0] = wireDict.x2; }
-			if (wireDict.x2 > bbox[2]) { bbox[2] = wireDict.x2; }
-			if (wireDict.y2 < bbox[1]) { bbox[1] = wireDict.y2; }
-			if (wireDict.y2 > bbox[3]) { bbox[3] = wireDict.y2; }
 			packageWires.push(wireDict);
 		}
-		if ((bbox[0] >= bbox[2]) || (bbox[1] >= bbox[3])) { bbox = null; }
+
+		var bbox = this.calcBBox (packageWires);
+
 		var packageTexts = [],
-		    texts        = pkg.getElementsByTagName('text');
+			texts        = pkg.getElementsByTagName('text');
 		for (var textIdx = 0; textIdx < texts.length; textIdx++) {
 			var text = texts[textIdx];
 			packageTexts.push(this.parseText(text));
@@ -394,6 +387,25 @@ EagleCanvas.prototype.parse = function() {
 			this.plainTexts[layer].push(textDict);
 		}
 	}
+}
+
+EagleCanvas.prototype.calcBBox = function (wires) {
+	var bbox = [EagleCanvas.LARGE_NUMBER,EagleCanvas.LARGE_NUMBER,-EagleCanvas.LARGE_NUMBER,-EagleCanvas.LARGE_NUMBER];
+	wires.forEach (function (wireDict) {
+		if (wireDict.x1 < bbox[0]) { bbox[0] = wireDict.x1; }
+		if (wireDict.x1 > bbox[2]) { bbox[2] = wireDict.x1; }
+		if (wireDict.y1 < bbox[1]) { bbox[1] = wireDict.y1; }
+		if (wireDict.y1 > bbox[3]) { bbox[3] = wireDict.y1; }
+		if (wireDict.x2 < bbox[0]) { bbox[0] = wireDict.x2; }
+		if (wireDict.x2 > bbox[2]) { bbox[2] = wireDict.x2; }
+		if (wireDict.y2 < bbox[1]) { bbox[1] = wireDict.y2; }
+		if (wireDict.y2 > bbox[3]) { bbox[3] = wireDict.y2; }
+	});
+	if ((bbox[0] >= bbox[2]) || (bbox[1] >= bbox[3])) {
+		bbox = null;
+	}
+
+	return bbox;
 }
 
 EagleCanvas.prototype.parseSmd = function(smd) {

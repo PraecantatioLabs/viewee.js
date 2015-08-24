@@ -446,6 +446,9 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 		pkg.wires.push (line);
 	}, this);
 
+	var bbox = this.board.calcBBox (pkg.wires);
+	pkg.bbox = bbox;
+
 //	if (cmd.attrs.fp_circle) cmd.attrs.fp_circle.forEach (function (arcCmd) {
 //		console.log (arcCmd);
 //		var line = this.parseCircle ({name: "fp_circle", args: arcCmd});
