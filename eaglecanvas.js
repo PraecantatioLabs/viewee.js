@@ -677,7 +677,7 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 		var highlight = (this.highlightedItem && (this.highlightedItem.type=='element') && (this.highlightedItem.name==elem.name)); 
 		var color     = highlight ? this.highlightColor(layer.color) : this.layerColor(layer.color);
 
-		var pkg    = this.packagesByName[elem.pkg];
+		var pkg    = typeof elem.pkg === "string" ? this.packagesByName[elem.pkg] : elem.pkg;
 		var rotMat = elem.matrix;
 			pkg.smds.forEach(function(smd) {
 				var layerNum = smd.layer;
@@ -1007,7 +1007,7 @@ EagleCanvas.prototype.calculateBounds = function() {
 	//Elements
 	for (var elemKey in this.elements) {
 		var elem = this.elements[elemKey];
-		var pkg = this.packagesByName[elem.pkg];
+		var pkg = typeof elem.pkg === "string" ? this.packagesByName[elem.pkg] : elem.pkg;
 		var rotMat = elem.matrix;
 		for (var smdIdx in pkg.smds) {
 			var smd = pkg.smds[smdIdx],
