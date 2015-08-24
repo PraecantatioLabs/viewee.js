@@ -8,7 +8,9 @@ function KicadNewParser (board) {
 	this.stringContext = false;
 	this.token = "";
 
-	this.netNameByNumer = {};
+	this.netByNumber = {};
+	this.netByName   = {};
+	this.netClass    = {};
 
 	// store by eagle name
 	board.eagleLayersByName = {};
@@ -131,6 +133,9 @@ var eagleLayers = {
 };
 
 KicadNewParser.prototype.eagleLayer = function (layerName) {
+	// eagle draw will replace layer info accordingly
+	if (layerName === "*.Cu") layerName = "Front";
+	if (layerName === "*.Mask") layerName = "F.Mask";
 	return eagleLayers [layerMaps[layerName]];
 }
 
@@ -219,18 +224,41 @@ KicadNewParser.prototype.handleToken = function () {
 
 KicadNewParser.prototype.extractAttrs = function (args) {
 	var attrs = {};
+	var attrCount = {};
 	args.forEach (function (arg) {
 		if (!arg.name) {
 			return;
 		}
 
-		attrs[arg.name] = arg.args;
+		if (arg.name in attrs) {
+			if (attrCount[arg.name] === 1) {
+				attrs[arg.name] = [attrs[arg.name], arg.args];
+				attrCount[arg.name] = 2;
+			} else {
+				attrs[arg.name].push (arg.args);
+			}
+		} else {
+			attrs[arg.name] = arg.args;
+			attrCount[arg.name] = 1;
+		}
+
 	}, this);
 	return attrs;
 }
 
-KicadNewParser.prototype.parseGrLine = function (cmd) {
+KicadNewParser.prototype.spliceArgs = function (args) {
+	var spliced = [];
+	args.forEach (function (arg) {
+		if (!arg.name) {
+			spliced.push (arg);
+		}
+	}, this);
+	return spliced;
+}
+
+KicadNewParser.prototype.parseLine = function (cmd) {
 	cmd.attrs = this.extractAttrs (cmd.args);
+	cmd.args  = this.spliceArgs   (cmd.args);
 	var line = {
 		x1: parseFloat (cmd.attrs.start[0]),
 		y1: parseFloat (cmd.attrs.start[1]),
@@ -245,8 +273,9 @@ KicadNewParser.prototype.parseGrLine = function (cmd) {
 	return line;
 }
 
-KicadNewParser.prototype.parseGrText = function (cmd) {
+KicadNewParser.prototype.parseText = function (cmd) {
 	cmd.attrs = this.extractAttrs (cmd.args);
+	cmd.args  = this.spliceArgs   (cmd.args);
 
 	// semantics, oh my: font size contained in effects/font/size
 	var effects = cmd.attrs.effects;
@@ -261,11 +290,18 @@ KicadNewParser.prototype.parseGrText = function (cmd) {
 	var text = {
 		x: parseFloat (cmd.attrs.at[0]),
 		y: parseFloat (cmd.attrs.at[1]),
-		// TODO: size has two children, do something if those don't match
-		size: parseFloat (cmd.attrs.effects.font.size[0]),
 		layer: cmd.attrs.layer[0],
-		content: cmd.args[0]
+		content: cmd.name === "gr_text" ? cmd.args[0] : cmd.args[1]
 	};
+
+	// TODO: size has two children, do something if those don't match
+	if (cmd.attrs.effects.font && cmd.attrs.effects.font.size)
+		text.size = parseFloat (cmd.attrs.effects.font.size[0]);
+
+	if (cmd.name === "fp_text") {
+		text.type = cmd.args[0];
+		text.hide = (cmd.args.indexOf ("hide") > -1);
+	}
 
 	var rotate = parseFloat (cmd.attrs.at[2]) || 0;
 	text.rot = "R" + rotate;
@@ -275,7 +311,7 @@ KicadNewParser.prototype.parseGrText = function (cmd) {
 		text.rot = "M"+text.rot;
 	}
 
-	// TODO: effects.attrs.thickness, effects.attrs.justify
+	// TODO: effects.attrs.thickness
 	// TODO: rotated text?
 
 	return text;
@@ -283,11 +319,132 @@ KicadNewParser.prototype.parseGrText = function (cmd) {
 
 KicadNewParser.prototype.parseVia = function (cmd) {
 	cmd.attrs = this.extractAttrs (cmd.args);
+	cmd.args  = this.spliceArgs   (cmd.args);
+	var net = cmd.attrs.net[0];
+	var viaDrill = this.netClass[this.netByNumber[net].className].via_drill;
 	var via = {
 		x: parseFloat (cmd.attrs.at[0]),
 		y: parseFloat (cmd.attrs.at[1]),
-		// TODO: size has two children, do something if those don't match
-		drill: parseFloat (cmd.attrs.size[0]),
+		drill: viaDrill,
+		//drill: parseFloat (cmd.attrs.size[0]),
+		layers: cmd.attrs.layers
+		// shape?
+	};
+	return via;
+}
+
+KicadNewParser.prototype.parsePad = function (cmd) {
+	cmd.attrs = this.extractAttrs (cmd.args);
+	cmd.args  = this.spliceArgs   (cmd.args);
+	var net;
+	if (cmd.attrs.net) net = cmd.attrs.net[0];
+	var x   = parseFloat (cmd.attrs.at[0]);
+	var y   = parseFloat (cmd.attrs.at[1]);
+	var rot = parseFloat (cmd.attrs.at[2]);
+	var w   = parseFloat (cmd.attrs.size[0]);
+	var h   = parseFloat (cmd.attrs.size[1]);
+
+	var type = cmd.args[1];
+
+	if (type === "smd") {return {
+		x1: x - w/2,
+		y1: y - h/2,
+		x2: x + w/2,
+		y2: y + h/2,
+		name: cmd.args[0],
+		type: type,
+		shape: cmd.args[2],
+		layers: cmd.attrs.layers,
+		net: net
+	}} else if (type === "thru_hole") {return {
+		x: x,
+		y: y,
+		name: cmd.args[0],
+		type: type,
+		shape: cmd.args[2],
+		layers: cmd.attrs.layers,
+		net: net,
+		drill: cmd.attrs.drill[0],
+		diameter: w
+	}}
+	return pad;
+}
+
+KicadNewParser.prototype.parseModule = function (cmd) {
+	cmd.attrs = this.extractAttrs (cmd.args);
+	cmd.args  = this.spliceArgs   (cmd.args);
+
+	var pkg = {
+		smds: [],
+		pads: [],
+		wires: [],
+		texts: []
+	};
+
+	var el = {
+		'x'         : parseFloat (cmd.attrs.at[0]),
+		'y'         : parseFloat (cmd.attrs.at[1]),
+		'pkg'       : pkg,
+//		'matrix'    : elemMatrix,
+//		'mirror'    : elemRot.indexOf('M') == 0,
+//		'smashed'   : elem.getAttribute('smashed') && (elem.getAttribute('smashed').toUpperCase() == 'YES'),
+		'attributes': {},
+		'padSignals': {}			//to be filled later
+	};
+
+	cmd.attrs.fp_text.forEach (function (txtCmd) {
+		var txt = this.parseText ({name: "fp_text", args: txtCmd});
+		if (txt.type === "reference") {
+			el.name = txt.content;
+			el.attributes.name = txt;
+		} else if (txt.type === "value") {
+			el.value = txt.content;
+			el.attributes.value = txt;
+		}
+	}, this);
+
+	if (cmd.attrs.fp_line) cmd.attrs.fp_line.forEach (function (lineCmd) {
+		var line = this.parseLine ({name: "fp_line", args: lineCmd});
+		line.layer = this.eagleLayer (line.layer).number;
+		pkg.wires.push (line);
+	}, this);
+
+	if (cmd.attrs.fp_circle) cmd.attrs.fp_circle.forEach (function (arcCmd) {
+		// var line = this.parseLine ({name: "fp_line", args: lineCmd});
+		// TODO
+	}, this);
+
+	if (cmd.attrs.pad) cmd.attrs.pad.forEach (function (padCmd) {
+		var pad = this.parsePad ({name: "pad", args: padCmd});
+		pad.layer = this.eagleLayer (pad.layers ? pad.layers[0] : cmd.attrs.layer[0]).number;
+		if (pad.type === "smd") {
+			pkg.smds.push (pad);
+		} else if (pad.type === "thru_hole") {
+			// TODO: support shapes
+			pkg.pads.push (pad);
+		}
+	}, this);
+
+
+	var rotate = parseFloat (cmd.attrs.at[2]) || 0;
+	el.rot = "R" + rotate;
+
+	// TODO: recheck
+	if (cmd.attrs.layer[0] === "Back") {
+		el.rot = "M"+el.rot;
+	}
+
+	el.matrix = this.board.matrixForRot (el.rot);
+
+	return el;
+
+	var net = cmd.attrs.net[0];
+	var viaDrill = this.netClass[this.netByNumber[net].className].via_drill;
+	var via = {
+		x: parseFloat (cmd.attrs.at[0]),
+		y: parseFloat (cmd.attrs.at[1]),
+		drill: viaDrill,
+		//drill: parseFloat (cmd.attrs.size[0]),
 		layers: cmd.attrs.layers
 		// shape?
 	};
@@ -320,12 +477,34 @@ KicadNewParser.prototype.cmdDone = function () {
 	// nets
 	if (this.cmd.name === "net") {
 		var net = {number: this.cmd.args[0], name: this.cmd.args[1]};
-		this.netNameByNumer[net.number] = net.name;
+		this.netByName[net.name] = this.netByNumber[net.number] = {name: net.name};
 	}
+
+	if (this.cmd.name === "net_class") {
+		var className = this.cmd.args[0],
+			classDesc = this.cmd.args[1];
+
+		var netClass = {
+			className: className,
+			classDesc: classDesc
+		};
+
+		for (var i = 2; i < this.cmd.args.length; i++) {
+			var netCmd = this.cmd.args[i];
+			if (netCmd.name.match (/u?via_(?:dia|drill)/)) {
+				netClass[netCmd.name] = parseFloat (netCmd.args[0]);
+			} else if (netCmd.name === "add_net") {
+				this.netByName[netCmd.args[0]].className = className;
+			}
+		}
+
+		this.netClass[className] = netClass;
+	}
+
 
 	// regular wires
 	if (this.cmd.name === "gr_line" || this.cmd.name === "gr_arc") {
-		var line = this.parseGrLine (this.cmd);
+		var line = this.parseLine (this.cmd);
 		// console.log (this.cmd, line);
 		var eagleLayerNumber = this.eagleLayer (line.layer).number;
 		if (!this.board.plainWires[eagleLayerNumber]) this.board.plainWires[eagleLayerNumber] = [];
@@ -337,14 +516,14 @@ KicadNewParser.prototype.cmdDone = function () {
 		var entity;
 		var entType;
 		if (this.cmd.name === "segment") {
-			entity = this.parseGrLine (this.cmd);
+			entity = this.parseLine (this.cmd);
 			entType = "wires";
 		} else {
 			entity = this.parseVia (this.cmd);
 			entType = "vias";
 		}
 		var netNum = this.cmd.attrs.net;
-		var netName = this.netNameByNumer[netNum];
+		var netName = this.netByNumber[netNum].name;
 		// console.log (this.cmd, line, netName);
 		if (!this.board.signalItems[netName]) this.board.signalItems[netName] = {};
 		var signalLayerItems = this.board.signalItems[netName];
@@ -367,11 +546,20 @@ KicadNewParser.prototype.cmdDone = function () {
 	}
 
 	if (this.cmd.name === "gr_text") {
-		var text = this.parseGrText (this.cmd);
+		var text = this.parseText (this.cmd);
 		var eagleLayerNumber = this.eagleLayer (text.layer).number;
 		// console.log (this.cmd, text, this.cmd.attrs.effects, eagleLayerNumber);
 		if (!this.board.plainTexts[eagleLayerNumber]) this.board.plainTexts[eagleLayerNumber] = [];
 		this.board.plainTexts[eagleLayerNumber].push (text);
+	}
+
+	if (this.cmd.name === "module") {
+		var el = this.parseModule (this.cmd);
+		this.board.elements[Object.keys (this.board.elements).length] = el;
+		// var eagleLayerNumber = this.eagleLayer (text.layer).number;
+		// console.log (this.cmd, text, this.cmd.attrs.effects, eagleLayerNumber);
+		// if (!this.board.plainTexts[eagleLayerNumber]) this.board.plainTexts[eagleLayerNumber] = [];
+		// this.board.plainTexts[eagleLayerNumber].push (text);
 	}
 
 	return;
@@ -380,9 +568,6 @@ KicadNewParser.prototype.cmdDone = function () {
 
 	}
 	if (contextPath === "kicad_pcb>module") {
-
-	}
-	if (contextPath === "kicad_pcb>via") {
 
 	}
 	if (contextPath === "kicad_pcb>zone") {
