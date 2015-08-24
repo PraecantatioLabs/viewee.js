@@ -7,6 +7,7 @@
 <link rel="stylesheet" type="text/css" href="styles/style.css" />
 
 <script type="text/javascript" src="eaglecanvas.js"></script>
+<script type="text/javascript" src="kicad_pcb_parser.js"></script>
 
 <script type="text/javascript">
 
@@ -39,23 +40,45 @@ var itemHints = {
 
 };
 
+var fontLoaded = false;
+
 function stupidWebfontTrick(eagle) {
-	// see http://stackoverflow.com/a/8223543/27408
-	var i = new Image()
-	i.src = "../fonts/osifont.woff"
-	i.onerror = function() {
-		eagle.draw()
-		setTimeout(function(){eagle.draw()}, 50)
-	};
+	if (!fontLoaded) {
+		// see http://stackoverflow.com/a/8223543/27408
+		var i = new Image()
+		i.src = "../fonts/osifont.woff"
+		i.onerror = function() {
+			eagle.draw()
+			setTimeout(function(){eagle.draw()}, 50)
+			fontLoaded = true;
+		};
+	}
 
 	updateCheckboxes()
 	selectItem(null)
 }
-function init() {
-	eaglecanvas = new EagleCanvas('#canvas');
-	eaglecanvas.setScaleToFit('#outer');
-	eaglecanvas.loadURL('board.brd', stupidWebfontTrick);
+function init (url) {
 
+	var defaultUrl = 'lpcprog.kicad_pcb';
+
+	eaglecanvas = new EagleCanvas('#canvas');
+
+	EagleCanvas.prototype.loadText = function (text) {
+		this.text = text;
+		if (text.match (/\<\?xml/) && text.match (/\<eagle/)) {
+			var parser = new DOMParser();
+			this.boardXML = parser.parseFromString(this.text,"text/xml");
+			this.parse()
+		} else if (text.match (/\(kicad_pcb/)) {
+			var kicadParser = new KicadNewParser (eaglecanvas);
+			kicadParser.parse (text);
+		}
+		this.nativeBounds = this.calculateBounds();
+		this.nativeSize   = [this.nativeBounds[2]-this.nativeBounds[0],this.nativeBounds[3]-this.nativeBounds[1]];
+		this.scaleToFit();
+	}
+	eaglecanvas.setScaleToFit('#outer');
+	eaglecanvas.loadURL(url || defaultUrl, stupidWebfontTrick);
 }
 
 function showFrontSide(e) {
@@ -149,8 +172,8 @@ function selectItem(hit) {
 			<p id="hintstext"></p>
 		</div>
 		<div id="controls">
-			<select class="board" onchange="eaglecanvas.loadURL(this.options[this.selectedIndex].value, stupidWebfontTrick);">
-				<option value="board.brd">board</option>
+			<select class="board" onchange="init(this.options[this.selectedIndex].value);">
+				<option value="lpcprog.kicad_pcb">kicad_pcb</option>
 				<option value="hm-11.brd">hm-11</option>
 			</select>
 			<div class="button selected" id="frontsidebutton" onclick="showFrontSide()">Front</div>

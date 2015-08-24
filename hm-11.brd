@@ -298,6 +298,7 @@
 <wire x1="29.972" y1="53.34" x2="28.3845" y2="53.34" width="0.127" layer="20"/>
 <wire x1="28.3845" y1="53.34" x2="28.3845" y2="54.356" width="0.127" layer="20" curve="-180"/>
 <wire x1="29.9085" y1="54.356" x2="29.972" y2="53.34" width="0.127" layer="20" curve="-180"/>
+<text x="25.4" y="55.753" size="1.778" layer="16" rot="MR0">back</text>
 </plain>
 <libraries>
 <library name="microbuilder">
