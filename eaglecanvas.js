@@ -600,7 +600,20 @@ EagleCanvas.prototype.draw = function() {
 
 EagleCanvas.prototype.drawWire = function (wire, ctx) {
 	if (wire.curve) {
-		ctx.arc (wire.x, wire.y, wire.radius, wire.start, wire.start + wire.angle);
+
+		var radiusX, radiusY;
+		radiusX = radiusY = wire.radius;
+		if (wire.radius.constructor === Array) {
+			radiusX = wire.radius[0];
+			radiusY = wire.radius[1];
+		}
+		ctx.save();
+		ctx.translate(wire.x, wire.y);
+		// ctx.rotate(rotation);
+		ctx.scale(radiusX, radiusY);
+		ctx.arc(0, 0, 1, wire.start, wire.start + wire.angle); //, antiClockwise
+		ctx.restore();
+
 	} else {
 		ctx.moveTo(wire.x1, wire.y1);
 		ctx.lineTo(wire.x2, wire.y2);
@@ -656,11 +669,13 @@ EagleCanvas.prototype.drawSignalVias = function(layersName, ctx, color) {
 
 	for (var signalKey in this.signalItems) {
 		var signalLayers = this.signalItems[signalKey],
-		    layerItems = signalLayers[layersName];
+			layerItems = signalLayers[layersName];
 		if (!layerItems) {continue;}
 		var layerVias = layerItems['vias'] || [];
 		layerVias.forEach(function(via) {
 			ctx.beginPath();
+			// TODO: use following answer to draw shapes with holes:
+			// http://stackoverflow.com/questions/6271419/how-to-fill-the-opposite-shape-on-canvas
 			// TODO: make sure calculations is correct
 			ctx.arc(via.x, via.y, 0.75 * via.drill, 0, 2 * Math.PI, false);
 			ctx.lineWidth = 0.5 * via.drill;
@@ -751,14 +766,21 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 			var layerNum = wire.layer;
 			if (elem.mirror) { layerNum = this.mirrorLayer(layerNum); }
 			if (layer.number != layerNum) { return ; }
-			var x1 = elem.x + rotMat[0]*wire.x1 + rotMat[1]*wire.y1,
-			    y1 = elem.y + rotMat[2]*wire.x1 + rotMat[3]*wire.y1,
-			    x2 = elem.x + rotMat[0]*wire.x2 + rotMat[1]*wire.y2,
-			    y2 = elem.y + rotMat[2]*wire.x2 + rotMat[3]*wire.y2;
+			var x  = elem.x + rotMat[0]*wire.x  + rotMat[1]*wire.y,
+				y  = elem.y + rotMat[2]*wire.x  + rotMat[3]*wire.y,
+				x1 = elem.x + rotMat[0]*wire.x1 + rotMat[1]*wire.y1,
+				y1 = elem.y + rotMat[2]*wire.x1 + rotMat[3]*wire.y1,
+				x2 = elem.x + rotMat[0]*wire.x2 + rotMat[1]*wire.y2,
+				y2 = elem.y + rotMat[2]*wire.x2 + rotMat[3]*wire.y2;
 			ctx.beginPath();
 			ctx.lineWidth = wire.width;
-			ctx.moveTo(x1,y1);
-			ctx.lineTo(x2,y2);
+			this.drawWire ({
+				curve: wire.curve,
+				x1: x1, y1: y1, x2: x2, y2: y2,
+				x: x, y: y, radius: wire.radius, angle: wire.angle, start: wire.start
+			}, ctx);
+			//ctx.moveTo(x1,y1);
+			//ctx.lineTo(x2,y2);
 			ctx.strokeStyle = color;
 			ctx.stroke();
 		}, this)

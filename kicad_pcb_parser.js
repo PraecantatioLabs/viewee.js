@@ -222,6 +222,8 @@ KicadNewParser.prototype.handleToken = function () {
 	this.token = "";
 }
 
+var alwaysArray = "fp_text fp_circle fp_line pad".split (" ");
+
 KicadNewParser.prototype.extractAttrs = function (args) {
 	var attrs = {};
 	var attrCount = {};
@@ -237,6 +239,9 @@ KicadNewParser.prototype.extractAttrs = function (args) {
 			} else {
 				attrs[arg.name].push (arg.args);
 			}
+		} else if (alwaysArray.indexOf (arg.name) > -1) {
+			attrs[arg.name] = [arg.args];
+			attrCount[arg.name] = 2;
 		} else {
 			attrs[arg.name] = arg.args;
 			attrCount[arg.name] = 1;
@@ -348,21 +353,25 @@ KicadNewParser.prototype.parseVia = function (cmd) {
 }
 
 KicadNewParser.prototype.parseCircle = function (cmd) {
-	console.log (cmd);
 	cmd.attrs = this.extractAttrs (cmd.args);
 	cmd.args  = this.spliceArgs   (cmd.args);
 
 	var x   = parseFloat (cmd.attrs.center[0]);
 	var y   = parseFloat (cmd.attrs.center[1]);
-	var w1  = parseFloat (cmd.attrs.end[0]);
-	var w2  = parseFloat (cmd.attrs.end[1]);
+	var x1  = parseFloat (cmd.attrs.end[0]);
+	var y1  = parseFloat (cmd.attrs.end[1]);
+
+	var dx = x1 - x,
+		dy = y1 - y,
+		radius = Math.sqrt (dx * dx + dy * dy);
 
 	var circle = {
-		x1: x + w1,
-		y1: y + w1,
-		x2: x + w2,
-		y2: y + w2,
-		curve: 360,
+		x: x,
+		y: y,
+		radius: radius,
+		start: 0,
+		angle: 2*Math.PI,
+		curve: 2*Math.PI,
 		width: cmd.attrs.width[0],
 		layer: cmd.attrs.layer[0]
 	};
@@ -449,12 +458,11 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 	var bbox = this.board.calcBBox (pkg.wires);
 	pkg.bbox = bbox;
 
-//	if (cmd.attrs.fp_circle) cmd.attrs.fp_circle.forEach (function (arcCmd) {
-//		console.log (arcCmd);
-//		var line = this.parseCircle ({name: "fp_circle", args: arcCmd});
-//		line.layer = this.eagleLayer (line.layer).number;
-//		pkg.wires.push (line);
-//	}, this);
+	if (cmd.attrs.fp_circle) cmd.attrs.fp_circle.forEach (function (arcCmd) {
+		var line = this.parseCircle ({name: "fp_circle", args: arcCmd});
+		line.layer = this.eagleLayer (line.layer).number;
+		pkg.wires.push (line);
+	}, this);
 
 	if (cmd.attrs.pad) cmd.attrs.pad.forEach (function (padCmd) {
 		var pad = this.parsePad ({name: "pad", args: padCmd});
