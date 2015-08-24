@@ -333,6 +333,29 @@ KicadNewParser.prototype.parseVia = function (cmd) {
 	return via;
 }
 
+KicadNewParser.prototype.parseCircle = function (cmd) {
+	console.log (cmd);
+	cmd.attrs = this.extractAttrs (cmd.args);
+	cmd.args  = this.spliceArgs   (cmd.args);
+
+	var x   = parseFloat (cmd.attrs.center[0]);
+	var y   = parseFloat (cmd.attrs.center[1]);
+	var w1  = parseFloat (cmd.attrs.end[0]);
+	var w2  = parseFloat (cmd.attrs.end[1]);
+
+	var circle = {
+		x1: x + w1,
+		y1: y + w1,
+		x2: x + w2,
+		y2: y + w2,
+		curve: 360,
+		width: cmd.attrs.width[0],
+		layer: cmd.attrs.layer[0]
+	};
+	return circle;
+}
+
+
 KicadNewParser.prototype.parsePad = function (cmd) {
 	cmd.attrs = this.extractAttrs (cmd.args);
 	cmd.args  = this.spliceArgs   (cmd.args);
@@ -409,10 +432,12 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 		pkg.wires.push (line);
 	}, this);
 
-	if (cmd.attrs.fp_circle) cmd.attrs.fp_circle.forEach (function (arcCmd) {
-		// var line = this.parseLine ({name: "fp_line", args: lineCmd});
-		// TODO
-	}, this);
+//	if (cmd.attrs.fp_circle) cmd.attrs.fp_circle.forEach (function (arcCmd) {
+//		console.log (arcCmd);
+//		var line = this.parseCircle ({name: "fp_circle", args: arcCmd});
+//		line.layer = this.eagleLayer (line.layer).number;
+//		pkg.wires.push (line);
+//	}, this);
 
 	if (cmd.attrs.pad) cmd.attrs.pad.forEach (function (padCmd) {
 		var pad = this.parsePad ({name: "pad", args: padCmd});
