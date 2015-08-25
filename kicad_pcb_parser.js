@@ -319,11 +319,6 @@ KicadNewParser.prototype.parseText = function (cmd) {
 	if (cmd.attrs.effects.font && cmd.attrs.effects.font.size)
 		text.size = parseFloat (cmd.attrs.effects.font.size[0]);
 
-	if (cmd.name === "fp_text") {
-		text.type = cmd.args[0];
-		text.hide = (cmd.args.indexOf ("hide") > -1);
-	}
-
 	var rotate = parseFloat (cmd.attrs.at[2]) || 0;
 	text.rot = "R" + rotate;
 
@@ -436,16 +431,24 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 //		'matrix'    : elemMatrix,
 //		'mirror'    : elemRot.indexOf('M') == 0,
 //		'smashed'   : elem.getAttribute('smashed') && (elem.getAttribute('smashed').toUpperCase() == 'YES'),
+		'smashed': true,
+		'absText': false,
 		'attributes': {},
 		'padSignals': {}			//to be filled later
 	};
 
 	cmd.attrs.fp_text.forEach (function (txtCmd) {
 		var txt = this.parseText ({name: "fp_text", args: txtCmd});
+		if (cmd.args.indexOf ("hide") > -1)
+			txt.display = "off";
+		txt.type = txtCmd[0];
+		txt.layer = this.eagleLayer (txt.layer).number;
 		if (txt.type === "reference") {
+			txt.name = "NAME";
 			el.name = txt.content;
 			el.attributes.name = txt;
 		} else if (txt.type === "value") {
+			txt.name = "VALUE";
 			el.value = txt.content;
 			el.attributes.value = txt;
 		}

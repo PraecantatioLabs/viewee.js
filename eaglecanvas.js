@@ -544,6 +544,7 @@ EagleCanvas.prototype.parseElement = function(elem) {
 			var rot = elemAttrib.getAttribute('rot');
 			if (!rot) { rot = "R0"; }
 			attribDict.rot = rot;
+			attribDict.display = elemAttrib.getAttribute('display');
 			attribs[name] = attribDict;
 		}
 	}
@@ -805,32 +806,36 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 		}, this)
 
 		var smashed = elem.smashed,
-		    textCollection = smashed ? elem.attributes : pkg.texts;	//smashed : use element attributes instead of package texts
+			absText = elem.absText === undefined ? elem.smashed : elem.absText,
+			textCollection = smashed ? elem.attributes : pkg.texts;	//smashed : use element attributes instead of package texts
 		for (var textIdx in textCollection) {
 			if (!textCollection.hasOwnProperty (textIdx)) continue;
 			var text = textCollection[textIdx];
+			if (smashed && text.display === "off") continue;
 			var layerNum = text.layer;
-			if ((!elem.smashed) && (elem.mirror)) { 
-				layerNum = this.mirrorLayer(layerNum); 
+			if ((!elem.smashed) && (elem.mirror)) {
+				layerNum = this.mirrorLayer(layerNum);
 			}
 			if (layer.number != layerNum) { continue; }
 
 			var content = smashed ? null : text.content,
-			    attribName = smashed ? text.name : ((text.content.indexOf('>') == 0) ? text.content.substring(1) : null);
+				attribName = smashed ? text.name : ((text.content.indexOf('>') == 0) ? text.content.substring(1) : null);
 			if (attribName == "NAME")  { content = elem.name;  }
 			if (attribName == "VALUE") { content = elem.value; }
 			if (!content) { continue; }
 
-			var x = smashed ? text.x : (elem.x + rotMat[0]*text.x + rotMat[1]*text.y),
-			    y = smashed ? text.y : (elem.y + rotMat[2]*text.x + rotMat[3]*text.y),
-			    rot = smashed ? text.rot : elem.rot,
-			    size = text.size;
+			var x = absText ? text.x : (elem.x + rotMat[0]*text.x + rotMat[1]*text.y),
+				y = absText ? text.y : (elem.y + rotMat[2]*text.x + rotMat[3]*text.y),
+				rot = smashed ? text.rot : elem.rot,
+				size = text.size;
+
+			if (!text.size) continue;
 
 			//rotation from 90.1 to 270 causes Eagle to draw labels 180 degrees rotated with top right anchor point
 			var degrees  = parseFloat(rot.substring((rot.indexOf('M')==0) ? 2 : 1)),
-			    flipText = ((degrees > 90) && (degrees <=270)),
-			    textRot  = this.matrixForRot(rot),
-			    fontSize = 10;
+				flipText = ((degrees > 90) && (degrees <=270)),
+				textRot  = this.matrixForRot(rot),
+				fontSize = 10;
 
 			ctx.save();
 			ctx.fillStyle = color;
@@ -838,7 +843,7 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 			ctx.translate(x,y);
 			ctx.transform(textRot[0],textRot[2],textRot[1],textRot[3],0,0);
 			var scale = size / fontSize;
-			ctx.scale(scale,-scale);
+			ctx.scale(scale,(this.coordYFlip ? 1 : -1)*scale);
 			if (flipText) {
 				var metrics = ctx.measureText(content);
 				ctx.translate(metrics.width,-fontSize);	//Height is not calculated - we'll use the font's 10pt size and hope it fits
