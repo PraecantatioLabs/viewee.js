@@ -479,7 +479,7 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 
 
 	var rotate = parseFloat (cmd.attrs.at[2]) || 0;
-	el.rot = "R" + rotate;
+	el.rot = "R" + (360 - rotate); // WHY?
 
 	// TODO: recheck
 	if (cmd.attrs.layer[0] === "Back") {
