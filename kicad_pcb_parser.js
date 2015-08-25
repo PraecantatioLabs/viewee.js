@@ -419,9 +419,11 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 
 	var pkg = {
 		smds: [],
-		pads: [],
 		wires: [],
 		texts: [],
+		// bbox
+		pads: [],
+		// description
 		polys: []
 	};
 
@@ -437,6 +439,10 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 		'attributes': {},
 		'padSignals': {}			//to be filled later
 	};
+
+	if ("descr" in cmd.attrs) {
+		pkg.description = cmd.attrs.descr[0];
+	}
 
 	cmd.attrs.fp_text.forEach (function (txtCmd) {
 		var txt = this.parseText ({name: "fp_text", args: txtCmd});

@@ -964,7 +964,7 @@ EagleCanvas.prototype.hitTestElements = function(layer, x, y) {
 			    x4 = elem.x + rotMat[0]*bbox[0] + rotMat[1]*bbox[3],	//bottom left
 			    y4 = elem.y + rotMat[2]*bbox[0] + rotMat[3]*bbox[3];
 			if (this.pointInRect(x,y,x1,y1,x2,y2,x3,y3,x4,y4)) {
-				return {'type':'element','name':elem.name};
+				return {'type':'element','name':elem.name, description: pkg.description};
 			}
 		}
 

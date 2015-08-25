@@ -154,7 +154,11 @@ function selectItem(hit) {
 		var hintstext = document.getElementById('hintstext');
 		while (hintstext.childNodes.length > 0) hintstext.removeChild(hintstext.firstChild);
 		var desc = "";
-		if (itemHints) desc = itemHints[hit.type+":"+hit.name];
+		if (hit.description) {
+			desc = hit.description;
+		} else if (typeof itemHints !== "undefined") {
+			desc = itemHints[hit.type+":"+hit.name];
+		}
 		if (!desc) desc = "";
 		hintstext.appendChild(document.createTextNode(desc));
 	}
