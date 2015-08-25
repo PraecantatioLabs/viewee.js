@@ -872,7 +872,7 @@ EagleCanvas.prototype.hitTest = function(x,y) {
 	var canvas = document.querySelector (this.canvasSelector);
 	//Translate screen to model coordinates
 	var rx = x / this.scale;
-	var ry = (canvas.height / this.ratio - y) / this.scale;
+	var ry = (this.coordYFlip ? y : canvas.height / this.ratio - y) / this.scale;
 	ry += this.nativeBounds[1];
 	rx = this.boardFlipped ? (this.nativeBounds[2]-rx) : (rx+this.nativeBounds[0]);
 
