@@ -579,14 +579,18 @@ EagleCanvas.prototype.draw = function() {
 	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 	ctx.save();
 
-	ctx.transform(this.scale * this.ratio * (this.boardFlipped ? -1.0 : 1.0),
-				  0,
-								0,
-								-this.scale*this.ratio,
-								0,
-								ctx.canvas.height);
-	ctx.translate( (this.boardFlipped ? -this.nativeBounds[2] : -(this.nativeBounds[0])),
-				   -this.nativeBounds[1]);
+	ctx.transform(
+		this.scale * this.ratio * (this.boardFlipped ? -1.0 : 1.0),
+		0,
+		0,
+		(this.coordYFlip ? 1 : -1) * this.scale*this.ratio,
+		0,
+		this.coordYFlip ? 0 : ctx.canvas.height
+	);
+	ctx.translate(
+		(this.boardFlipped ? -this.nativeBounds[2] : -(this.nativeBounds[0])),
+		-this.nativeBounds[1]
+	);
 
 	var layerOrder = this.boardFlipped ? this.reverseRenderLayerOrder : this.renderLayerOrder;
 	for (var layerKey in layerOrder) {
@@ -712,7 +716,7 @@ EagleCanvas.prototype.drawPlainTexts = function (layer, ctx) {
 	ctx.translate(x,y);
 	ctx.transform(textRot[0],textRot[2],textRot[1],textRot[3],0,0);
 	var scale = size / fontSize;
-	ctx.scale(scale,-scale);
+	ctx.scale(scale,(this.coordYFlip ? 1 : -1)*scale);
 	if (flipText) {
 		var metrics = ctx.measureText(content);
 		ctx.translate(metrics.width,-fontSize);	//Height is not calculated - we'll use the font's 10pt size and hope it fits

@@ -26,6 +26,8 @@ function KicadNewParser (board) {
 	board.plainWires = {};
 	board.plainTexts = {};
 
+	board.coordYFlip = true;
+
 	this.board = board;
 }
 
