@@ -335,6 +335,13 @@ EagleCanvas.prototype.parse = function() {
 			packagePads.push(this.parsePad(pad));
 		}
 
+		var packagePolys = [];
+		var polys = pkg.getElementsByTagName('polygon');
+		for (var polyIdx = 0; polyIdx < polys.length; polyIdx++) {
+			var poly = polys[polyIdx];
+			packagePolys.push (this.parsePoly (poly));
+		}
+
 		var packageWires = [];
 		var wires = pkg.getElementsByTagName('wire');
 		for (var wireIdx = 0; wireIdx < wires.length; wireIdx++) {
@@ -354,11 +361,12 @@ EagleCanvas.prototype.parse = function() {
 
 
 		var packageDict = {
-			'smds':packageSmds,
-			'wires':packageWires,
-			'texts':packageTexts,
-			'bbox':bbox,
-			'pads':packagePads,
+			smds:  packageSmds,
+			wires: packageWires,
+			texts: packageTexts,
+			bbox:  bbox,
+			pads:  packagePads,
+			polys: packagePolys,
 			description: description
 		};
 		this.packagesByName[packageName] = packageDict;
@@ -428,6 +436,24 @@ EagleCanvas.prototype.parseRect = function(rect) {
 			'x2'   : parseFloat(rect.getAttribute('x2')),
 			'y2'   : parseFloat(rect.getAttribute('y2')),
 			'layer': rect.getAttribute('layer')};
+}
+
+
+EagleCanvas.prototype.parsePoly = function(poly) {
+	var width = parseFloat(poly.getAttribute('width'));
+	var vertexes = [];
+	[].slice.apply (poly.getElementsByTagName ('vertex')).forEach (function (vertexEl) {
+		vertexes.push ({
+			'x':parseFloat (vertexEl.getAttribute ('x')),
+			'y':parseFloat (vertexEl.getAttribute ('y'))
+		});
+	});
+
+	return {
+		vertexes: vertexes,
+		layer: poly.getAttribute('layer'),
+		width: width
+	};
 }
 
 
@@ -767,6 +793,35 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 				ctx.fill();
 			}, this)
 
+		pkg.polys.forEach(function(poly) {
+			var layerNum = poly.layer;
+			if (elem.mirror) { layerNum = this.mirrorLayer(layerNum); }
+			if (layer.number != layerNum) { return ; }
+
+			ctx.beginPath();
+			ctx.lineWidth = poly.width;
+			for (var vId = 1; vId < poly.vertexes.length; vId ++) {
+				var vertex1 = poly.vertexes[vId - 1];
+				var vertex2 = poly.vertexes[vId];
+				var x1  = elem.x + rotMat[0]*vertex1.x  + rotMat[1]*vertex1.y,
+					y1  = elem.y + rotMat[2]*vertex1.x  + rotMat[3]*vertex1.y,
+					x2  = elem.x + rotMat[0]*vertex2.x  + rotMat[1]*vertex2.y,
+					y2  = elem.y + rotMat[2]*vertex2.x  + rotMat[3]*vertex2.y;
+				console.log ({x1: x1, y1: y1, x2: x2, y2: y2});
+				this.drawWire ({
+					// curve: wire.curve,
+					x1: x1, y1: y1, x2: x2, y2: y2,
+					// x: x, y: y, radius: wire.radius, angle: wire.angle, start: wire.start
+				}, ctx);
+			}
+
+			ctx.closePath();
+			ctx.strokeStyle = color;
+			ctx.stroke();
+			ctx.fillStyle = color;
+			ctx.fill();
+		}, this)
+
 		pkg.wires.forEach(function(wire) {
 			var layerNum = wire.layer;
 			if (elem.mirror) { layerNum = this.mirrorLayer(layerNum); }
@@ -784,8 +839,6 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 				x1: x1, y1: y1, x2: x2, y2: y2,
 				x: x, y: y, radius: wire.radius, angle: wire.angle, start: wire.start
 			}, ctx);
-			//ctx.moveTo(x1,y1);
-			//ctx.lineTo(x2,y2);
 			ctx.strokeStyle = color;
 			ctx.stroke();
 		}, this)

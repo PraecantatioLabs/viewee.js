@@ -421,7 +421,8 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 		smds: [],
 		pads: [],
 		wires: [],
-		texts: []
+		texts: [],
+		polys: []
 	};
 
 	var el = {
