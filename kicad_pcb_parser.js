@@ -1,3 +1,15 @@
+(function (root, factory) {
+	if(typeof define === "function" && define.amd) {
+		define(function(){
+			return factory();
+		});
+	} else if(typeof module === "object" && module.exports) {
+		module.exports = factory();
+	} else {
+		root.KicadNewParser = factory();
+	}
+}(this, function () {
+
 function KicadNewParser (board) {
 	this.context = [];
 	this.chunk = ""; // TODO: use a node compatible Buffers
@@ -643,3 +655,7 @@ if (typeof process !== "undefined") {
 	var fs = require ("fs");
 	kp.parse (fs.readFileSync (process.argv[2]));
 }
+
+return KicadNewParser;
+
+}));
