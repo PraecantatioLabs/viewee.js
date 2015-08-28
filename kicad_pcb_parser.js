@@ -43,6 +43,13 @@ function KicadNewParser (board) {
 	this.board = board;
 }
 
+KicadNewParser.supports = function (text) {
+	if (text.match (/\(kicad_pcb/)) return true;
+}
+
+KicadNewParser.name = "kicad kicad_pcb";
+
+
 var layerMaps = {
 	"Front": "Top",
 	"Back": "Bottom",

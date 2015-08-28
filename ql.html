@@ -14,18 +14,13 @@
 </head>
 
 
-<body onload="init();">
+<body>
 	<div id="outer" onclick="selectItem(null);">
 		<div id="hintsbox">
 			<h2 id="hintstitle"></h2>
 			<p id="hintstext"></p>
 		</div>
 		<div id="controls">
-			<select class="board" onchange="init(this.options[this.selectedIndex].value);">
-				<option value="lpcprog.kicad_pcb">kicad_pcb</option>
-				<option value="hm-11.brd">hm-11</option>
-				<option value="board.brd">board</option>
-			</select>
 			<div class="button selected" id="frontsidebutton" onclick="showFrontSide()">Front</div>
 			<div class="button" id="backsidebutton" onclick="showBackSide()">Back</div>
 			<div class="button" id="zoominbutton" onclick="zoomIn()">+</div>
@@ -52,6 +47,7 @@
 			</div>
 		</div>
 	</div>
+	<script type="text/javascript" src="data.js"></script>
 
 </body>
 

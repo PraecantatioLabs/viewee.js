@@ -218,6 +218,50 @@ EagleCanvas.prototype.setHighlightedItem = function(item) {
 }
 
 // ---------------
+// --- PARSERS ---
+// ---------------
+
+EagleCanvas.EagleParser = function (board) {
+	// TODO: move all parsing to the new class
+	return board;
+}
+
+EagleCanvas.parsers = [
+	EagleCanvas.EagleParser
+];
+
+if ("KicadNewParser" in window) {
+	EagleCanvas.parsers.push (window.KicadNewParser);
+}
+
+EagleCanvas.EagleParser.supports = function (text) {
+	if (text.match (/\<\?xml/) && text.match (/\<eagle/)) return true;
+}
+
+EagleCanvas.EagleParser.name = "eagle brd";
+
+
+EagleCanvas.prototype.loadText = function (text) {
+	this.text = text;
+
+	EagleCanvas.parsers.some (function (parser) {
+		if (!parser) return;
+
+		if (parser.supports (text)) {
+			console.log (parser.name, "can parse this file");
+			var parser = new parser (this);
+			parser.parse (text);
+			return true;
+		}
+	}, this)
+
+	this.nativeBounds = this.calculateBounds();
+	this.nativeSize   = [this.nativeBounds[2]-this.nativeBounds[0],this.nativeBounds[3]-this.nativeBounds[1]];
+	this.scaleToFit();
+}
+
+
+// ---------------
 // --- LOADING ---
 // ---------------
 
@@ -235,28 +279,23 @@ EagleCanvas.prototype.loadURL = function(url, cb) {
 	request.send(null);
 };
 
-EagleCanvas.prototype.loadText = function(text) {
-	this.text = text;
-	var parser = new DOMParser();
-	this.boardXML = parser.parseFromString(this.text,"text/xml");
-	this.parse();
-	this.nativeBounds = this.calculateBounds();
-	this.nativeSize   = [this.nativeBounds[2]-this.nativeBounds[0],this.nativeBounds[3]-this.nativeBounds[1]];
-	this.scaleToFit();
-}
-
-
 // ---------------
 // --- PARSING ---
 // ---------------
 
-EagleCanvas.prototype.parse = function() {
+EagleCanvas.prototype.parse = function (text) {
+	var parser = new DOMParser ();
+	var boardXML = parser.parseFromString (this.text,"text/xml");
+	this.parseDOM (boardXML)
+}
+
+EagleCanvas.prototype.parseDOM = function(boardXML) {
   // store by eagle name
 	this.eagleLayersByName = {};
   // store by eagle number
 	this.layersByNumber = {};
 
-	var layers = this.boardXML.getElementsByTagName('layer');
+	var layers = boardXML.getElementsByTagName('layer');
 	for (var layerIdx = 0; layerIdx < layers.length; layerIdx++) {
 		var layerDict = this.parseLayer( layers[layerIdx] );
 		this.eagleLayersByName[layerDict.name] = layerDict;
@@ -264,7 +303,7 @@ EagleCanvas.prototype.parse = function() {
 	}
 
 	this.elements = {};
-	var elements = this.boardXML.getElementsByTagName('element');
+	var elements = boardXML.getElementsByTagName('element');
 	for (var elementIdx = 0; elementIdx < elements.length; elementIdx++) {
 		var elemDict = this.parseElement( elements[elementIdx] )
 		this.elements[elemDict.name] = elemDict;
@@ -272,7 +311,7 @@ EagleCanvas.prototype.parse = function() {
 
 	this.signalItems = {};
 	//hashmap signal name -> hashmap layer number -> hashmap 'wires'->wires array, 'vias'->vias array
-	var signals = this.boardXML.getElementsByTagName('signal');
+	var signals = boardXML.getElementsByTagName('signal');
 	for (var sigIdx = 0; sigIdx < signals.length; sigIdx++) {
 		var signal = signals[sigIdx];
 		var name = signal.getAttribute('name');
@@ -310,9 +349,9 @@ EagleCanvas.prototype.parse = function() {
 			if (elem) elem.padSignals[padName] = name;
 		}
 	}
-	
+
 	this.packagesByName = {};
-	var packages = this.boardXML.getElementsByTagName('package');
+	var packages = boardXML.getElementsByTagName('package');
 	for (var packageIdx = 0; packageIdx < packages.length; packageIdx++) {
 		var pkg = packages[packageIdx];
 		var packageName = pkg.getAttribute('name');
@@ -374,15 +413,15 @@ EagleCanvas.prototype.parse = function() {
 
 	this.plainWires = {};
 	this.plainTexts = {};
-	var plains = this.boardXML.getElementsByTagName('plain');	//Usually only one
+	var plains = boardXML.getElementsByTagName('plain');	//Usually only one
 	for (var plainIdx = 0; plainIdx < plains.length; plainIdx++) {
 		var plain = plains[plainIdx],
 			wires = plain.getElementsByTagName('wire'),
 			texts = plain.getElementsByTagName('text');
 		for (var wireIdx = 0; wireIdx < wires.length; wireIdx++) {
 			var wire = wires[wireIdx],
-			    wireDict = this.parseWire(wire),
-			    layer = wireDict.layer;
+				wireDict = this.parseWire(wire),
+				layer = wireDict.layer;
 			if (!this.plainWires[layer]) this.plainWires[layer] = [];
 			this.plainWires[layer].push(wireDict);
 		}
