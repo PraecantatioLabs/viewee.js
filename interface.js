@@ -50,20 +50,6 @@ function init (url) {
 
 	eaglecanvas = new EagleCanvas('#canvas');
 
-	EagleCanvas.prototype.loadText = function (text) {
-		this.text = text;
-		if (text.match (/\<\?xml/) && text.match (/\<eagle/)) {
-			var parser = new DOMParser();
-			this.boardXML = parser.parseFromString(this.text,"text/xml");
-			this.parse()
-		} else if (text.match (/\(kicad_pcb/)) {
-			var kicadParser = new KicadNewParser (eaglecanvas);
-			kicadParser.parse (text);
-		}
-		this.nativeBounds = this.calculateBounds();
-		this.nativeSize   = [this.nativeBounds[2]-this.nativeBounds[0],this.nativeBounds[3]-this.nativeBounds[1]];
-		this.scaleToFit();
-	}
 	eaglecanvas.setScaleToFit('#outer');
 	eaglecanvas.loadURL(url || defaultUrl, stupidWebfontTrick);
 }
