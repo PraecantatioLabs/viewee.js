@@ -44,31 +44,168 @@ function stupidWebfontTrick(eagle) {
 	updateCheckboxes()
 	selectItem(null)
 }
-function init (url) {
+
+function loadWebFonts (cb) {
+	var fontLoader = new FontLoader(["vector"], {
+		"complete": function(error) {
+			if (error !== null) {
+				// Reached the timeout but not all fonts were loaded
+				console.log(error.message);
+				console.log(error.notLoadedFonts);
+			} else {
+				// All fonts were loaded
+				// console.log("all fonts were loaded");
+			}
+			cb();
+		}
+	}, 500);
+	fontLoader.loadFonts();
+}
+
+function MakeEl (name, attributes) {
+	var el = document.createElement (name);
+	if (typeof attributes == 'object') {
+		for (var i in attributes) {
+			el.setAttribute (i, attributes[i]);
+			if (i.toLowerCase() == 'class') {
+				el.className = attributes[i];  // for IE compatibility
+			} else if (i.toLowerCase() == 'style') {
+				el.style.cssText = attributes[i]; // for IE compatibility
+			}
+		}
+	}
+	for (var i = 2; i<arguments.length; i++) {
+		var val = arguments[i];
+		if (typeof val == 'string')
+			val = document.createTextNode( val );
+		if (el && el.appendChild)
+			el.appendChild (val);
+	}
+	return el;
+}
+
+function getFormFields (formEl, formData) {
+	formData = formData || {};
+	for (var k in formData) {
+		delete formData[k];
+	}
+	for (var i = 0; i < formEl.elements.length; i ++) {
+		var formField = formEl.elements[i];
+		var checkedType = formField.type.match (/^(?:radio|checkbox)$/);
+		if ((checkedType && formField.checked) || !checkedType) {
+			formData[formField.name] = formField.value;
+		}
+	}
+	// console.log (formData);
+	return formData;
+}
+
+var layers = [
+	{id: 5, title: "Top Copper"},
+	{id: 6, title: "Top silkscreen"},
+	{id: 7, title: "Top documentation"},
+	{id: 1, title: "Bottom copper"},
+	{id: 2, title: "Bottom silkscreen"},
+	{id: 3, title: "Bottom documentation"},
+	{id: 9, title: "Outline"},
+	{id: 8, title: "Vias"},
+	{id: 4, title: "Dim backside"},
+];
+
+function ViewEE (options) {
+
+	if (ViewEE.initialized)
+		return ViewEE.initialized;
+
+	if (!options) options = {};
+
+	this.canvasSelector = options.canvasSelector || '#canvas';
+
+	this.scaleSelector  = options.scaleSelector || '#outer';
+
+	this.formSelector = options.formSelector || "form";
+
+	var form = document.querySelector (this.formSelector);
+	var radios = [].slice.apply (form.querySelectorAll ('input[name=side]'));
+	radios.forEach (function (radio) {
+		radio.addEventListener ('click', function (e) {
+			e = e || window.event;
+			if (e) e.stopPropagation();
+			var ff = getFormFields (form);
+			eaglecanvas.setBoardFlipped (ff.side === 'back');
+		});
+	});
+
+	var layerList = form.querySelector ('div.dropdown ul.layers');
+	layerList.innerHTML = '';
+
+	for (var i = 0; i < layers.length; i++) {
+		var layerNum = layers[i].id;
+		var chk = MakeEl ('input', {
+			type: "checkbox", checked: "true", id: "layer-"+layerNum, "data-layer": layerNum
+		});
+		var li = MakeEl (
+			'li', {},
+			chk,
+			MakeEl ('label', {for: "layer-"+layerNum}, layers[i].title)
+		);
+
+		layerList.appendChild (li);
+
+		chk.addEventListener ('click', this.toggleLayer.bind (this));
+	}
+
+	ViewEE.initialized = this;
+
+	var resizeHandler = function () {
+		eaglecanvas.scaleToFit ();
+		eaglecanvas.draw ();
+	}.bind (this);
+
+	var resizeTimer;
+	window.addEventListener ("resize", function() {
+		clearTimeout (resizeTimer);
+		resizeTimer = setTimeout (resizeHandler, 100);
+	});
+
+	loadWebFonts (function () {
+		ViewEE.fontReady = true;
+		if (this.loadUrl.delayed) {
+			eaglecanvas.loadURL (this.loadUrl.delayed);
+		} else if (this.loadText.delayed) {
+			eaglecanvas.loadText (this.loadText.delayed);
+		}
+	}.bind (this));
+
+}
+
+ViewEE.prototype.loadUrl = function (url) {
 
 	var defaultUrl = 'lpcprog.kicad_pcb';
 
-	eaglecanvas = new EagleCanvas('#canvas');
+	eaglecanvas = new EagleCanvas (this.canvasSelector);
 
-	eaglecanvas.setScaleToFit('#outer');
-	eaglecanvas.loadURL(url || defaultUrl, stupidWebfontTrick);
+	eaglecanvas.setScaleToFit (this.scaleSelector);
+	if (!ViewEE.fontReady) {
+		this.loadUrl.delayed = url || defaultUrl;
+	} else {
+		eaglecanvas.loadURL(url || defaultUrl, function () {});
+	}
+
 }
 
-function showFrontSide(e) {
-	e = e || window.event;
-	if (e) e.stopPropagation();
-	eaglecanvas.setBoardFlipped(false);
-	document.getElementById('frontsidebutton').className = "button selected";
-	document.getElementById('backsidebutton').className = "button";
+ViewEE.prototype.loadText = function (text) {
+
+	eaglecanvas = new EagleCanvas (this.canvasSelector);
+
+	eaglecanvas.setScaleToFit (this.scaleSelector);
+	if (!ViewEE.fontReady) {
+		this.loadText.delayed = text;
+	} else {
+		eaglecanvas.loadText (text);
+	}
 }
 
-function showBackSide(e) {
-	e = e || window.event;
-	if (e) e.stopPropagation();
-	eaglecanvas.setBoardFlipped(true);
-	document.getElementById('frontsidebutton').className = "button";
-	document.getElementById('backsidebutton').className = "button selected";
-}
 
 function zoomIn(e) {
 	e = e || window.event;
@@ -82,13 +219,24 @@ function zoomOut(e) {
 	eaglecanvas.setScale(eaglecanvas.getScale()/1.2);
 }
 
-function toggleLayer(layer) {
-	e = window.event;
+ViewEE.prototype.toggleLayer = function (e, layer) {
+	e = e || window.event;
 	if (e) e.stopPropagation();
+	if (!layer) layer = parseInt (e.target.getAttribute ('data-layer'));
 	var shown = eaglecanvas.isLayerVisible(layer);
 	shown = !shown;
 	eaglecanvas.setLayerVisible(layer,shown);
-	updateCheckboxes();
+	this.updateCheckboxes();
+}
+
+ViewEE.prototype.updateCheckboxes = function () {
+	for (var layerKey in EagleCanvas.LayerId) {
+		var layerId = EagleCanvas.LayerId[layerKey];
+		var form = document.querySelector (this.formSelector);
+		var chk = form.querySelector ('input[data-layer="'+layerId+'"]');
+		if (!chk) continue;
+		chk.checked = (eaglecanvas.isLayerVisible(layerId)) ? "checked" : "";
+	}
 }
 
 function canvasClick(e) {
@@ -100,16 +248,6 @@ function canvasClick(e) {
 	var y = e.clientY - canvas.getBoundingClientRect().top - canvas.clientTop + canvas.scrollTop;
 	var hit = eaglecanvas.hitTest(x,y);
 	selectItem(hit);
-}
-
-function updateCheckboxes() {
-	for (var layerKey in EagleCanvas.LayerId) {
-		var layerId = EagleCanvas.LayerId[layerKey];
-		var cbId = "SHOW_LAYER_CB_"+layerId;
-		var cb = document.getElementById(cbId);
-		if (!cb) continue;
-		cb.checked = (eaglecanvas.isLayerVisible(layerId)) ? "checked" : "";
-	}
 }
 
 function selectItem(hit) {
@@ -137,4 +275,7 @@ function selectItem(hit) {
 	}
 }
 
-
+function init (url) {
+	if (typeof viewee === "undefined") var viewee = new ViewEE ();
+	viewee.loadUrl (url);
+}
