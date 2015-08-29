@@ -266,16 +266,16 @@ EagleCanvas.prototype.loadText = function (text) {
 // --- LOADING ---
 // ---------------
 
-EagleCanvas.prototype.loadURL = function(url, cb) {
+EagleCanvas.prototype.loadURL = function (url, cb) {
 	this.url = url;
 	var request = new XMLHttpRequest(),
-			self = this;
+		self = this;
 	request.open('GET', this.url, true);
-    request.onreadystatechange = function () {
-        if (request.readyState == 4) {
-        	self.loadText(request.responseText);
-					cb(self)
-	    }
+	request.onreadystatechange = function () {
+		if (request.readyState == 4) {
+			self.loadText(request.responseText);
+			cb && cb(self);
+		}
 	};
 	request.send(null);
 };
