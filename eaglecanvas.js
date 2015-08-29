@@ -131,6 +131,7 @@ function EagleCanvas(canvasSelector) {
 
 	this.layerRenderFunctions[EagleCanvas.LayerId.OUTLINE] = function(that,ctx) {
 		that.drawPlainWires(that.eagleLayersByName['Dimension'],ctx);
+		that.drawPlainHoles(that.eagleLayersByName['Dimension'],ctx);
 	}
 
 	this.hitTestFunctions = {};
@@ -389,6 +390,14 @@ EagleCanvas.prototype.parseDOM = function(boardXML) {
 			packageWires.push(wireDict);
 		}
 
+		var packageHoles = [];
+		var holes = pkg.getElementsByTagName('hole');
+		for (var holeIdx = 0; holeIdx < holes.length; holeIdx++) {
+			var hole = holes[holeIdx];
+			var holeDict = this.parseHole(hole);
+			packageHoles.push(holeDict);
+		}
+
 		var bbox = this.calcBBox (packageWires);
 
 		var packageTexts = [],
@@ -406,6 +415,7 @@ EagleCanvas.prototype.parseDOM = function(boardXML) {
 			bbox:  bbox,
 			pads:  packagePads,
 			polys: packagePolys,
+			holes: packageHoles,
 			description: description
 		};
 		this.packagesByName[packageName] = packageDict;
@@ -413,11 +423,13 @@ EagleCanvas.prototype.parseDOM = function(boardXML) {
 
 	this.plainWires = {};
 	this.plainTexts = {};
+	this.plainHoles = [];
 	var plains = boardXML.getElementsByTagName('plain');	//Usually only one
 	for (var plainIdx = 0; plainIdx < plains.length; plainIdx++) {
 		var plain = plains[plainIdx],
 			wires = plain.getElementsByTagName('wire'),
-			texts = plain.getElementsByTagName('text');
+			texts = plain.getElementsByTagName('text'),
+			holes = plain.getElementsByTagName('hole');
 		for (var wireIdx = 0; wireIdx < wires.length; wireIdx++) {
 			var wire = wires[wireIdx],
 				wireDict = this.parseWire(wire),
@@ -432,6 +444,12 @@ EagleCanvas.prototype.parseDOM = function(boardXML) {
 				layer = textDict.layer;
 			if (!this.plainTexts[layer]) this.plainTexts[layer] = [];
 			this.plainTexts[layer].push(textDict);
+		}
+
+		for (var holeIdx = 0; holeIdx < holes.length; holeIdx++) {
+			var hole = holes[holeIdx],
+				holeDict = this.parseHole(hole);
+			this.plainHoles.push(holeDict);
 		}
 	}
 }
@@ -520,6 +538,15 @@ EagleCanvas.prototype.parseVia = function(via) {
 			'shape': via.getAttribute('shape')
 		   };
 }
+
+EagleCanvas.prototype.parseHole = function(hole) {
+	return {
+		'x':parseFloat(hole.getAttribute('x')),
+		'y':parseFloat(hole.getAttribute('y')),
+		'drill':parseFloat(hole.getAttribute('drill'))
+	};
+}
+
 
 EagleCanvas.prototype.parseWire = function(wire) {
 	var width = parseFloat(wire.getAttribute('width'));
@@ -705,6 +732,22 @@ EagleCanvas.prototype.drawPlainWires = function(layer, ctx) {
 		ctx.stroke();
 	}, this);
 }
+
+EagleCanvas.prototype.drawPlainHoles = function(layer, ctx) {
+	if (!layer) { return; }
+
+	ctx.lineCap = 'round';
+	ctx.strokeStyle = this.layerColor (layer.color);
+
+	var layerHoles = this.plainHoles || [];
+	layerHoles.forEach(function(hole){
+		ctx.beginPath();
+		ctx.arc(hole.x, hole.y, hole.drill/2, 0, 2 * Math.PI, false);
+		ctx.lineWidth = this.minLineWidth;
+		ctx.stroke();
+	}, this);
+}
+
 
 EagleCanvas.prototype.drawSignalWires = function(layer, ctx) {
 	if (!layer) { return; }
@@ -892,6 +935,20 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 			ctx.lineWidth = (pad.diameter - pad.drill) / 2;
 			ctx.arc(x, y, pad.drill * 0.75, 0, Math.PI * 2, false);
 			ctx.strokeStyle = this.viaPadColor();
+			ctx.stroke();
+		}, this)
+
+		pkg.holes.forEach(function(hole) {
+			var layerNum = hole.layer;
+			// We don't need to check layers, holes is pass through all layers
+			var x = elem.x + rotMat[0]*hole.x + rotMat[1]*hole.y,
+				y = elem.y + rotMat[2]*hole.x + rotMat[3]*hole.y;
+
+			ctx.beginPath();
+
+			ctx.lineWidth = this.minLineWidth;
+			ctx.arc(x, y, hole.drill / 2, 0, Math.PI * 2, false);
+			ctx.strokeStyle = this.layerColor(15); // ouline/dimension color
 			ctx.stroke();
 		}, this)
 
