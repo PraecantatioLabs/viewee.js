@@ -839,24 +839,22 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 
 			ctx.beginPath();
 			ctx.lineWidth = poly.width;
+			var vertex = poly.vertexes[0];
+			var x1  = elem.x + rotMat[0]*vertex.x  + rotMat[1]*vertex.y,
+				y1  = elem.y + rotMat[2]*vertex.x  + rotMat[3]*vertex.y;
+
+			ctx.moveTo(x1, y1);
 			for (var vId = 1; vId < poly.vertexes.length; vId ++) {
-				var vertex1 = poly.vertexes[vId - 1];
-				var vertex2 = poly.vertexes[vId];
-				var x1  = elem.x + rotMat[0]*vertex1.x  + rotMat[1]*vertex1.y,
-					y1  = elem.y + rotMat[2]*vertex1.x  + rotMat[3]*vertex1.y,
-					x2  = elem.x + rotMat[0]*vertex2.x  + rotMat[1]*vertex2.y,
-					y2  = elem.y + rotMat[2]*vertex2.x  + rotMat[3]*vertex2.y;
-				console.log ({x1: x1, y1: y1, x2: x2, y2: y2});
-				this.drawWire ({
-					// curve: wire.curve,
-					x1: x1, y1: y1, x2: x2, y2: y2,
-					// x: x, y: y, radius: wire.radius, angle: wire.angle, start: wire.start
-				}, ctx);
+				var vertex = poly.vertexes[vId],
+					x1  = elem.x + rotMat[0]*vertex.x  + rotMat[1]*vertex.y,
+					y1  = elem.y + rotMat[2]*vertex.x  + rotMat[3]*vertex.y;
+
+				ctx.lineTo(x1, y1);
 			}
 
 			ctx.closePath();
-			ctx.strokeStyle = color;
-			ctx.stroke();
+			// ctx.strokeStyle = color;
+			// ctx.stroke();
 			ctx.fillStyle = color;
 			ctx.fill();
 		}, this)
