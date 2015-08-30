@@ -1195,12 +1195,18 @@ EagleCanvas.prototype.viaPadColor = function () {
 }
 
 EagleCanvas.prototype.matrixForRot = function(rot) {
-	var flipped      = (rot.indexOf('M') == 0),
-	    degreeString = rot.substring(flipped ? 2 : 1),
-	    degrees      = parseFloat(degreeString),
-	    rad          = degrees * Math.PI / 180.0,
-	    flipSign     = flipped ? -1 : 1,
-	    matrix       = [flipSign * Math.cos(rad), flipSign * -Math.sin(rad), Math.sin(rad), Math.cos(rad)];
+	var spin         = (rot.indexOf('S') === 0), // TODO: spin rotate
+		flipped      = (rot.indexOf('M') === 0),
+		degreeString = rot.substring(flipped | spin ? 2 : 1),
+		degrees      = parseFloat(degreeString),
+		rad          = degrees * Math.PI / 180.0,
+		flipSign     = flipped ? -1 : 1,
+		matrix       = [
+			flipSign * Math.cos(rad),
+			flipSign * -Math.sin(rad),
+			Math.sin(rad),
+			Math.cos(rad)
+		];
 	return matrix;
 }
 
