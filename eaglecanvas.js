@@ -980,19 +980,27 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 				var layerNum = smd.layer;
 				if (elem.mirror) { layerNum = this.mirrorLayer(layerNum); }
 				if (layer.number != layerNum) { return; }
+				var smdRotMat = this.matrixForRot (smd.rot);
+				var smdX = smd.x1 + (smd.x2-smd.x1)/2,
+					smdY = smd.y1 + (smd.y2-smd.y1)/2,
+					smdX1 = smdX + smdRotMat[0]*(-smd.x1 + smdX) + smdRotMat[1]*(-smd.y1 + smdY),	//top left
+					smdY1 = smdY + smdRotMat[2]*(-smd.x1 + smdX) + smdRotMat[3]*(-smd.y1 + smdY),
+					smdX2 = smdX + smdRotMat[0]*(-smd.x2 + smdX) + smdRotMat[1]*(-smd.y2 + smdY),	//top right
+					smdY2 = smdY + smdRotMat[2]*(-smd.x2 + smdX) + smdRotMat[3]*(-smd.y2 + smdY);
+
 				//Note that rotation might be not axis aligned, so we have do transform all corners
-				var x1 = elem.x + rotMat[0]*smd.x1 + rotMat[1]*smd.y1,	//top left
-						y1 = elem.y + rotMat[2]*smd.x1 + rotMat[3]*smd.y1,
-						x2 = elem.x + rotMat[0]*smd.x2 + rotMat[1]*smd.y1,	//top right
-						y2 = elem.y + rotMat[2]*smd.x2 + rotMat[3]*smd.y1,
-						x3 = elem.x + rotMat[0]*smd.x2 + rotMat[1]*smd.y2,	//bottom right
-						y3 = elem.y + rotMat[2]*smd.x2 + rotMat[3]*smd.y2,
-						x4 = elem.x + rotMat[0]*smd.x1 + rotMat[1]*smd.y2,	//bottom left
-						y4 = elem.y + rotMat[2]*smd.x1 + rotMat[3]*smd.y2;
+				var x1 = elem.x + rotMat[0]*smdX1 + rotMat[1]*smdY1,	//top left
+					y1 = elem.y + rotMat[2]*smdX1 + rotMat[3]*smdY1,
+					x2 = elem.x + rotMat[0]*smdX2 + rotMat[1]*smdY1,	//top right
+					y2 = elem.y + rotMat[2]*smdX2 + rotMat[3]*smdY1,
+					x3 = elem.x + rotMat[0]*smdX2 + rotMat[1]*smdY2,	//bottom right
+					y3 = elem.y + rotMat[2]*smdX2 + rotMat[3]*smdY2,
+					x4 = elem.x + rotMat[0]*smdX1 + rotMat[1]*smdY2,	//bottom left
+					y4 = elem.y + rotMat[2]*smdX1 + rotMat[3]*smdY2;
 
 				var padName = smd.name,
-						signalName = elem.padSignals[padName],
-						highlightPad = (this.highlightedItem && (this.highlightedItem.type=='signal') && (this.highlightedItem.name==signalName)); 
+					signalName = elem.padSignals[padName],
+					highlightPad = (this.highlightedItem && (this.highlightedItem.type=='signal') && (this.highlightedItem.name==signalName));
 
 				ctx.fillStyle = highlightPad ? this.highlightColor(layer.color) : color;
 				ctx.beginPath();

@@ -413,7 +413,7 @@ KicadNewParser.prototype.parsePad = function (cmd) {
 	if (cmd.attrs.net) net = cmd.attrs.net[0];
 	var x   = parseFloat (cmd.attrs.at[0]);
 	var y   = parseFloat (cmd.attrs.at[1]);
-	var rot = parseFloat (cmd.attrs.at[2]);
+	var rot = "R" + (parseFloat (cmd.attrs.at[2]) || 0);
 	var w   = parseFloat (cmd.attrs.size[0]);
 	var h   = parseFloat (cmd.attrs.size[1]);
 
@@ -424,6 +424,7 @@ KicadNewParser.prototype.parsePad = function (cmd) {
 		y1: y - h/2,
 		x2: x + w/2,
 		y2: y + h/2,
+		rot: rot,
 		name: cmd.args[0],
 		type: type,
 		shape: cmd.args[2],
