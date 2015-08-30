@@ -312,6 +312,20 @@ EagleCanvas.prototype.parseDOM = function(boardXML) {
 		this.elements[elemDict.name] = elemDict;
 	}
 
+	this.designRules = {};
+	//hashmap signal name -> hashmap layer number -> hashmap 'wires'->wires array, 'vias'->vias array
+	var rules = boardXML.getElementsByTagName('designrules');
+	for (var ruleIdx = 0; ruleIdx < rules.length; ruleIdx++) {
+		var rule = rules[ruleIdx];
+
+		var ruleParams = rule.getElementsByTagName('param');
+		for (var ruleParamIdx = 0; ruleParamIdx < ruleParams.length; ruleParamIdx++) {
+			var ruleParam = ruleParams[ruleParamIdx];
+			this.designRules[ruleParam.getAttribute ("name")] = ruleParam.getAttribute ("value");
+		}
+	}
+
+
 	this.signalItems = {};
 	//hashmap signal name -> hashmap layer number -> hashmap 'wires'->wires array, 'vias'->vias array
 	var signals = boardXML.getElementsByTagName('signal');
