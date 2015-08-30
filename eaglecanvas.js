@@ -390,6 +390,13 @@ EagleCanvas.prototype.parseDOM = function(boardXML) {
 			packageWires.push(wireDict);
 		}
 
+		var wires = pkg.getElementsByTagName('circle');
+		for (var wireIdx = 0; wireIdx < wires.length; wireIdx++) {
+			var wire = wires[wireIdx];
+			var wireDict = this.parseCircle(wire);
+			packageWires.push(wireDict);
+		}
+
 		var packageHoles = [];
 		var holes = pkg.getElementsByTagName('hole');
 		for (var holeIdx = 0; holeIdx < holes.length; holeIdx++) {
@@ -598,6 +605,27 @@ EagleCanvas.prototype.parseWire = function(wire) {
 	};
 
 }
+
+EagleCanvas.prototype.parseCircle = function(wire) {
+	var width = parseFloat(wire.getAttribute('width'));
+	if (width <= 0.0) width = this.minLineWidth;
+
+	var layer = parseInt(wire.getAttribute('layer'));
+
+	var tagName = wire.tagName;
+
+	return {
+		x: parseFloat(wire.getAttribute ("x")),
+		y: parseFloat(wire.getAttribute ("y")),
+		radius: parseFloat(wire.getAttribute ("radius")),
+		start: 0,
+		angle: Math.PI * 2,
+		curve: 360,
+		width: width,
+		layer: layer
+	}
+}
+
 
 EagleCanvas.prototype.parseText = function(text) {
 	var content = text.textContent;
