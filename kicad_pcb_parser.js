@@ -443,7 +443,8 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 		// bbox
 		pads: [],
 		// description
-		polys: []
+		polys: [],
+		holes: []
 	};
 
 	var el = {
@@ -621,9 +622,6 @@ KicadNewParser.prototype.cmdDone = function () {
 			signalLayerItems[eagleLayerNumber] = {wires: [], vias: []};
 		signalLayerItems[eagleLayerNumber][entType].push (entity);
 
-		if (entType === 'vias') {
-			console.log (entity.drill);
-		}
 	}
 
 	if (this.cmd.name === "gr_text") {
