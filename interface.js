@@ -181,7 +181,13 @@ function ViewEE (options) {
 
 ViewEE.prototype.loadUrl = function (url) {
 
-	var defaultUrl = 'lpcprog.kicad_pcb';
+	var defaultUrl; // = 'problems/no holes - lpc1114-valdez-mut-v.04.brd';
+
+	var form = document.querySelector (this.formSelector);
+	if (form) {
+		var option = form.querySelector ("select.board option");
+		defaultUrl = option.value;
+	}
 
 	eaglecanvas = new EagleCanvas (this.canvasSelector);
 
