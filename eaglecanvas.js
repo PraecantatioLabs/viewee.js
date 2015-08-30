@@ -482,16 +482,22 @@ EagleCanvas.prototype.calcBBox = function (wires) {
 
 EagleCanvas.prototype.parseSmd = function(smd) {
 	var smdX  = parseFloat(smd.getAttribute('x')),
-	    smdY  = parseFloat(smd.getAttribute('y')),
-	    smdDX = parseFloat(smd.getAttribute('dx')),
-	    smdDY = parseFloat(smd.getAttribute('dy'));
+		smdY  = parseFloat(smd.getAttribute('y')),
+		smdDX = parseFloat(smd.getAttribute('dx')),
+		smdDY = parseFloat(smd.getAttribute('dy')),
+		rot   = smd.getAttribute('rot') || "R0",
+		roundness = parseInt (smd.getAttribute('roundness'));
 
-	return {'x1'   : smdX-0.5*smdDX,
-	        'y1'   : smdY-0.5*smdDY,
-	        'x2'   : smdX+0.5*smdDX,
-	        'y2'   : smdY+0.5*smdDY,
-	        'name' : smd.getAttribute('name'),
-	        'layer': smd.getAttribute('layer')};
+	return {
+		x1:    smdX-0.5*smdDX,
+		y1:    smdY-0.5*smdDY,
+		x2:    smdX+0.5*smdDX,
+		y2:    smdY+0.5*smdDY,
+		rot:   rot,
+		round: roundness,
+		name:  smd.getAttribute('name'),
+		layer: smd.getAttribute('layer')
+	};
 }
 
 EagleCanvas.prototype.parseRect = function(rect) {
