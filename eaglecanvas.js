@@ -865,6 +865,8 @@ EagleCanvas.prototype.drawPlainTexts = function (layer, ctx) {
 		ctx.translate(metrics.width,-fontSize);	//Height is not calculated - we'll use the font's 10pt size and hope it fits
 		ctx.scale(-1,-1);
 	}
+	if (text.align)  ctx.textAlign = text.align;
+	if (text.valign) ctx.textBaseline = text.valign;
 	ctx.fillText(content, 0, 0);
 	ctx.restore();
 	}, this)
