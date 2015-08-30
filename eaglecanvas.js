@@ -1182,17 +1182,40 @@ EagleCanvas.prototype.pointInRect = function(x, y, x1, y1, x2, y2, x3, y3, x4, y
 // --------------------
 
 EagleCanvas.prototype.colorPalette = [
-	[  0,  0,  0], [ 35, 35,141], [ 35,141, 35], [ 35,141,141], [141, 35, 35], [141, 35,141], [141,141, 35], [141,141,141],
-	[ 39, 39, 39], [  0,  0,180], [  0,180,  0], [  0,180,180], [180,  0,  0], [180,  0,180], [180,180,  0], [180,180,180]
+	[127,127,127],
+	[ 35, 35,141],
+	[ 35,141, 35],
+	[ 35,141,141],
+	[141, 35, 35],
+	[141, 35,141],
+	[141,141, 35],
+	[141,141,141],
+	[ 39, 39, 39],
+	[  0,  0,180],
+	[  0,180,  0],
+	[  0,180,180],
+	[180,  0,  0],
+	[180,  0,180],
+	[180,180,  0],
+	[ 63, 63, 63],
+	//[  0,  0,  0]
 ];
 
 EagleCanvas.prototype.layerColor = function(colorIdx) {
 	var rgb = this.colorPalette[colorIdx];
+	if (!rgb) {
+		console.warn ("color %s not defined, using default color", colorIdx, this.colorPalette[0]);
+		rgb = this.colorPalette[colorIdx] = this.colorPalette[0];
+	}
 	return 'rgb('+rgb[0]+','+rgb[1]+','+rgb[2]+')';
 }
 
 EagleCanvas.prototype.highlightColor = function(colorIdx) {
 	var rgb = this.colorPalette[colorIdx];
+	if (!rgb) {
+		console.warn ("color %s not defined, using default color", colorIdx, this.colorPalette[0]);
+		rgb = this.colorPalette[colorIdx] = this.colorPalette[0];
+	}
 	return 'rgb('+(rgb[0]+50)+','+(rgb[1]+50)+','+(rgb[2]+50)+')';
 }
 
