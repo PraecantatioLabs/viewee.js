@@ -576,6 +576,87 @@ EagleCanvas.prototype.parseHole = function(hole) {
 	};
 }
 
+// special thanks to http://paulbourke.net/geometry/circlesphere/
+function circleCenter (x1, y1, x2, y2, angle) {
+
+	/* dx and dy are the vertical and horizontal distances between
+	* the circle centers.
+	*/
+	var dx = x2 - x1;
+	var dy = y2 - y1;
+
+	if (Math.abs(angle) === 180) {
+		var cx = x1 + dx/2,
+			cy = y1 + dy/2,
+			angle1 = Math.atan2 (y1 - cy, cx - x1),
+			angle2 = Math.atan2 (y2 - cy, cx - x2);
+		return [cx, cy, angle1, Math.sqrt (dx*dx/4 + dy*dy/4)];
+	}
+
+	/* Determine the straight-line distance between the centers. */
+	//d = sqrt((dy*dy) + (dx*dx));
+	//d = hypot(dx,dy); // Suggested by Keith Briggs
+	var d = Math.sqrt (dx*dx + dy*dy);
+
+	var r = Math.abs (d / 2 / Math.sin (angle/180/2*Math.PI)),
+		r0 = r,
+		r1 = r;
+
+	/* Check for solvability. */
+	if (d > (r0 + r1)) {
+		/* no solution. circles do not intersect. */
+		console.log ("no solution. circles do not intersect", d, r0, r1);
+		return;
+	}
+
+	if (d < Math.abs (r0 - r1)) {
+		/* no solution. one circle is contained in the other */
+		console.log ("no solution. one circle is contained in the other", d, r0, r1);
+		return;
+	}
+
+	/* 'point 2' is the point where the line through the circle
+	* intersection points crosses the line between the circle
+	* centers.
+	*/
+
+	/* Determine the distance from point 0 to point 2. */
+	var a = ((r0*r0) - (r1*r1) + (d*d)) / (2.0 * d) ;
+
+	/* Determine the coordinates of point 2. */
+	var x3 = x1 + (dx * a/d);
+	var y3 = y1 + (dy * a/d);
+
+	/* Determine the distance from point 2 to either of the
+	* intersection points.
+	*/
+	var h = Math.sqrt((r0*r0) - (a*a));
+
+	/* Now determine the offsets of the intersection points from
+	* point 2.
+	*/
+
+	var rx = -dy * (h/d),
+		ry = dx * (h/d);
+
+	/* Determine the absolute intersection points. */
+	var cx1 = x3 + rx,
+		cy1 = y3 + ry,
+		cx2 = x3 - rx,
+		cy2 = y3 - ry,
+		angle11 = Math.atan2 (y1 - cy1, cx1 - x1),
+		angle12 = Math.atan2 (y2 - cy1, cx1 - x2),
+		angle21 = Math.atan2 (y1 - cy2, cx2 - x1),
+		angle22 = Math.atan2 (y2 - cy2, cx2 - x2);
+
+	if (angle11 - angle12 === angle/180*Math.PI) {
+		return [cx1, cy1, angle11, r];
+	} else {
+		return [cx2, cy2, angle21, r];
+	}
+
+	// return [cx1, cy1, cx2, cy2];
+}
 
 EagleCanvas.prototype.parseWire = function(wire) {
 	var width = parseFloat(wire.getAttribute('width'));
@@ -592,24 +673,20 @@ EagleCanvas.prototype.parseWire = function(wire) {
 
 	if (curve) {
 
-		var dx = x2 - x1;
-		var dy = y2 - y1;
-		var x = x1 + dx/2;
-		var y = y1 + dy/2;
-		var radius = Math.sqrt (Math.pow (dx, 2) + Math.pow (dy, 2)) / 2;
-		var angle = Math.PI * (180 / curve);
-		var start;
-		if (Math.abs (dx) < Math.abs (dy)) {
-			start = (dx > 0 ? -1 : 1) * Math.PI * 0.5;
-		} else {
-			start = dy > 0 ? 0 : Math.PI
+		var center = circleCenter (x1, y1, x2, y2, curve);
+
+		var angle = Math.PI * (curve/180);
+
+		if (angle < 0) {
+			center[2] += - angle;
+			angle = -angle;
 		}
 
 		return {
-			x: x,
-			y: y,
-			radius: radius,
-			start: start,
+			x: center[0],
+			y: center[1],
+			radius: center[3],
+			start: Math.PI-center[2],
 			angle: angle,
 			curve: curve,
 			width: width,
