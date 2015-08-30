@@ -341,10 +341,21 @@ KicadNewParser.prototype.parseText = function (cmd) {
 	var rotate = parseFloat (cmd.attrs.at[2]) || 0;
 	text.rot = "R" + rotate;
 
-	if (cmd.attrs.effects.justify) {
-		if (cmd.attrs.effects.justify.indexOf ("mirror") > -1)
+	var justify = {};
+	(cmd.attrs.effects.justify || []).forEach (function (justKey) {
+		justify[justKey] = true;
+	});
+	if (justify.mirror)
 		text.rot = "M"+text.rot;
+	if (justify.right) {
+		text.align = "right"
+	} else if (justify.left) {
+		text.align = "left";
+	} else {
+		text.align = "center";
 	}
+
+	text.valign = "middle";
 
 	// TODO: effects.attrs.thickness
 	// TODO: rotated text?
