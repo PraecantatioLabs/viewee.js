@@ -1000,6 +1000,7 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 					smdDx2 -= 1 * smdXDir * borderRadius,
 					smdDy1 += 1 * smdYDir * borderRadius,
 					smdDy2 -= 1 * smdYDir * borderRadius;
+					var drawSmdCircle = (smd.roundness === 100 && Math.abs (smdDX) === Math.abs (smdDY));
 				}
 
 				var smdRotMat = this.matrixForRot (smd.rot);
@@ -1027,12 +1028,17 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 				ctx.lineJoin  = "round";
 				ctx.lineWidth = borderRadius * 2;
 				ctx.beginPath();
-				ctx.moveTo(x1,y1);
-				ctx.lineTo(x2,y2);
-				ctx.lineTo(x3,y3);
-				ctx.lineTo(x4,y4);
-				ctx.closePath();
-				if (smd.roundness) ctx.stroke();
+				if (drawSmdCircle) {
+					ctx.arc (x1 - (x2-x1)/2, y1 - (y2-y1)/2, borderRadius, 0, Math.PI*2, false);
+					ctx.closePath();
+				} else {
+					ctx.moveTo(x1,y1);
+					ctx.lineTo(x2,y2);
+					ctx.lineTo(x3,y3);
+					ctx.lineTo(x4,y4);
+					ctx.closePath();
+					if (smd.roundness) ctx.stroke();
+				}
 				ctx.fill();
 			}, this)
 
