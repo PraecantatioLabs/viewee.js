@@ -510,7 +510,7 @@ EagleCanvas.prototype.parseSmd = function(smd) {
 		x2:    smdX+0.5*smdDX,
 		y2:    smdY+0.5*smdDY,
 		rot:   rot,
-		round: roundness,
+		roundness: roundness,
 		name:  smd.getAttribute('name'),
 		layer: smd.getAttribute('layer')
 	};
@@ -980,13 +980,34 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 				var layerNum = smd.layer;
 				if (elem.mirror) { layerNum = this.mirrorLayer(layerNum); }
 				if (layer.number != layerNum) { return; }
+
+				var smdDX = smd.x2-smd.x1,
+					smdDY = smd.y2-smd.y1,
+					// smd center
+					smdX  = smd.x1 + smdDX/2,
+					smdY  = smd.y1 + smdDY/2,
+					smdXDir = smdDX/Math.abs(smdDX),
+					smdYDir = smdDY/Math.abs(smdDY),
+					smdDx1 = smd.x1,
+					smdDx2 = smd.x2,
+					smdDy1 = smd.y1,
+					smdDy2 = smd.y2;
+
+				var borderRadius = Math.min (Math.abs (smdDX), Math.abs (smdDY)) / 2;
+				if (smd.roundness) {
+					borderRadius *= smd.roundness / 100;
+					smdDx1 += 1 * smdXDir * borderRadius,
+					smdDx2 -= 1 * smdXDir * borderRadius,
+					smdDy1 += 1 * smdYDir * borderRadius,
+					smdDy2 -= 1 * smdYDir * borderRadius;
+				}
+
 				var smdRotMat = this.matrixForRot (smd.rot);
-				var smdX = smd.x1 + (smd.x2-smd.x1)/2,
-					smdY = smd.y1 + (smd.y2-smd.y1)/2,
-					smdX1 = smdX + smdRotMat[0]*(-smd.x1 + smdX) + smdRotMat[1]*(-smd.y1 + smdY),	//top left
-					smdY1 = smdY + smdRotMat[2]*(-smd.x1 + smdX) + smdRotMat[3]*(-smd.y1 + smdY),
-					smdX2 = smdX + smdRotMat[0]*(-smd.x2 + smdX) + smdRotMat[1]*(-smd.y2 + smdY),	//top right
-					smdY2 = smdY + smdRotMat[2]*(-smd.x2 + smdX) + smdRotMat[3]*(-smd.y2 + smdY);
+				var smdX1 = smdX + smdRotMat[0] * (smdX - smdDx1) + smdRotMat[1] * (smdY - smdDy1),	//top left
+					smdY1 = smdY + smdRotMat[2] * (smdX - smdDx1) + smdRotMat[3] * (smdY - smdDy1),
+					smdX2 = smdX + smdRotMat[0] * (smdX - smdDx2) + smdRotMat[1] * (smdY - smdDy2),	//top right
+					smdY2 = smdY + smdRotMat[2] * (smdX - smdDx2) + smdRotMat[3] * (smdY - smdDy2);
+
 
 				//Note that rotation might be not axis aligned, so we have do transform all corners
 				var x1 = elem.x + rotMat[0]*smdX1 + rotMat[1]*smdY1,	//top left
@@ -1002,13 +1023,16 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 					signalName = elem.padSignals[padName],
 					highlightPad = (this.highlightedItem && (this.highlightedItem.type=='signal') && (this.highlightedItem.name==signalName));
 
-				ctx.fillStyle = highlightPad ? this.highlightColor(layer.color) : color;
+				ctx.strokeStyle = ctx.fillStyle = highlightPad ? this.highlightColor(layer.color) : color;
+				ctx.lineJoin  = "round";
+				ctx.lineWidth = borderRadius * 2;
 				ctx.beginPath();
 				ctx.moveTo(x1,y1);
 				ctx.lineTo(x2,y2);
 				ctx.lineTo(x3,y3);
 				ctx.lineTo(x4,y4);
 				ctx.closePath();
+				if (smd.roundness) ctx.stroke();
 				ctx.fill();
 			}, this)
 
