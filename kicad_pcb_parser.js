@@ -417,7 +417,14 @@ KicadNewParser.prototype.parsePad = function (cmd) {
 	var w   = parseFloat (cmd.attrs.size[0]);
 	var h   = parseFloat (cmd.attrs.size[1]);
 
-	var type = cmd.args[1];
+	var name  = cmd.args[0];
+	var type  = cmd.args[1];
+	var shape = cmd.args[2];
+	if (name === "np_thru_hole" || name === "smd") {
+		shape = cmd.args[1];
+		type  = cmd.args[0];
+		name  = undefined;
+	}
 
 	if (type === "smd") {return {
 		x1: x - w/2,
@@ -425,20 +432,20 @@ KicadNewParser.prototype.parsePad = function (cmd) {
 		x2: x + w/2,
 		y2: y + h/2,
 		rot: rot,
-		name: cmd.args[0],
+		name: name,
 		type: type,
-		shape: cmd.args[2],
+		shape: shape,
 		layers: cmd.attrs.layers,
 		net: net
-	}} else if (type === "thru_hole") {return {
+	}} else if (type === "thru_hole" || type === "np_thru_hole") {return {
 		x: x,
 		y: y,
-		name: cmd.args[0],
+		name: name,
 		type: type,
-		shape: cmd.args[2],
+		shape: shape,
 		layers: cmd.attrs.layers,
 		net: net,
-		drill: cmd.attrs.drill[0],
+		drill: cmd.attrs.drill ? parseFloat(cmd.attrs.drill[0]) : w,
 		diameter: w
 	}}
 	return pad;
