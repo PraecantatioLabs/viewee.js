@@ -644,15 +644,22 @@ function circleCenter (x1, y1, x2, y2, angle) {
 		cy1 = y3 + ry,
 		cx2 = x3 - rx,
 		cy2 = y3 - ry,
-		angle11 = Math.atan2 (y1 - cy1, cx1 - x1),
-		angle12 = Math.atan2 (y2 - cy1, cx1 - x2),
-		angle21 = Math.atan2 (y1 - cy2, cx2 - x1),
-		angle22 = Math.atan2 (y2 - cy2, cx2 - x2);
+		rad11 = Math.atan2 (y1 - cy1, cx1 - x1),
+		rad12 = Math.atan2 (y2 - cy1, cx1 - x2),
+		rad21 = Math.atan2 (y1 - cy2, cx2 - x1),
+		rad22 = Math.atan2 (y2 - cy2, cx2 - x2),
+		angle1 = (rad11 - rad12)/Math.PI*180,
+		angle2 = (rad21 - rad22)/Math.PI*180,
+		dAngle1 = (angle - angle1) % 360,
+		dAngle2 = (angle - angle2) % 360;
 
-	if (angle11 - angle12 === angle/180*Math.PI) {
-		return [cx1, cy1, angle11, r];
+	if (-0.0000001 < dAngle1 && dAngle1 < 0.0000001) {
+		return [cx1, cy1, rad11, r];
+	} else if (-0.0000001 < dAngle2 && dAngle2 < 0.0000001) {
+		return [cx2, cy2, rad21, r];
 	} else {
-		return [cx2, cy2, angle21, r];
+		console.log ("something wrong: angle:", angle, "angle1:", angle1, "dangle1", (-0.0000001 < dAngle1 || dAngle1 < 0.0000001), "angle2:", angle2, "dangle2:", (-0.0000001 < dAngle2 || dAngle2 < 0.0000001));
+		return [cx2, cy2, rad21, r];
 	}
 
 	// return [cx1, cy1, cx2, cy2];
@@ -669,6 +676,8 @@ EagleCanvas.prototype.parseWire = function(wire) {
 		x2 = parseFloat(wire.getAttribute('x2')),
 		y2 = parseFloat(wire.getAttribute('y2'));
 
+	var style = wire.getAttribute ("style");
+
 	var curve = parseInt(wire.getAttribute('curve'));
 
 	if (curve) {
@@ -679,28 +688,31 @@ EagleCanvas.prototype.parseWire = function(wire) {
 
 		if (angle < 0) {
 			center[2] += - angle;
-			angle = -angle;
+			angle = - angle;
 		}
 
 		return {
 			x: center[0],
 			y: center[1],
 			radius: center[3],
-			start: Math.PI-center[2],
+			start: Math.PI - center[2],
 			angle: angle,
 			curve: curve,
 			width: width,
-			layer: layer
+			layer: layer,
+			style: style,
+			rot: wire.getAttribute('rot') || "R0"
 		}
 	}
 
 	return {
-		'x1':x1,
-		'y1':y1,
-		'x2':x2,
-		'y2':y2,
-		'width':width,
-		'layer':layer
+		x1: x1,
+		y1: y1,
+		x2: x2,
+		y2: y2,
+		style: style,
+		width: width,
+		layer: layer
 	};
 
 }
@@ -823,7 +835,21 @@ EagleCanvas.prototype.draw = function() {
 }
 
 EagleCanvas.prototype.drawWire = function (wire, ctx) {
+
+	var lineDash;
+	if (wire.style === "longdash") {
+		lineDash = [3];
+	} else if (wire.style === "shortdash") {
+		lineDash = [1];
+	} else if (wire.style === "dashdot") {
+		lineDash = [3, 1, 1, 1];
+	}
+
+	if (lineDash) ctx.setLineDash (lineDash);
+
 	if (wire.curve) {
+
+		var rotate = (wire.rot ? parseFloat(wire.rot.substr (wire.rot.indexOf ("R") + 1)) : 0)/180*Math.PI;
 
 		var radiusX, radiusY;
 		radiusX = radiusY = wire.radius;
@@ -835,7 +861,7 @@ EagleCanvas.prototype.drawWire = function (wire, ctx) {
 		ctx.translate(wire.x, wire.y);
 		// ctx.rotate(rotation);
 		ctx.scale(radiusX, radiusY);
-		ctx.arc(0, 0, 1, wire.start, wire.start + wire.angle); //, antiClockwise
+		ctx.arc(0, 0, 1, rotate + wire.start, rotate + wire.start + wire.angle); //, antiClockwise
 		ctx.restore();
 
 	} else {
@@ -853,10 +879,13 @@ EagleCanvas.prototype.drawPlainWires = function(layer, ctx) {
 
 	var layerWires = this.plainWires[layer.number] || [];
 	layerWires.forEach(function(wire){
+
+		ctx.save();
 		ctx.beginPath();
 		this.drawWire (wire, ctx);
 		ctx.lineWidth = wire.width;
 		ctx.stroke();
+		ctx.restore();
 	}, this);
 }
 
@@ -970,8 +999,8 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 
 	for (var elemKey in this.elements) {
 		var elem = this.elements[elemKey];
-		
-		var highlight = (this.highlightedItem && (this.highlightedItem.type=='element') && (this.highlightedItem.name==elem.name)); 
+
+		var highlight = (this.highlightedItem && (this.highlightedItem.type=='element') && (this.highlightedItem.name==elem.name));
 		var color     = highlight ? this.highlightColor(layer.color) : this.layerColor(layer.color);
 
 		var pkg    = typeof elem.pkg === "string" ? this.packagesByName[elem.pkg] : elem.pkg;
@@ -1082,7 +1111,7 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 			ctx.beginPath();
 			ctx.lineWidth = wire.width;
 			this.drawWire ({
-				curve: wire.curve,
+				curve: wire.curve, rot: elem.rot,
 				x1: x1, y1: y1, x2: x2, y2: y2,
 				x: x, y: y, radius: wire.radius, angle: wire.angle, start: wire.start
 			}, ctx);
@@ -1356,11 +1385,18 @@ EagleCanvas.prototype.viaPadColor = function () {
 	return "#0b0";
 }
 
+EagleCanvas.prototype.angleForRot = function (rot) {
+	var spin    = (rot.indexOf('S') >= 0), // TODO: spin rotate
+		flipped = (rot.indexOf('M') >= 0),
+		degrees = parseFloat (rot.split ('R')[1]);
+	return {spin: spin, flipped: flipped, degrees: degrees};
+}
+
 EagleCanvas.prototype.matrixForRot = function(rot) {
-	var spin         = (rot.indexOf('S') === 0), // TODO: spin rotate
-		flipped      = (rot.indexOf('M') === 0),
-		degreeString = rot.substring(flipped | spin ? 2 : 1),
-		degrees      = parseFloat(degreeString),
+	var angle = this.angleForRot (rot);
+	var spin         = angle.spin, // TODO: spin rotate
+		flipped      = angle.flipped,
+		degrees      = angle.degrees,
 		rad          = degrees * Math.PI / 180.0,
 		flipSign     = flipped ? -1 : 1,
 		matrix       = [
