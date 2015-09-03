@@ -741,28 +741,59 @@ EagleCanvas.prototype.parseCircle = function(wire) {
 EagleCanvas.prototype.parseText = function(text) {
 	var content = text.textContent;
 	if (!content) content = "";
-	var textRot = text.getAttribute('rot') || "R0"
-	return {'x'      : parseFloat(text.getAttribute('x')),
-			'y'      : parseFloat(text.getAttribute('y')),
-			'size'   : parseFloat(text.getAttribute('size')),
-			'layer'  : parseInt(text.getAttribute('layer')),
-			'ratio'  : parseInt(text.getAttribute('ratio')),
-			'rot'    : textRot,
-			'font'   : text.getAttribute('font'),
-			'content': content};
+	var textRot = text.getAttribute('rot') || "R0";
+	var textAlign = text.getAttribute('align') || "",
+		align,
+		valign,
+		textAngle = this.angleForRot (textRot);
+
+	if (textAlign === "center") {
+		align = "center";
+		valign = "middle";
+	} else {
+		if (textAlign.match (/\-right$/)) {
+			align = "right";
+		} else if (textAlign.match (/\-left$/)) {
+			align = "left";
+		} else if (textAlign.match (/\-center$/)) {
+			align = "center";
+		}
+		if (textAlign.match (/^top\-/)) {
+			valign = "top";
+		} else if (textAlign.match (/^bottom\-/)) {
+			valign = "bottom";
+		} else if (textAlign.match (/^center\-/)) {
+			valign = "middle";
+		}
+	}
+
+	return {
+		x:       parseFloat(text.getAttribute('x')),
+		y:       parseFloat(text.getAttribute('y')),
+		size:    parseFloat(text.getAttribute('size')),
+		layer:   parseInt(text.getAttribute('layer')),
+		ratio:   parseInt(text.getAttribute('ratio')),
+		interlinear: parseInt(text.getAttribute('distance')) || 50,
+		align:   align,
+		valign:  valign,
+		rot:     textRot,
+		flipText: ((textAngle.degrees > 90) && (textAngle.degrees <=270)),
+		font:    text.getAttribute('font'),
+		content: content
+	};
 }
 
 EagleCanvas.prototype.parseElement = function(elem) {
 	var elemRot    = elem.getAttribute('rot') || "R0",
-	    elemMatrix = this.matrixForRot(elemRot);
-	
+		elemMatrix = this.matrixForRot(elemRot);
+
 	var attribs = {},
-	    elemAttribs = elem.getElementsByTagName('attribute');
+		elemAttribs = elem.getElementsByTagName('attribute');
 	for (var attribIdx = 0; attribIdx < elemAttribs.length; attribIdx++) {
 
 		var elemAttrib = elemAttribs[attribIdx],
-		    attribDict = {},
-		    name = elemAttrib.getAttribute('name');
+			attribDict = {},
+			name = elemAttrib.getAttribute('name');
 
 		if (name) {
 			attribDict.name = name;
@@ -953,6 +984,72 @@ EagleCanvas.prototype.drawSignalVias = function(layersName, ctx, color) {
 	}
 }
 
+EagleCanvas.prototype.drawText = function (attrs, text, ctx) {
+	var x = attrs.x || text.x,
+		y = attrs.y || text.y,
+		rot = text.rot || "R0",
+		size = text.size;
+
+	var content = attrs.content || text.content;
+	var color   = attrs.color;
+
+	var textAngle = this.angleForRot (rot);
+
+	//rotation from 90.1 to 270 causes Eagle to draw labels 180 degrees rotated with top right anchor point
+	var degrees  = textAngle.degrees,
+		flipText = text.flipText,
+		textRot  = this.matrixForRot(rot),
+		fontSize = 10;
+
+	ctx.save();
+	ctx.fillStyle = color;
+	ctx.font = ''+fontSize+'pt vector';	//Use a regular font size - very small sizes seem to mess up spacing / kerning
+	ctx.translate(x,y);
+
+	var d = this.fontTestCpan = (this.fontTestCpan || document.createElement("span"));
+	d.font = ctx.font;
+	d.textContent = content;
+	//if height is not calculated - we'll use the font's 10pt size and hope it fits
+	var emHeight = d.offsetHeight || fontSize;
+
+	var strings = content.split (/\r?\n/);
+	var stringOffset = (text.interlinear || 50) * emHeight / 100;
+
+	ctx.transform (textRot[0],textRot[2],textRot[1],textRot[3],0,0);
+	var textBlockHeight = (strings.length - 1) * (stringOffset + emHeight);
+	var textBlockWidth = 0;
+	strings.forEach (function (string, idx) {
+		textBlockWidth = Math.max (textBlockWidth, ctx.measureText(string).width);
+	}, this);
+	var scale = size / fontSize;
+	ctx.scale(scale,(this.coordYFlip ? 1 : -1)*scale);
+	var xOffset = 0;
+	if (flipText) {
+		var xMult = {center: 0, left: 1, right: 1};
+		var yMult = {middle: 0, bottom: -1, top: 1};
+		ctx.translate (
+			xMult[text.align || "left"] * textBlockWidth,
+			yMult[text.valign || "bottom"] * (textBlockHeight + emHeight)
+		);
+		if (!textAngle.spin) ctx.scale(-1,-1);
+	}
+	}
+	if (text.align)  ctx.textAlign = text.align;
+	if (text.valign) ctx.textBaseline = text.valign;
+
+	strings.forEach (function (string, idx) {
+		var yOffset = idx * (stringOffset + emHeight);
+		if (text.valign === "middle") {
+			yOffset -= textBlockHeight/2;
+		} else if (text.valign === "bottom") {
+			yOffset -= textBlockHeight;
+		}
+		ctx.fillText(string, xOffset, yOffset);
+	}, this);
+
+	ctx.restore();
+}
+
 EagleCanvas.prototype.drawPlainTexts = function (layer, ctx) {
 
 	if (!layer) return;
@@ -962,35 +1059,16 @@ EagleCanvas.prototype.drawPlainTexts = function (layer, ctx) {
 	var color = this.layerColor(layer.color);
 
 	layerTexts.forEach (function (text) {
-	var x = text.x,
-		y = text.y,
-		rot = text.rot || "",
-		size = text.size;
 
-	//rotation from 90.1 to 270 causes Eagle to draw labels 180 degrees rotated with top right anchor point
-	var degrees  = parseFloat(rot.substring((rot.indexOf('M')==0) ? 2 : 1)),
-		flipText = ((degrees > 90) && (degrees <=270)),
-		textRot  = this.matrixForRot(rot),
-		fontSize = 10;
+		var content = text.content;
 
-	var content = text.content
+		var attrs = {
+			color: color,
+			content: content
+		};
 
-	ctx.save();
-	ctx.fillStyle = color;
-	ctx.font = ''+fontSize+'pt vector';	//Use a regular font size - very small sizes seem to mess up spacing / kerning
-	ctx.translate(x,y);
-	ctx.transform(textRot[0],textRot[2],textRot[1],textRot[3],0,0);
-	var scale = size / fontSize;
-	ctx.scale(scale,(this.coordYFlip ? 1 : -1)*scale);
-	if (flipText) {
-		var metrics = ctx.measureText(content);
-		ctx.translate(metrics.width,-fontSize);	//Height is not calculated - we'll use the font's 10pt size and hope it fits
-		ctx.scale(-1,-1);
-	}
-	if (text.align)  ctx.textAlign = text.align;
-	if (text.valign) ctx.textBaseline = text.valign;
-	ctx.fillText(content, 0, 0);
-	ctx.restore();
+		this.drawText (attrs, text, ctx);
+
 	}, this)
 }
 
@@ -1154,7 +1232,7 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 		for (var textIdx in textCollection) {
 			if (!textCollection.hasOwnProperty (textIdx)) continue;
 			var text = textCollection[textIdx];
-			if (smashed && text.display === "off") continue;
+			if (smashed && (text.display === "off" || !text.font)) continue;
 			var layerNum = text.layer;
 			if ((!elem.smashed) && (elem.mirror)) {
 				layerNum = this.mirrorLayer(layerNum);
@@ -1174,26 +1252,7 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 
 			if (!text.size) continue;
 
-			//rotation from 90.1 to 270 causes Eagle to draw labels 180 degrees rotated with top right anchor point
-			var degrees  = parseFloat(rot.substring((rot.indexOf('M')==0) ? 2 : 1)),
-				flipText = ((degrees > 90) && (degrees <=270)),
-				textRot  = this.matrixForRot(rot),
-				fontSize = 10;
-
-			ctx.save();
-			ctx.fillStyle = color;
-			ctx.font = ''+fontSize+'pt vector';	//Use a regular font size - very small sizes seem to mess up spacing / kerning
-			ctx.translate(x,y);
-			ctx.transform(textRot[0],textRot[2],textRot[1],textRot[3],0,0);
-			var scale = size / fontSize;
-			ctx.scale(scale,(this.coordYFlip ? 1 : -1)*scale);
-			if (flipText) {
-				var metrics = ctx.measureText(content);
-				ctx.translate(metrics.width,-fontSize);	//Height is not calculated - we'll use the font's 10pt size and hope it fits
-				ctx.scale(-1,-1);
-			}
-			ctx.fillText(content, 0, 0);
-			ctx.restore();
+			this.drawText ({x: x, y: y, content: content, color: color}, text, ctx);
 		}
 	}
 }
