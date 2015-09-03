@@ -330,10 +330,12 @@ KicadNewParser.prototype.parseText = function (cmd) {
 	var text = {
 		x: parseFloat (cmd.attrs.at[0]),
 		y: parseFloat (cmd.attrs.at[1]),
+		font: "vector",
 		layer: cmd.attrs.layer[0],
 		content: cmd.name === "gr_text" ? cmd.args[0] : cmd.args[1]
 	};
 
+	text.size = 1;
 	// TODO: size has two children, do something if those don't match
 	if (cmd.attrs.effects.font && cmd.attrs.effects.font.size)
 		text.size = parseFloat (cmd.attrs.effects.font.size[0]);
@@ -493,10 +495,14 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 			txt.name = "NAME";
 			el.name = txt.content;
 			el.attributes.name = txt;
+			txt.font = "vector";
 		} else if (txt.type === "value") {
 			txt.name = "VALUE";
 			el.value = txt.content;
 			el.attributes.value = txt;
+			txt.font = "vector";
+		} else {
+			console.warn ("text not processed:", txt);
 		}
 	}, this);
 
@@ -518,11 +524,17 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 	if (cmd.attrs.pad) cmd.attrs.pad.forEach (function (padCmd) {
 		var pad = this.parsePad ({name: "pad", args: padCmd});
 		pad.layer = this.eagleLayer (pad.layers ? pad.layers[0] : cmd.attrs.layer[0]).number;
+
 		if (pad.type === "smd") {
 			pkg.smds.push (pad);
 		} else if (pad.type === "thru_hole") {
 			// TODO: support shapes
 			pkg.pads.push (pad);
+		} else if (pad.type === "np_thru_hole") {
+			// TODO: support shapes
+			pkg.pads.push (pad);
+		} else {
+			console.warn ("pad not processed:", pad);
 		}
 	}, this);
 
@@ -637,10 +649,24 @@ KicadNewParser.prototype.cmdDone = function () {
 			eagleLayerNumber = this.eagleLayer (entity.layer).number;
 		}
 
-		if (!signalLayerItems[eagleLayerNumber])
-			signalLayerItems[eagleLayerNumber] = {wires: [], vias: []};
-		signalLayerItems[eagleLayerNumber][entType].push (entity);
+		if (netNum) {
+			if (!signalLayerItems[eagleLayerNumber])
+				signalLayerItems[eagleLayerNumber] = {wires: [], vias: []};
+			signalLayerItems[eagleLayerNumber][entType].push (entity);
+		} else {
+			if (!this.board.plainWires[eagleLayerNumber])
+				this.board.plainWires[eagleLayerNumber] = [];
+			this.board.plainWires[eagleLayerNumber].push (entity);
+		}
 
+	}
+
+	if (this.cmd.name === "gr_circle") {
+		var circle = this.parseCircle (this.cmd);
+		var eagleLayerNumber = this.eagleLayer (circle.layer).number;
+		// console.log (this.cmd, text, this.cmd.attrs.effects, eagleLayerNumber);
+		if (!this.board.plainWires[eagleLayerNumber]) this.board.plainWires[eagleLayerNumber] = [];
+		this.board.plainWires[eagleLayerNumber].push (circle);
 	}
 
 	if (this.cmd.name === "gr_text") {
@@ -650,6 +676,7 @@ KicadNewParser.prototype.cmdDone = function () {
 		if (!this.board.plainTexts[eagleLayerNumber]) this.board.plainTexts[eagleLayerNumber] = [];
 		this.board.plainTexts[eagleLayerNumber].push (text);
 	}
+
 
 	if (this.cmd.name === "module") {
 		var el = this.parseModule (this.cmd);
