@@ -433,7 +433,8 @@ KicadNewParser.prototype.parsePad = function (cmd) {
 		y1: y - h/2,
 		x2: x + w/2,
 		y2: y + h/2,
-		rot: rot,
+		//rot: rot,
+		rot: "R0", // those seems already rotated
 		name: name,
 		type: type,
 		shape: shape,
