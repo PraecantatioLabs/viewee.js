@@ -91,6 +91,9 @@ function EagleCanvas(canvasSelector) {
 		that.drawPlainTexts(that.eagleLayersByName['bNames'],ctx);
 		that.drawPlainTexts(that.eagleLayersByName['bValues'],ctx);
 		that.drawPlainTexts(that.eagleLayersByName['bPlace'],ctx);
+		that.drawPlainWires(that.eagleLayersByName['bNames'],ctx);
+		that.drawPlainWires(that.eagleLayersByName['bValues'],ctx);
+		that.drawPlainWires(that.eagleLayersByName['bPlace'],ctx);
 	}
 
 	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_DOCUMENTATION] = function(that,ctx) {
@@ -113,6 +116,10 @@ function EagleCanvas(canvasSelector) {
 		that.drawPlainTexts(that.eagleLayersByName['tNames'],ctx);
 		that.drawPlainTexts(that.eagleLayersByName['tValues'],ctx);
 		that.drawPlainTexts(that.eagleLayersByName['tPlace'],ctx);
+		that.drawPlainWires(that.eagleLayersByName['tNames'],ctx);
+		that.drawPlainWires(that.eagleLayersByName['tValues'],ctx);
+		that.drawPlainWires(that.eagleLayersByName['tPlace'],ctx);
+
 
 	}
 
