@@ -788,7 +788,10 @@ EagleCanvas.prototype.parseElement = function(elem) {
 		elemMatrix = this.matrixForRot(elemRot);
 
 	var attribs = {},
+		elemAngle = this.angleForRot (elemRot),
+		flipText = (elemAngle.degrees >= 90) && (elemAngle.degrees <= 270),
 		elemAttribs = elem.getElementsByTagName('attribute');
+
 	for (var attribIdx = 0; attribIdx < elemAttribs.length; attribIdx++) {
 
 		var elemAttrib = elemAttribs[attribIdx],
@@ -805,6 +808,8 @@ EagleCanvas.prototype.parseElement = function(elem) {
 
 			var rot = elemAttrib.getAttribute('rot');
 			if (!rot) { rot = "R0"; }
+			var attribAngle = this.angleForRot (rot);
+			attribDict.flipText = (attribAngle.degrees >= 90) && (attribAngle.degrees <= 270);
 			attribDict.rot = rot;
 			attribDict.display = elemAttrib.getAttribute('display');
 			attribs[name] = attribDict;
@@ -819,6 +824,7 @@ EagleCanvas.prototype.parseElement = function(elem) {
 		'rot'       : elemRot,
 		'matrix'    : elemMatrix,
 		'mirror'    : elemRot.indexOf('M') == 0,
+		'flipText'  : flipText,
 		'smashed'   : elem.getAttribute('smashed') && (elem.getAttribute('smashed').toUpperCase() == 'YES'),
 		'attributes': attribs,
 		'padSignals': {}			//to be filled later
@@ -987,8 +993,9 @@ EagleCanvas.prototype.drawSignalVias = function(layersName, ctx, color) {
 EagleCanvas.prototype.drawText = function (attrs, text, ctx) {
 	var x = attrs.x || text.x,
 		y = attrs.y || text.y,
-		rot = text.rot || "R0",
-		size = text.size;
+		rot = attrs.rot || text.rot || "R0",
+		size = text.size,
+		flipText = attrs.flipText !== undefined ? attrs.flipText : text.flipText;
 
 	var content = attrs.content || text.content;
 	var color   = attrs.color;
@@ -997,7 +1004,6 @@ EagleCanvas.prototype.drawText = function (attrs, text, ctx) {
 
 	//rotation from 90.1 to 270 causes Eagle to draw labels 180 degrees rotated with top right anchor point
 	var degrees  = textAngle.degrees,
-		flipText = text.flipText,
 		textRot  = this.matrixForRot(rot),
 		fontSize = 10;
 
@@ -1248,11 +1254,14 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 			var x = absText ? text.x : (elem.x + rotMat[0]*text.x + rotMat[1]*text.y),
 				y = absText ? text.y : (elem.y + rotMat[2]*text.x + rotMat[3]*text.y),
 				rot = smashed ? text.rot : elem.rot,
+				flipText = smashed ? text.flipText : elem.flipText,
 				size = text.size;
 
 			if (!text.size) continue;
 
-			this.drawText ({x: x, y: y, content: content, color: color}, text, ctx);
+			this.drawText ({
+				x: x, y: y, content: content, color: color, rot: rot, flipText: flipText
+			}, text, ctx);
 		}
 	}
 }
