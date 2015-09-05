@@ -716,6 +716,7 @@ EagleCanvas.prototype.parseWire = function(wire) {
 			width: width,
 			layer: layer,
 			style: style,
+			cap: wire.getAttribute('cap'),
 			rot: wire.getAttribute('rot') || "R0"
 		}
 	}
@@ -1239,6 +1240,13 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 				y2 = elem.y + rotMat[2]*wire.x2 + rotMat[3]*wire.y2;
 			ctx.beginPath();
 			ctx.lineWidth = wire.width;
+
+			if (wire.cap && wire.cap === "flat") {
+				ctx.lineCap = "butt";
+			} else {
+				ctx.lineCap = "round";
+			}
+
 			this.drawWire ({
 				curve: wire.curve, rot: elem.rot,
 				x1: x1, y1: y1, x2: x2, y2: y2,
