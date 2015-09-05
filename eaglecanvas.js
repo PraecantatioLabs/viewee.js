@@ -1066,7 +1066,6 @@ EagleCanvas.prototype.drawText = function (attrs, text, ctx) {
 		);
 		if (!textAngle.spin) ctx.scale(-1,-1);
 	}
-	}
 	if (text.align)  ctx.textAlign = text.align;
 	if (text.valign) ctx.textBaseline = text.valign;
 
