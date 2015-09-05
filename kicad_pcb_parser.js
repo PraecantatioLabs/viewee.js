@@ -342,6 +342,12 @@ KicadNewParser.prototype.parseText = function (cmd) {
 
 	var rotate = parseFloat (cmd.attrs.at[2]) || 0;
 	text.rot = "R" + rotate;
+	if (rotate >= 90 && rotate <= 270) {
+		text.flipText = true;
+	}
+
+	if (cmd.args.indexOf ("hide") > -1)
+		text.display = "off";
 
 	var justify = {};
 	(cmd.attrs.effects.justify || []).forEach (function (justKey) {
@@ -488,8 +494,6 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 
 	cmd.attrs.fp_text.forEach (function (txtCmd) {
 		var txt = this.parseText ({name: "fp_text", args: txtCmd});
-		if (cmd.args.indexOf ("hide") > -1)
-			txt.display = "off";
 		txt.type = txtCmd[0];
 		txt.layer = this.eagleLayer (txt.layer).number;
 		if (txt.type === "reference") {
