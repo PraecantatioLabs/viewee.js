@@ -29,6 +29,8 @@ EagleCanvas.LayerId = {
 
 EagleCanvas.LARGE_NUMBER = 99999;
 
+EagleCanvas.warnings = {};
+
 EagleCanvas.prototype.scale = 25;
 EagleCanvas.prototype.minScale = 2.5;
 EagleCanvas.prototype.maxScale = 250;
@@ -565,12 +567,13 @@ EagleCanvas.prototype.parsePad = function(pad) {
 	if (isNaN (diameter)) diameter = drill * 1.5;
 	var padRot = pad.getAttribute('rot') || "R0"
 	return {
-		'x':parseFloat(pad.getAttribute('x')),
-		'y':parseFloat(pad.getAttribute('y')),
-		'drill':drill,
-		'name': pad.getAttribute('name'),
-		'diameter':diameter,
-		'rot': padRot
+		x:     parseFloat(pad.getAttribute('x')),
+		y:     parseFloat(pad.getAttribute('y')),
+		drill: drill,
+		name:  pad.getAttribute('name'),
+		shape: pad.getAttribute('shape'),
+		diameter: diameter,
+		rot:   padRot
 	};
 }
 
@@ -1002,6 +1005,14 @@ EagleCanvas.prototype.drawSignalVias = function(layersName, ctx, color) {
 			ctx.arc(via.x, via.y, 0.75 * via.drill, 0, 2 * Math.PI, false);
 			ctx.lineWidth = 0.5 * via.drill;
 			ctx.stroke();
+
+			if (via.shape && via.shape !== "circle") {
+				if (!EagleCanvas.warnings["via_shape_" + via.shape]) {
+					EagleCanvas.warnings["via_shape_" + via.shape] = true;
+					console.warn ("via shape '%s' is not supported yet", via.shape);
+				}
+			}
+
 		})
 	}
 }
@@ -1262,6 +1273,13 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 			// We don't need to check layers, pads is pass through all layers
 			var x = elem.x + rotMat[0]*pad.x + rotMat[1]*pad.y,
 				y = elem.y + rotMat[2]*pad.x + rotMat[3]*pad.y;
+
+			if (pad.shape && pad.shape !== "circle") {
+				if (!EagleCanvas.warnings["pad_shape_" + pad.shape]) {
+					EagleCanvas.warnings["pad_shape_" + pad.shape] = true;
+					console.warn ("pad shape '%s' is not supported yet", pad.shape);
+				}
+			}
 
 			ctx.beginPath();
 			// TODO: make sure calculations is correct
