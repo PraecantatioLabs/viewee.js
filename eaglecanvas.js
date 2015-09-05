@@ -391,6 +391,13 @@ EagleCanvas.prototype.parseDOM = function(boardXML) {
 			packageSmds.push(this.parseSmd(smd));
 		}
 
+		var packageRects = [];
+		var rects = pkg.getElementsByTagName('rectangle');
+		for (var rectIdx = 0; rectIdx < rects.length; rectIdx++) {
+			var rect = rects[rectIdx];
+			packageRects.push(this.parseRect(rect));
+		}
+
 		var packagePads = [];
 		var pads = pkg.getElementsByTagName('pad');
 		for (var padIdx = 0; padIdx < pads.length; padIdx++) {
@@ -446,6 +453,7 @@ EagleCanvas.prototype.parseDOM = function(boardXML) {
 			pads:  packagePads,
 			polys: packagePolys,
 			holes: packageHoles,
+			rects: packageRects,
 			description: description
 		};
 		this.packagesByName[packageName] = packageDict;
@@ -1161,6 +1169,36 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 				}
 				ctx.fill();
 			}, this)
+
+		if (pkg.rects) pkg.rects.forEach(function(rect) {
+			var layerNum = rect.layer;
+			if (elem.mirror) { layerNum = this.mirrorLayer(layerNum); }
+			if (layer.number != layerNum) { return; }
+
+			//Note that rotation might be not axis aligned, so we have do transform all corners
+			var x1 = elem.x + rotMat[0]*rect.x1 + rotMat[1]*rect.y1,	//top left
+				y1 = elem.y + rotMat[2]*rect.x1 + rotMat[3]*rect.y1,
+				x2 = elem.x + rotMat[0]*rect.x2 + rotMat[1]*rect.y1,	//top right
+				y2 = elem.y + rotMat[2]*rect.x2 + rotMat[3]*rect.y1,
+				x3 = elem.x + rotMat[0]*rect.x2 + rotMat[1]*rect.y2,	//bottom right
+				y3 = elem.y + rotMat[2]*rect.x2 + rotMat[3]*rect.y2,
+				x4 = elem.x + rotMat[0]*rect.x1 + rotMat[1]*rect.y2,	//bottom left
+				y4 = elem.y + rotMat[2]*rect.x1 + rotMat[3]*rect.y2;
+
+			var padName = rect.name,
+				signalName = elem.padSignals[padName],
+				highlightPad = (this.highlightedItem && (this.highlightedItem.type=='signal') && (this.highlightedItem.name==signalName));
+
+			ctx.strokeStyle = ctx.fillStyle = highlightPad ? this.highlightColor(layer.color) : color;
+			ctx.lineJoin  = "round";
+			ctx.beginPath();
+			ctx.moveTo(x1,y1);
+			ctx.lineTo(x2,y2);
+			ctx.lineTo(x3,y3);
+			ctx.lineTo(x4,y4);
+			ctx.closePath();
+			ctx.fill();
+		}, this)
 
 		pkg.polys.forEach(function(poly) {
 			var layerNum = poly.layer;
