@@ -1,31 +1,18 @@
-var eaglecanvas;
+/* globals define, exports, module */
 
-var itemHints = {
-	'element:MCU' : 'The central processing unit. A NXP LPC 1343.',
-	'element:X1' : 'A 12 MHz crystal. Provides a precise clock source in combination with C1 and C2. The processor has its own RC clock source, but a quartz is required to fulfill the strict timing requirements of USB.',
-	'element:T1' : 'A MOSFET transistor that enables or disables the R3 pullup resistor by software, allowing the device to logically connect and disconnect from the USB. This feature is called "soft connect".',
-	'element:R1' : 'A termination resistor (33Ω) for USB, preventing signal reflections in the USB wire.',
-	'element:R2' : 'A termination resistor (33Ω) for USB, preventing signal reflections in the USB wire.',
-	'element:R3' : 'A pullup resistor (1.5kΩ) that slightly pulls the USB D+ level towards 3.3V. This pullup signals the USB host that a device is connected to USB.',
-	'element:R4' : 'A pullup resistor (10kΩ) for the programming pin, ensuring a HIGH level when the PGM button is not pressed.',
-	'element:R5' : 'A pullup resistor (10kΩ) for the reset pin, ensuring a HIGH level when the PGM button is not pressed.',
-	'element:R6' : 'The LED current limiting resistor(100Ω), ensuring that the LED current does not exceed 10mA.',
-	'element:R7' : 'Forms a voltage divider (1.5kΩ) in combination with R8. Generates a signal for the MCU to detect a USB connection.',
-	'element:R8' : 'Forms a voltage divider (10kΩ) in combination with R7. Generates a signal for the MCU to detect a USB connection.',
-	'element:C1' : 'Crystal load capacitor (18pF). Tunes the capacitive load for the crystal to work properly.',
-	'element:C2' : 'Crystal load capacitor (10pF). Tunes the capacitive load for the crystal to work properly.',
-	'element:C3' : 'Input buffer capacitor (1µF) for the voltage regulator. Smoothes the voltage, prevents oscillation of the voltage regulator.',
-	'element:C4' : 'Output buffer capacitor (1µF) for the voltage regulator. Smoothes the voltage, prevents oscillation of the voltage regulator.',
-	'element:C5' : 'Power supply buffer (100nF) for the microcontroller. Stabilizes supply voltage, prevents digital noise from spreading.',
-	'element:C6' : 'Power supply buffer (100nF) for the microcontroller. Stabilizes supply voltage, prevents digital noise from spreading.',
-	'element:VREG' : '3.3V voltage regulator (LDO). Generates 3.3V for the microcontroller from 5V USB and higher voltages',
-	'element:D1' : 'A double common cathode diode package. Prevents damage from reverse voltage, prevents current flow from higher voltage sources to lower voltage sources when more than one power supply is connected.',
-	'element:RST' : "Reset button. Pulls the PIO0_0 pin low. Can be reconfigured as a user button (if you don't need a reset button).",
-	'element:PGM' : 'Program button. Pulls the PIO0_1 pin low. At startup, this causes the microcontroller to boot into the bootloader in ROM. Can be used as an application button during normal operation.',
-	'element:LED' : 'A light emitting diode. Emits light, controllable by software.',
-	'element:USB' : 'Micro USB-B port. Power supply, host communication, programming.'
-
-};
+(function(root, definition) {
+	if (typeof define === 'function' && define.amd) {
+		// AMD. Register as an anonymous module.
+		define([], definition);
+	} else if (typeof exports === 'object') {
+		// Node. Does not work with strict CommonJS, but only CommonJS-like
+		// environments that support module.exports, like Node.
+		module.exports = definition();
+	} else {
+		// Browser globals (root is window)
+		root.ViewEE = definition();
+	}
+}(window, function() {
 
 var fontLoaded = false;
 
@@ -46,6 +33,11 @@ function stupidWebfontTrick(eagle) {
 }
 
 function loadWebFonts (cb) {
+	if (typeof FontLoader === "undefined") {
+		setTimeout (cb, 500);
+		return;
+	}
+
 	var fontLoader = new FontLoader(["vector"], {
 		"complete": function(error) {
 			if (error !== null) {
@@ -59,6 +51,7 @@ function loadWebFonts (cb) {
 			cb();
 		}
 	}, 500);
+
 	fontLoader.loadFonts();
 }
 
@@ -112,29 +105,37 @@ var layers = [
 	{id: 4, title: "Dim backside"},
 ];
 
-function ViewEE (options) {
+var EagleCanvas;
+
+function ViewEE (options, EagleCanvasClass) {
 
 	if (ViewEE.initialized)
 		return ViewEE.initialized;
 
+	EagleCanvas = EagleCanvas || EagleCanvasClass || window.EagleCanvas;
+
 	if (!options) options = {};
 
+	this.node = options.node || document;
+
 	this.canvasSelector = options.canvasSelector || '#canvas';
+	this.scaleSelector  = options.scaleSelector  || '#outer';
+	this.formSelector   = options.formSelector   || "form";
+	this.hintsBoxSel    = options.hintsBoxSel    || '#hintsbox';
+	this.hintsTitleSel  = options.hintsTitleSel  || '#hintstitle';
+	this.hintsTextSel   = options.hintsTextSel   || '#hintstext';
 
-	this.scaleSelector  = options.scaleSelector || '#outer';
 
-	this.formSelector = options.formSelector || "form";
-
-	var form = document.querySelector (this.formSelector);
+	var form = this.node.querySelector (this.formSelector);
 	var radios = [].slice.apply (form.querySelectorAll ('input[name=side]'));
 	radios.forEach (function (radio) {
 		radio.addEventListener ('click', function (e) {
 			e = e || window.event;
 			if (e) e.stopPropagation();
 			var ff = getFormFields (form);
-			eaglecanvas.setBoardFlipped (ff.side === 'back');
-		});
-	});
+			this.canvas.setBoardFlipped (ff.side === 'back');
+		}.bind (this));
+	}, this);
 
 	var layerList = form.querySelector ('div.dropdown ul.layers');
 	layerList.innerHTML = '';
@@ -155,11 +156,20 @@ function ViewEE (options) {
 		chk.addEventListener ('click', this.toggleLayer.bind (this));
 	}
 
+	var zoomIn = form.querySelector ('.zoomIn');
+	zoomIn.addEventListener ("click", this.zoomInHandler.bind (this), false);
+
+	var zoomOut = form.querySelector ('.zoomOut');
+	zoomOut.addEventListener ("click", this.zoomOutHandler.bind (this), false);
+
+	var canvas = this.node.querySelector (this.canvasSelector);
+	canvas.addEventListener ("click", this.canvasClick.bind (this), false);
+
 	ViewEE.initialized = this;
 
 	var resizeHandler = function () {
-		eaglecanvas.scaleToFit ();
-		eaglecanvas.draw ();
+		this.canvas.scaleToFit ();
+		this.canvas.draw ();
 	}.bind (this);
 
 	var resizeTimer;
@@ -171,117 +181,131 @@ function ViewEE (options) {
 	loadWebFonts (function () {
 		ViewEE.fontReady = true;
 		if (this.loadUrl.delayed) {
-			eaglecanvas.loadURL (this.loadUrl.delayed);
+			this.canvas.loadURL (this.loadUrl.delayed);
 		} else if (this.loadText.delayed) {
-			eaglecanvas.loadText (this.loadText.delayed);
+			this.canvas.loadText (this.loadText.delayed);
 		}
 	}.bind (this));
 
 }
 
+ViewEE.init = function (url) {
+	var viewee = new ViewEE ();
+	viewee.loadUrl (url);
+}
+
+ViewEE.deselect = function () {
+	var viewee = new ViewEE ();
+	viewee.selectItem (null);
+}
+
+
 ViewEE.prototype.loadUrl = function (url) {
 
 	var defaultUrl; // = 'problems/no holes - lpc1114-valdez-mut-v.04.brd';
 
-	var form = document.querySelector (this.formSelector);
+	var form = this.node.querySelector (this.formSelector);
 	if (form) {
 		var option = form.querySelector ("select.board option");
 		defaultUrl = option.value;
 	}
 
-	eaglecanvas = new EagleCanvas (this.canvasSelector);
+	this.canvas = new EagleCanvas (this.canvasSelector);
 
-	eaglecanvas.setScaleToFit (this.scaleSelector);
+	this.canvas.setScaleToFit (this.scaleSelector);
 	if (!ViewEE.fontReady) {
 		this.loadUrl.delayed = url || defaultUrl;
 	} else {
-		eaglecanvas.loadURL(url || defaultUrl, function () {});
+		this.canvas.loadURL(url || defaultUrl, function () {});
 	}
 
 }
 
 ViewEE.prototype.loadText = function (text) {
 
-	eaglecanvas = new EagleCanvas (this.canvasSelector);
+	this.canvas = new EagleCanvas (this.canvasSelector);
 
-	eaglecanvas.setScaleToFit (this.scaleSelector);
+	this.canvas.setScaleToFit (this.scaleSelector);
+
 	if (!ViewEE.fontReady) {
 		this.loadText.delayed = text;
 	} else {
-		eaglecanvas.loadText (text);
+		this.canvas.loadText (text);
 	}
 }
 
 
-function zoomIn(e) {
+ViewEE.prototype.zoomInHandler = function (e) {
 	e = e || window.event;
 	if (e) e.stopPropagation();
-	eaglecanvas.setScale(eaglecanvas.getScale()*1.2);
+	this.canvas.setScale (this.canvas.getScale()*1.2);
 }
 
-function zoomOut(e) {
+ViewEE.prototype.zoomOutHandler = function (e) {
 	e = e || window.event;
 	if (e) e.stopPropagation();
-	eaglecanvas.setScale(eaglecanvas.getScale()/1.2);
+	this.canvas.setScale (this.canvas.getScale()/1.2);
 }
 
 ViewEE.prototype.toggleLayer = function (e, layer) {
 	e = e || window.event;
 	if (e) e.stopPropagation();
 	if (!layer) layer = parseInt (e.target.getAttribute ('data-layer'));
-	var shown = eaglecanvas.isLayerVisible(layer);
+	var shown = this.canvas.isLayerVisible(layer);
 	shown = !shown;
-	eaglecanvas.setLayerVisible(layer,shown);
+	this.canvas.setLayerVisible(layer,shown);
 	this.updateCheckboxes();
 }
 
 ViewEE.prototype.updateCheckboxes = function () {
 	for (var layerKey in EagleCanvas.LayerId) {
 		var layerId = EagleCanvas.LayerId[layerKey];
-		var form = document.querySelector (this.formSelector);
+		var form = this.node.querySelector (this.formSelector);
 		var chk = form.querySelector ('input[data-layer="'+layerId+'"]');
 		if (!chk) continue;
-		chk.checked = (eaglecanvas.isLayerVisible(layerId)) ? "checked" : "";
+		chk.checked = (this.canvas.isLayerVisible(layerId)) ? "checked" : "";
 	}
 }
 
-function canvasClick(e) {
+ViewEE.prototype.canvasClick = function (e) {
 	e = e || window.event;
 	if (!e) return;
 	e.stopPropagation();
-	var canvas = document.getElementById('canvas');
+	var canvas = this.node.querySelector (this.canvasSelector);
 	var x = e.clientX - canvas.getBoundingClientRect().left - canvas.clientLeft + canvas.scrollLeft;
 	var y = e.clientY - canvas.getBoundingClientRect().top - canvas.clientTop + canvas.scrollTop;
-	var hit = eaglecanvas.hitTest(x,y);
-	selectItem(hit);
+	var hit = this.canvas.hitTest(x,y);
+	this.selectItem(hit);
 }
 
-function selectItem(hit) {
-	eaglecanvas.setHighlightedItem(hit);
-	var hintsbox = document.getElementById('hintsbox');
+ViewEE.prototype.selectItem = function (hit) {
+	this.canvas.setHighlightedItem (hit);
+	var hintsbox = this.node.querySelector (this.hintsBoxSel);
 	hintsbox.style.display = (hit) ? 'block' : 'none';
-	if (hit) {
-		var hintstitle = document.getElementById('hintstitle');
-		while (hintstitle.childNodes.length > 0) hintstitle.removeChild(hintstitle.firstChild);
-		var title = "";
-		if (hit.type=='element') title = "Element: "+hit.name;
-		else if (hit.type=='signal') title = "Signal: "+hit.name;
-		hintstitle.appendChild(document.createTextNode(title));
 
-		var hintstext = document.getElementById('hintstext');
-		while (hintstext.childNodes.length > 0) hintstext.removeChild(hintstext.firstChild);
-		var desc = "";
-		if (hit.description) {
-			desc = hit.description;
-		} else if (typeof itemHints !== "undefined") {
-			desc = itemHints[hit.type+":"+hit.name];
-		}
-		if (!desc) desc = "";
-		hintstext.appendChild(document.createTextNode(desc));
+	if (!hit) return;
+
+	var hintstitle = this.node.querySelector (this.hintsTitleSel);
+	while (hintstitle.childNodes.length > 0)
+		hintstitle.removeChild(hintstitle.firstChild);
+	var title = "";
+	if (hit.type=='element') title = "Element: "+hit.name;
+	else if (hit.type=='signal') title = "Signal: "+hit.name;
+	hintstitle.appendChild (document.createTextNode(title));
+
+	var hintstext = this.node.querySelector (this.hintsTextSel);
+	while (hintstext.childNodes.length > 0)
+		hintstext.removeChild(hintstext.firstChild);
+	var desc = "";
+	if (hit.description) {
+		desc = hit.description;
+	} else if (typeof itemHints !== "undefined") {
+		desc = itemHints[hit.type+": "+hit.name];
 	}
+	if (!desc) desc = "";
+	hintstext.appendChild(document.createTextNode(desc));
 }
 
-function init (url) {
-	if (typeof viewee === "undefined") var viewee = new ViewEE ();
-	viewee.loadUrl (url);
-}
+return ViewEE;
+
+}))

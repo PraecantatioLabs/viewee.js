@@ -18,7 +18,7 @@
 
 <body>
 	<div style="font-family: vector; visibility: hidden; position: absolute; opacity: .01"> </div>
-	<div id="outer" onclick="selectItem(null);">
+	<div id="outer" onclick="ViewEE.deselect()">
 		<div id="hintsbox">
 			<p><span id="hintstitle"></span> <span id="hintstext"></span></p>
 		</div>
@@ -29,9 +29,9 @@
 				<input type="radio" id="side-back" value="back" name="side"/>
 				<label for="side-back">Back</label>
 			</div>
-			<div class="button" id="zoominbutton" onclick="zoomIn()">+</div>
-			<div class="button" id="zoomoutbutton" onclick="zoomOut()">-</div>
-			<div class="button dropdown" id="showlayerbutton">
+			<div class="button zoomIn">+</div>
+			<div class="button zoomOut">-</div>
+			<div class="button dropdown">
 				Layers...
 				<ul class="layers">
 				</ul>
@@ -39,7 +39,7 @@
 		</form>
 		<div id="hcenter">
 			<div id="vcenter">
-				<canvas id="canvas" width="800" height="600" onclick="canvasClick()">
+				<canvas width="800" height="600">
 				</canvas>
 			</div>
 		</div>

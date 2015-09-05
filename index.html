@@ -16,15 +16,17 @@
 </head>
 
 
-<body onload="init();">
+<body onload="ViewEE.init()">
 	<div style="font-family: vector; visibility: hidden; position: absolute; opacity: .01"> </div>
-	<div id="outer" onclick="selectItem(null);">
+	<div id="outer" onclick="ViewEE.deselect()">
 		<div id="hintsbox">
 
 			<p><span id="hintstitle"></span> <span id="hintstext"></span></p>
 		</div>
 		<form id="controls">
-			<select class="board" onchange="init(this.options[this.selectedIndex].value);">
+			<select class="board" onchange="ViewEE.init(this.options[this.selectedIndex].value);">
+				<option value="problems/panelone.kicad_pcb">panelone</option>
+				<option value="problems/circles - microsd.brd">microsd</option>
 				<option value="lpcprog.kicad_pcb">kicad_pcb</option>
 				<option value="hm-11.brd">hm-11</option>
 				<option value="board.brd">board</option>
@@ -35,8 +37,8 @@
 				<input type="radio" id="side-back" value="back" name="side"/>
 				<label for="side-back">Back</label>
 			</div>
-			<div class="button" id="zoominbutton" onclick="zoomIn()">+</div>
-			<div class="button" id="zoomoutbutton" onclick="zoomOut()">-</div>
+			<div class="button zoomIn" id="zoominbutton">+</div>
+			<div class="button zoomOut" id="zoomoutbutton">-</div>
 			<div class="button dropdown" id="showlayerbutton">
 				Layers...
 				<ul class="layers">
@@ -54,7 +56,7 @@
 		</form>
 		<div id="hcenter">
 			<div id="vcenter">
-				<canvas id="canvas" width="800" height="600" onclick="canvasClick()">
+				<canvas id="canvas" width="800" height="600">
 				</canvas>
 			</div>
 		</div>
