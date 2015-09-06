@@ -53,6 +53,10 @@ KicadNewParser.name = "kicad kicad_pcb";
 var layerMaps = {
 	"Front": "Top",
 	"Back": "Bottom",
+	"F.Cu": "Top",
+	"B.Cu": "Bottom",
+	"Inner1.Cu": "Inner1",
+	"Inner2.Cu": "Inner2",
 	"B.Adhes": "bGlue",
 	"F.Adhes": "tGlue",
 	"B.Paste": "bCream",
@@ -70,6 +74,8 @@ var layerMaps = {
 
 var eagleLayers = {
 	"Top": { "name": "Top", "number": 1, "color": 4 },
+	"Inner1": { "name": "Inner1", "number": 3, "color": 16 },
+	"Inner2": { "name": "Inner2", "number": 4, "color": 16 },
 	"Bottom": { "name": "Bottom", "number": 16, "color": 1 },
 	"Pads": { "name": "Pads", "number": 17, "color": 2 },
 	"Vias": { "name": "Vias", "number": 18, "color": 2 },
