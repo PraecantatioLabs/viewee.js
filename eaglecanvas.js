@@ -1048,6 +1048,16 @@ EagleCanvas.prototype.drawText = function (attrs, text, ctx) {
 	var strings = content.split (/\r?\n/);
 	var stringOffset = (text.interlinear || 50) * emHeight / 100;
 
+
+	if (0) { // enable to draw zero points for text
+		ctx.save();
+		ctx.beginPath();
+		ctx.arc(0, 0, 1, 0, 2 * Math.PI, false);
+		ctx.fillStyle = this.viaPadColor();
+		ctx.fill();
+		ctx.restore();
+	}
+
 	ctx.transform (textRot[0],textRot[2],textRot[1],textRot[3],0,0);
 	var textBlockHeight = (strings.length - 1) * (stringOffset + emHeight);
 	var textBlockWidth = 0;
@@ -1066,7 +1076,16 @@ EagleCanvas.prototype.drawText = function (attrs, text, ctx) {
 		);
 		if (!textAngle.spin) ctx.scale(-1,-1);
 	}
+
+	if (0) { // enable to draw zero points for text origin
+		ctx.save();
+		ctx.beginPath();
+		ctx.arc(0, 0, 1, 0, 2 * Math.PI, false);
+		ctx.fillStyle = "b00";
+		ctx.fill();
+		ctx.restore();
 	}
+
 	if (text.align)  ctx.textAlign = text.align;
 	if (text.valign) ctx.textBaseline = text.valign;
 
