@@ -420,14 +420,15 @@ KicadNewParser.prototype.parseCircle = function (cmd) {
 }
 
 
-KicadNewParser.prototype.parsePad = function (cmd) {
+KicadNewParser.prototype.parsePad = function (cmd, angle) {
 	cmd.attrs = this.extractAttrs (cmd.args);
 	cmd.args  = this.spliceArgs   (cmd.args);
 	var net;
 	if (cmd.attrs.net) net = cmd.attrs.net[0];
 	var x   = parseFloat (cmd.attrs.at[0]);
 	var y   = parseFloat (cmd.attrs.at[1]);
-	var rot = "R" + (parseFloat (cmd.attrs.at[2]) || 0);
+	// what the f*** ???
+	var rot = "R" + ((parseFloat (cmd.attrs.at[2]) || 0) - angle);
 	var w   = parseFloat (cmd.attrs.size[0]);
 	var h   = parseFloat (cmd.attrs.size[1]);
 
@@ -445,8 +446,8 @@ KicadNewParser.prototype.parsePad = function (cmd) {
 		y1: y - h/2,
 		x2: x + w/2,
 		y2: y + h/2,
-		//rot: rot,
-		rot: "R0", // those seems already rotated
+		rot: rot,
+		//rot: "R0", // those seems already rotated
 		name: name,
 		type: type,
 		shape: shape,
@@ -498,6 +499,9 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 		pkg.description = cmd.attrs.descr[0];
 	}
 
+	var rotate = parseFloat (cmd.attrs.at[2]) || 0;
+	el.rot = "R" + (-rotate); // WHY?
+
 	cmd.attrs.fp_text.forEach (function (txtCmd) {
 		var txt = this.parseText ({name: "fp_text", args: txtCmd});
 		txt.type = txtCmd[0];
@@ -533,7 +537,8 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 	}, this);
 
 	if (cmd.attrs.pad) cmd.attrs.pad.forEach (function (padCmd) {
-		var pad = this.parsePad ({name: "pad", args: padCmd});
+		var pad = this.parsePad ({name: "pad", args: padCmd}, rotate);
+
 		pad.layer = this.eagleLayer (pad.layers ? pad.layers[0] : cmd.attrs.layer[0]).number;
 
 		if (pad.type === "smd") {
@@ -550,11 +555,8 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 	}, this);
 
 
-	var rotate = parseFloat (cmd.attrs.at[2]) || 0;
-	el.rot = "R" + (360 - rotate); // WHY?
-
 	// TODO: recheck
-	if (cmd.attrs.layer[0] === "Back") {
+	if (cmd.attrs.layer[0] === "Back" || cmd.attrs.layer[0] === "B.Cu") {
 		el.rot = "M"+el.rot;
 	}
 
