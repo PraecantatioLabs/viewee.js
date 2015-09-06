@@ -1302,7 +1302,9 @@ EagleCanvas.prototype.drawElements = function(layer, ctx) {
 
 			ctx.beginPath();
 			// TODO: make sure calculations is correct
-			ctx.lineWidth = (pad.diameter - pad.drill) / 2;
+			var lineWidth = (pad.diameter - pad.drill) / 2;
+			if (lineWidth <= 0) lineWidth = this.minLineWidth;
+			ctx.lineWidth = lineWidth;
 			ctx.arc(x, y, pad.drill * 0.75, 0, Math.PI * 2, false);
 			ctx.strokeStyle = this.viaPadColor();
 			ctx.stroke();
