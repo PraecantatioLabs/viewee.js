@@ -74,8 +74,8 @@ var layerMaps = {
 
 var eagleLayers = {
 	"Top": { "name": "Top", "number": 1, "color": 4 },
-	"Inner1": { "name": "Inner1", "number": 3, "color": 16 },
-	"Inner2": { "name": "Inner2", "number": 4, "color": 16 },
+	"Inner1": { "name": "Inner1", "number": 2, "color": 16 },
+	"Inner2": { "name": "Inner2", "number": 3, "color": 16 },
 	"Bottom": { "name": "Bottom", "number": 16, "color": 1 },
 	"Pads": { "name": "Pads", "number": 17, "color": 2 },
 	"Vias": { "name": "Vias", "number": 18, "color": 2 },
@@ -319,7 +319,7 @@ KicadNewParser.prototype.parseLine = function (cmd) {
 	return line;
 }
 
-KicadNewParser.prototype.parseText = function (cmd) {
+KicadNewParser.prototype.parseText = function (cmd, angle) {
 	cmd.attrs = this.extractAttrs (cmd.args);
 	cmd.args  = this.spliceArgs   (cmd.args);
 
@@ -347,6 +347,8 @@ KicadNewParser.prototype.parseText = function (cmd) {
 		text.size = parseFloat (cmd.attrs.effects.font.size[0]);
 
 	var rotate = parseFloat (cmd.attrs.at[2]) || 0;
+	// TODO:
+	//text.rot = "R" + (rotate - (angle || 0));
 	text.rot = "R" + rotate;
 	if (rotate >= 90 && rotate <= 270) {
 		text.flipText = true;
@@ -428,7 +430,7 @@ KicadNewParser.prototype.parsePad = function (cmd, angle) {
 	var x   = parseFloat (cmd.attrs.at[0]);
 	var y   = parseFloat (cmd.attrs.at[1]);
 	// what the f*** ???
-	var rot = "R" + ((parseFloat (cmd.attrs.at[2]) || 0) - angle);
+	var rot = "R" + ((parseFloat (cmd.attrs.at[2]) || 0) - (angle || 0));
 	var w   = parseFloat (cmd.attrs.size[0]);
 	var h   = parseFloat (cmd.attrs.size[1]);
 
@@ -503,7 +505,7 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 	el.rot = "R" + (-rotate); // WHY?
 
 	cmd.attrs.fp_text.forEach (function (txtCmd) {
-		var txt = this.parseText ({name: "fp_text", args: txtCmd});
+		var txt = this.parseText ({name: "fp_text", args: txtCmd}, rotate);
 		txt.type = txtCmd[0];
 		txt.layer = this.eagleLayer (txt.layer).number;
 		if (txt.type === "reference") {
