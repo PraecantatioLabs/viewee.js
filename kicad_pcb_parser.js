@@ -53,10 +53,10 @@ KicadNewParser.name = "kicad kicad_pcb";
 var layerMaps = {
 	"Front": "Top",
 	"Back": "Bottom",
-	"F.Cu": "Top",
-	"B.Cu": "Bottom",
-	"Inner1.Cu": "Inner1",
-	"Inner2.Cu": "Inner2",
+//	"F.Cu": "Top",
+//	"B.Cu": "Bottom",
+//	"Inner1.Cu": "Inner1",
+//	"Inner2.Cu": "Inner2",
 	"B.Adhes": "bGlue",
 	"F.Adhes": "tGlue",
 	"B.Paste": "bCream",
@@ -73,10 +73,22 @@ var layerMaps = {
 };
 
 var eagleLayers = {
-	"Top": { "name": "Top", "number": 1, "color": 4 },
-	"Inner1": { "name": "Inner1", "number": 2, "color": 16 },
-	"Inner2": { "name": "Inner2", "number": 3, "color": 16 },
-	"Bottom": { "name": "Bottom", "number": 16, "color": 1 },
+	"Top":     { "name": "Top",     "number": 1, "color": 4 },
+	"Inner1":  { "name": "Inner1",  "number": 2, "color": 16 },
+	"Inner2":  { "name": "Inner2",  "number": 3, "color": 16 },
+	"Inner3":  { "name": "Inner3",  "number": 4, "color": 16 },
+	"Inner4":  { "name": "Inner4",  "number": 5, "color": 16 },
+	"Inner5":  { "name": "Inner5",  "number": 6, "color": 16 },
+	"Inner6":  { "name": "Inner6",  "number": 7, "color": 16 },
+	"Inner7":  { "name": "Inner7",  "number": 8, "color": 16 },
+	"Inner8":  { "name": "Inner8",  "number": 9, "color": 16 },
+	"Inner9":  { "name": "Inner9",  "number": 10, "color": 16 },
+	"Inner10": { "name": "Inner10", "number": 11, "color": 16 },
+	"Inner11": { "name": "Inner11", "number": 12, "color": 16 },
+	"Inner12": { "name": "Inner12", "number": 13, "color": 16 },
+	"Inner13": { "name": "Inner13", "number": 14, "color": 16 },
+	"Inner14": { "name": "Inner14", "number": 15, "color": 16 },
+	"Bottom":  { "name": "Bottom", "number": 16, "color": 1 },
 	"Pads": { "name": "Pads", "number": 17, "color": 2 },
 	"Vias": { "name": "Vias", "number": 18, "color": 2 },
 	"Unrouted": { "name": "Unrouted", "number": 19, "color": 6 },
@@ -163,6 +175,7 @@ KicadNewParser.prototype.eagleLayer = function (layerName) {
 	// eagle draw will replace layer info accordingly
 	if (layerName === "*.Cu") layerName = "Front";
 	if (layerName === "*.Mask") layerName = "F.Mask";
+	if (!layerMaps[layerName]) return;
 	return eagleLayers [layerMaps[layerName]];
 }
 
@@ -590,8 +603,24 @@ KicadNewParser.prototype.cmdDone = function () {
 
 	// layers
 	if (this.cmd.name === "layers") {
-		this.cmd.args.forEach (function (arg) {
-			var eagleLayer = this.eagleLayer (arg.args[0]);
+		this.cmd.args.forEach (function (layer) {
+			var eagleLayer = this.eagleLayer (layer.args[0]);
+			// Layer names can be changed
+			var layerId = parseInt (layer.name);
+			if (layerId >= 0 && layerId <= 31) {
+				if (layerId === 0) {
+					layerMaps[layer.args[0]] = "Top";
+					eagleLayer = this.eagleLayer ("Front");
+				} else if (layerId === 31) {
+					layerMaps[layer.args[0]] = "Bottom";
+					eagleLayer = this.eagleLayer ("Back");
+				} else if (layerId > 0 && layerId < 15) {
+					layerMaps[layer.args[0]] = "Inner" + (layerId + 1);
+					eagleLayer = this.eagleLayer ("Inner" + (layerId + 1));
+				} else {
+					console.warn ("We currently not supporting parsing files with more than 16 signal layers, but found layer with id = %d", layerId);
+				}
+			}
 
 			if (!eagleLayer) return;
 
