@@ -182,8 +182,10 @@ function ViewEE (options, EagleCanvasClass) {
 		ViewEE.fontReady = true;
 		if (this.loadUrl.delayed) {
 			this.canvas.loadURL (this.loadUrl.delayed);
+			delete this.loadUrl.delayed;
 		} else if (this.loadText.delayed) {
 			this.canvas.loadText (this.loadText.delayed);
+			delete this.loadText.delayed;
 		}
 	}.bind (this));
 
