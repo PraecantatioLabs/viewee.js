@@ -210,7 +210,7 @@ ViewEE.prototype.loadUrl = function (url) {
 		defaultUrl = option.value;
 	}
 
-	this.canvas = new EagleCanvas (this.canvasSelector);
+	this.canvas = new EagleCanvas (this.node.querySelector (this.canvasSelector));
 
 	this.canvas.setScaleToFit (this.scaleSelector);
 	if (!ViewEE.fontReady) {
@@ -223,7 +223,7 @@ ViewEE.prototype.loadUrl = function (url) {
 
 ViewEE.prototype.loadText = function (text) {
 
-	this.canvas = new EagleCanvas (this.canvasSelector);
+	this.canvas = new EagleCanvas (this.node.querySelector (this.canvasSelector));
 
 	this.canvas.setScaleToFit (this.scaleSelector);
 

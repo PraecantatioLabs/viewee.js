@@ -43,7 +43,11 @@ EagleCanvas.prototype.dimBoardAlpha = 0.7;
 // -------------------
 
 function EagleCanvas(canvasSelector) {
-	this.canvasSelector = canvasSelector;
+	if (canvasSelector instanceof HTMLCanvasElement) {
+		this.canvas = canvasSelector;
+	} else {
+		this.canvas = document.querySelector (canvasSelector);
+	}
 
 	this.visibleLayers = {};
 	this.visibleLayers[EagleCanvas.LayerId.BOTTOM_COPPER]        = true;
@@ -79,7 +83,7 @@ function EagleCanvas(canvasSelector) {
 	this.reverseRenderLayerOrder.push(EagleCanvas.LayerId.BOTTOM_DOCUMENTATION);
 
 	this.layerRenderFunctions = {};
-	
+
 	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_COPPER] = function(that,ctx) {
 		that.drawSignalWires(that.eagleLayersByName['Bottom'],ctx);
 		that.drawElements(that.eagleLayersByName['Bottom'],ctx);
@@ -134,7 +138,7 @@ function EagleCanvas(canvasSelector) {
 
 	this.layerRenderFunctions[EagleCanvas.LayerId.DIM_BOARD] = function(that,ctx) {
 		that.dimCanvas(ctx,that.dimBoardAlpha);
-	}	
+	}
 
 	this.layerRenderFunctions[EagleCanvas.LayerId.VIAS] = function(that,ctx) {
 		that.drawSignalVias('1-16',ctx, that.viaPadColor());
@@ -177,7 +181,7 @@ EagleCanvas.prototype.getScale = function(scale) {
 /** sets the scale factor, triggers resizing and redrawing */
 EagleCanvas.prototype.setScale = function(scale) {
 	this.scale = scale;
-	var canvas = document.querySelector (this.canvasSelector);
+	var canvas = this.canvas;
 	var context = canvas.getContext('2d'),
 		devicePixelRatio = window.devicePixelRatio || 1,
 		backingStoreRatio =
@@ -861,7 +865,7 @@ EagleCanvas.prototype.parseLayer = function(layer) {
 // ---------------
 
 EagleCanvas.prototype.draw = function() {
-	var canvas = document.querySelector (this.canvasSelector),
+	var canvas = this.canvas,
 		ctx    = canvas.getContext('2d');
 
 	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -1372,7 +1376,7 @@ EagleCanvas.prototype.dimCanvas = function(ctx, alpha) {
 // -------------------
 
 EagleCanvas.prototype.hitTest = function(x,y) {
-	var canvas = document.querySelector (this.canvasSelector);
+	var canvas = this.canvas;
 	//Translate screen to model coordinates
 	var rx = x / this.scale;
 	var ry = (this.coordYFlip ? y : canvas.height / this.ratio - y) / this.scale;
@@ -1652,13 +1656,13 @@ EagleCanvas.prototype.calculateBounds = function() {
 
 EagleCanvas.prototype.scaleToFit = function(a) {
 	// if (!this.scaleToFitSelector) { return; }
-	var fitElement = document.querySelector (this.scaleToFitSelector || this.canvasSelector);
+	var fitElement = this.scaleToFitSelector ? document.querySelector (this.scaleToFitSelector) : this.canvas;
 	if (!fitElement) { return; }
 	var fitWidth  = fitElement.offsetWidth,
-	    fitHeight = fitElement.offsetHeight,
-	    scaleX    = fitWidth / this.nativeSize[0],
-	    scaleY    = fitHeight / this.nativeSize[1],
-	    scale     = Math.min(scaleX, scaleY);
+		fitHeight = fitElement.offsetHeight,
+		scaleX    = fitWidth / this.nativeSize[0],
+		scaleY    = fitHeight / this.nativeSize[1],
+		scale     = Math.min(scaleX, scaleY);
 	scale *= 0.9;
 	this.minScale = scale / 10;
 	this.maxScale = scale * 10;
