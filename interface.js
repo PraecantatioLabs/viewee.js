@@ -109,7 +109,7 @@ var EagleCanvas;
 
 function ViewEE (options, EagleCanvasClass) {
 
-	if (ViewEE.initialized)
+	if (!options.fromScratch && ViewEE.initialized)
 		return ViewEE.initialized;
 
 	EagleCanvas = EagleCanvas || EagleCanvasClass || window.EagleCanvas;
@@ -194,6 +194,7 @@ function ViewEE (options, EagleCanvasClass) {
 ViewEE.init = function (url) {
 	var viewee = new ViewEE ();
 	viewee.loadUrl (url);
+	return viewee;
 }
 
 ViewEE.deselect = function () {
