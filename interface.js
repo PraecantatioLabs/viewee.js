@@ -108,13 +108,13 @@ var layers = [
 var EagleCanvas;
 
 function ViewEE (options, EagleCanvasClass) {
+	
+	if (!options) options = {};
 
 	if (!options.fromScratch && ViewEE.initialized)
 		return ViewEE.initialized;
 
 	EagleCanvas = EagleCanvas || EagleCanvasClass || window.EagleCanvas;
-
-	if (!options) options = {};
 
 	this.node = options.node || document;
 

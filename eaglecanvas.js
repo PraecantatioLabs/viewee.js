@@ -31,9 +31,9 @@ EagleCanvas.LARGE_NUMBER = 99999;
 
 EagleCanvas.warnings = {};
 
-EagleCanvas.prototype.scale = 25;
-EagleCanvas.prototype.minScale = 2.5;
-EagleCanvas.prototype.maxScale = 250;
+EagleCanvas.prototype.scale = 1;
+EagleCanvas.prototype.minScale = 0.1;
+EagleCanvas.prototype.maxScale = 10;
 EagleCanvas.prototype.minLineWidth = 0.05;
 EagleCanvas.prototype.boardFlipped = false;
 EagleCanvas.prototype.dimBoardAlpha = 0.7;
@@ -179,8 +179,9 @@ EagleCanvas.prototype.getScale = function(scale) {
 }
 
 /** sets the scale factor, triggers resizing and redrawing */
-EagleCanvas.prototype.setScale = function(scale) {
-	this.scale = scale;
+EagleCanvas.prototype.setScale = function (scale, noResize) {
+	console.log (scale, this.scale, this.baseScale);
+	this.scale = scale // * (this.scale || 1);
 	var canvas = this.canvas;
 	var context = canvas.getContext('2d'),
 		devicePixelRatio = window.devicePixelRatio || 1,
@@ -192,11 +193,16 @@ EagleCanvas.prototype.setScale = function(scale) {
 			context.backingStorePixelRatio || 1,
 		ratio = devicePixelRatio / backingStoreRatio;
 
-	canvas.width  = scale * this.nativeSize[0] * ratio;
-	canvas.height = scale * this.nativeSize[1] * ratio;
+	if (!noResize) {
+		canvas.width  = scale * this.baseScale * this.nativeSize[0] * ratio;
+		canvas.height = scale * this.baseScale * this.nativeSize[1] * ratio;
 
-	canvas.style.width  = scale * this.nativeSize[0] + "px";
-	canvas.style.height = scale * this.nativeSize[1] + "px";
+		canvas.style.width  = scale * this.baseScale * this.nativeSize[0] + "px";
+		canvas.style.height = scale * this.baseScale * this.nativeSize[1] + "px";
+	}
+
+	this.canvasWidth  = scale * this.baseScale * this.nativeSize[0] * ratio;
+	this.canvasHeight = scale * this.baseScale * this.nativeSize[0] * ratio;
 
 	this.ratio = ratio;
 
@@ -855,9 +861,9 @@ EagleCanvas.prototype.parseElement = function(elem) {
 };
 
 EagleCanvas.prototype.parseLayer = function(layer) {
-	return {'name'  : layer.getAttribute('name'), 
-	        'number': parseInt(layer.getAttribute('number')), 
-	        'color' : parseInt(layer.getAttribute('color'))};
+	return {'name'  : layer.getAttribute('name'),
+			'number': parseInt(layer.getAttribute('number')),
+			'color' : parseInt(layer.getAttribute('color'))};
 }
 
 // ---------------
@@ -872,10 +878,10 @@ EagleCanvas.prototype.draw = function() {
 	ctx.save();
 
 	ctx.transform(
-		this.scale * this.ratio * (this.boardFlipped ? -1.0 : 1.0),
+		this.scale * this.baseScale * this.ratio * (this.boardFlipped ? -1.0 : 1.0),
 		0,
 		0,
-		(this.coordYFlip ? 1 : -1) * this.scale*this.ratio,
+		(this.coordYFlip ? 1 : -1) * this.scale  * this.baseScale * this.ratio,
 		0,
 		this.coordYFlip ? 0 : ctx.canvas.height
 	);
@@ -973,13 +979,13 @@ EagleCanvas.prototype.drawSignalWires = function(layer, ctx) {
 
 	for (var signalKey in this.signalItems) {
 
-		var highlight = (this.highlightedItem && (this.highlightedItem.type=='signal') && (this.highlightedItem.name==signalKey)); 
+		var highlight = (this.highlightedItem && (this.highlightedItem.type=='signal') && (this.highlightedItem.name==signalKey));
 		var color = highlight ? this.highlightColor(layer.color) : this.layerColor(layer.color);
 		ctx.strokeStyle = color;
 
 
 		var signalLayers = this.signalItems[signalKey],
-		    layerItems = signalLayers[layer.number];
+			layerItems = signalLayers[layer.number];
 		if (!layerItems) { continue; }
 		var layerWires = layerItems['wires'] || [];
 		layerWires.forEach(function(wire) {
@@ -1378,8 +1384,8 @@ EagleCanvas.prototype.dimCanvas = function(ctx, alpha) {
 EagleCanvas.prototype.hitTest = function(x,y) {
 	var canvas = this.canvas;
 	//Translate screen to model coordinates
-	var rx = x / this.scale;
-	var ry = (this.coordYFlip ? y : canvas.height / this.ratio - y) / this.scale;
+	var rx = x / (this.scale * this.baseScale);
+	var ry = (this.coordYFlip ? y : canvas.height / this.ratio - y) / (this.scale * this.baseScale);
 	ry += this.nativeBounds[1];
 	rx = this.boardFlipped ? (this.nativeBounds[2]-rx) : (rx+this.nativeBounds[0]);
 
@@ -1410,13 +1416,13 @@ EagleCanvas.prototype.hitTestElements = function(layer, x, y) {
 			if (elem.mirror) layerNum = this.mirrorLayer(layerNum);
 			if (layer.number != layerNum) continue;
 			var x1 = elem.x + rotMat[0]*bbox[0] + rotMat[1]*bbox[1],	//top left
-			    y1 = elem.y + rotMat[2]*bbox[0] + rotMat[3]*bbox[1],
-			    x2 = elem.x + rotMat[0]*bbox[2] + rotMat[1]*bbox[1],	//top right
-			    y2 = elem.y + rotMat[2]*bbox[2] + rotMat[3]*bbox[1],
-			    x3 = elem.x + rotMat[0]*bbox[2] + rotMat[1]*bbox[3],	//bottom right
-			    y3 = elem.y + rotMat[2]*bbox[2] + rotMat[3]*bbox[3],
-			    x4 = elem.x + rotMat[0]*bbox[0] + rotMat[1]*bbox[3],	//bottom left
-			    y4 = elem.y + rotMat[2]*bbox[0] + rotMat[3]*bbox[3];
+				y1 = elem.y + rotMat[2]*bbox[0] + rotMat[3]*bbox[1],
+				x2 = elem.x + rotMat[0]*bbox[2] + rotMat[1]*bbox[1],	//top right
+				y2 = elem.y + rotMat[2]*bbox[2] + rotMat[3]*bbox[1],
+				x3 = elem.x + rotMat[0]*bbox[2] + rotMat[1]*bbox[3],	//bottom right
+				y3 = elem.y + rotMat[2]*bbox[2] + rotMat[3]*bbox[3],
+				x4 = elem.x + rotMat[0]*bbox[0] + rotMat[1]*bbox[3],	//bottom left
+				y4 = elem.y + rotMat[2]*bbox[0] + rotMat[3]*bbox[3];
 			if (this.pointInRect(x,y,x1,y1,x2,y2,x3,y3,x4,y4)) {
 				return {'type':'element','name':elem.name, description: pkg.description};
 			}
@@ -1429,13 +1435,13 @@ EagleCanvas.prototype.hitTestElements = function(layer, x, y) {
 			if (elem.mirror) layerNum = this.mirrorLayer(layerNum);
 			if (layer.number != layerNum) continue;
 			var x1 = elem.x + rotMat[0]*smd.x1 + rotMat[1]*smd.y1,	//top left
-			    y1 = elem.y + rotMat[2]*smd.x1 + rotMat[3]*smd.y1,
-			    x2 = elem.x + rotMat[0]*smd.x2 + rotMat[1]*smd.y1,	//top right
-			    y2 = elem.y + rotMat[2]*smd.x2 + rotMat[3]*smd.y1,
-			    x3 = elem.x + rotMat[0]*smd.x2 + rotMat[1]*smd.y2,	//bottom right
-			    y3 = elem.y + rotMat[2]*smd.x2 + rotMat[3]*smd.y2,
-			    x4 = elem.x + rotMat[0]*smd.x1 + rotMat[1]*smd.y2,	//bottom left
-			    y4 = elem.y + rotMat[2]*smd.x1 + rotMat[3]*smd.y2;
+				y1 = elem.y + rotMat[2]*smd.x1 + rotMat[3]*smd.y1,
+				x2 = elem.x + rotMat[0]*smd.x2 + rotMat[1]*smd.y1,	//top right
+				y2 = elem.y + rotMat[2]*smd.x2 + rotMat[3]*smd.y1,
+				x3 = elem.x + rotMat[0]*smd.x2 + rotMat[1]*smd.y2,	//bottom right
+				y3 = elem.y + rotMat[2]*smd.x2 + rotMat[3]*smd.y2,
+				x4 = elem.x + rotMat[0]*smd.x1 + rotMat[1]*smd.y2,	//bottom left
+				y4 = elem.y + rotMat[2]*smd.x1 + rotMat[3]*smd.y2;
 			if (this.pointInRect(x,y,x1,y1,x2,y2,x3,y3,x4,y4)) {
 				var padName = smd.name;
 				if (padName) {
@@ -1460,13 +1466,13 @@ EagleCanvas.prototype.hitTestSignals = function(layer, x, y) {
 		for (var wireIdx in layerWires) {
 			if (!layerWires.hasOwnProperty(wireIdx)) continue;
 			var wire = layerWires[wireIdx],
-			    x1 = wire.x1,
-			    y1 = wire.y1,
-			    x2 = wire.x2,
-			    y2 = wire.y2,
-			    width = wire.width;
-			if (this.pointInLine(x,y,x1,y1,x2,y2,width)) { 
-				return {'type':'signal','name':signalName}; 
+				x1 = wire.x1,
+				y1 = wire.y1,
+				x2 = wire.x2,
+				y2 = wire.y2,
+				width = wire.width;
+			if (this.pointInLine(x,y,x1,y1,x2,y2,width)) {
+				return {'type':'signal','name':signalName};
 			}
 		}
 	}
@@ -1476,7 +1482,7 @@ EagleCanvas.prototype.hitTestSignals = function(layer, x, y) {
 EagleCanvas.prototype.pointInLine = function(x, y, x1, y1, x2, y2, width) {
 	var width2 = width * width;
 
-	if (((x-x1)*(x-x1)+(y-y1)*(y-y1)) < width2) { return true; }	//end 1 
+	if (((x-x1)*(x-x1)+(y-y1)*(y-y1)) < width2) { return true; }	//end 1
 	if (((x-x2)*(x-x2)+(y-y2)*(y-y2)) < width2) { return true; }	//end 2
 
 	var length2 = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
@@ -1485,7 +1491,7 @@ EagleCanvas.prototype.pointInLine = function(x, y, x1, y1, x2, y2, width) {
 	var s = ((y - y1) * (y2-y1) - (x - x1) * (x1-x2)) / length2;				// s = param of line p1..p2 (0..1)
 	if ((s >= 0) && (s <= 1)) {													//between p1 and p2
 		var px = x1 + s * (x2-x1),
-		    py = y1 + s * (y2-y1);
+			py = y1 + s * (y2-y1);
 		if (((x-px)*(x-px)+(y-py)*(y-py)) < width2) {
 			return true;	//end 2
 		}
@@ -1573,23 +1579,23 @@ EagleCanvas.prototype.matrixForRot = function(rot) {
 }
 
 EagleCanvas.prototype.mirrorLayer = function(layerIdx) {
-	if (layerIdx == 1) { 
-		return 16; 
+	if (layerIdx == 1) {
+		return 16;
 	} else if (layerIdx == 16) {
 		return 1;
 	}
 	var name   = this.layersByNumber[layerIdx].name,
-	    prefix = name.substring(0,1);
+		prefix = name.substring(0,1);
 	if (prefix == 't') {
 		var mirrorName  = 'b' + name.substring(1),
-		    mirrorLayer = this.eagleLayersByName[mirrorName];
-		if (mirrorLayer) { 
-			return mirrorLayer.number; 
+			mirrorLayer = this.eagleLayersByName[mirrorName];
+		if (mirrorLayer) {
+			return mirrorLayer.number;
 		}
 	} else if (prefix == 'b') {
 		var mirrorName = 't' + name.substring(1),
-		    mirrorLayer = this.eagleLayersByName[mirrorName];
-		if (mirrorLayer) { 
+			mirrorLayer = this.eagleLayersByName[mirrorName];
+		if (mirrorLayer) {
 			return mirrorLayer.number;
 		}
 	}
@@ -1598,19 +1604,19 @@ EagleCanvas.prototype.mirrorLayer = function(layerIdx) {
 
 EagleCanvas.prototype.calculateBounds = function() {
 	var minX = EagleCanvas.LARGE_NUMBER,
-	    minY = EagleCanvas.LARGE_NUMBER,
-	    maxX = -EagleCanvas.LARGE_NUMBER,
-	    maxY = -EagleCanvas.LARGE_NUMBER;
+		minY = EagleCanvas.LARGE_NUMBER,
+		maxX = -EagleCanvas.LARGE_NUMBER,
+		maxY = -EagleCanvas.LARGE_NUMBER;
 	//Plain elements
 	for (var layerKey in this.plainWires) {
 		var lines = this.plainWires[layerKey];
 		for (var lineKey in lines) {
 			var line = lines[lineKey],
-			    x1 = line.x1,
-			    x2 = line.x2,
-			    y1 = line.y1,
-			    y2 = line.y2,
-			    width = line.width;
+				x1 = line.x1,
+				x2 = line.x2,
+				y1 = line.y1,
+				y2 = line.y2,
+				width = line.width;
 			if (x1-width < minX) { minX = x1-width; } if (x1+width > maxX) { maxX = x1+width; }
 			if (x2-width < minX) { minX = x2-width; } if (x2+width > maxX) { maxX = x2+width; }
 			if (y1-width < minY) { minY = y1-width; } if (y1+width > maxY) { maxY = y1+width; }
@@ -1625,10 +1631,10 @@ EagleCanvas.prototype.calculateBounds = function() {
 		var rotMat = elem.matrix;
 		for (var smdIdx in pkg.smds) {
 			var smd = pkg.smds[smdIdx],
-			    x1 = elem.x + rotMat[0]*smd.x1 + rotMat[1]*smd.y1,
-			    y1 = elem.y + rotMat[2]*smd.x1 + rotMat[3]*smd.y1,
-			    x2 = elem.x + rotMat[0]*smd.x2 + rotMat[1]*smd.y2,
-			    y2 = elem.y + rotMat[2]*smd.x2 + rotMat[3]*smd.y2;
+				x1 = elem.x + rotMat[0]*smd.x1 + rotMat[1]*smd.y1,
+				y1 = elem.y + rotMat[2]*smd.x1 + rotMat[3]*smd.y1,
+				x2 = elem.x + rotMat[0]*smd.x2 + rotMat[1]*smd.y2,
+				y2 = elem.y + rotMat[2]*smd.x2 + rotMat[3]*smd.y2;
 			if (x1 < minX) { minX = x1; } if (x1 > maxX) { maxX = x1; }
 			if (x2 < minX) { minX = x2; } if (x2 > maxX) { maxX = x2; }
 			if (y1 < minY) { minY = y1; } if (y1 > maxY) { maxY = y1; }
@@ -1636,11 +1642,11 @@ EagleCanvas.prototype.calculateBounds = function() {
 		}
 		for (var wireIdx in pkg.wires) {
 			var wire = pkg.wires[wireIdx],
-			    x1 = elem.x + rotMat[0]*wire.x1 + rotMat[1]*wire.y1,
-			    y1 = elem.y + rotMat[2]*wire.x1 + rotMat[3]*wire.y1,
-			    x2 = elem.x + rotMat[0]*wire.x2 + rotMat[1]*wire.y2,
-			    y2 = elem.y + rotMat[2]*wire.x2 + rotMat[3]*wire.y2,
-			    width = wire.width;
+				x1 = elem.x + rotMat[0]*wire.x1 + rotMat[1]*wire.y1,
+				y1 = elem.y + rotMat[2]*wire.x1 + rotMat[3]*wire.y1,
+				x2 = elem.x + rotMat[0]*wire.x2 + rotMat[1]*wire.y2,
+				y2 = elem.y + rotMat[2]*wire.x2 + rotMat[3]*wire.y2,
+				width = wire.width;
 			if (x1-width < minX) { minX = x1-width; } if (x1+width > maxX) { maxX = x1+width; }
 			if (x2-width < minX) { minX = x2-width; } if (x2+width > maxX) { maxX = x2+width; }
 			if (y1-width < minY) { minY = y1-width; } if (y1+width > maxY) { maxY = y1+width; }
@@ -1664,9 +1670,10 @@ EagleCanvas.prototype.scaleToFit = function(a) {
 		scaleY    = fitHeight / this.nativeSize[1],
 		scale     = Math.min(scaleX, scaleY);
 	scale *= 0.9;
+	this.baseScale = scale;
 	this.minScale = scale / 10;
 	this.maxScale = scale * 10;
-	this.setScale(scale);
+	this.setScale (1);
 }
 
 	return EagleCanvas;
