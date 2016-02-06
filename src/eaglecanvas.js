@@ -11,32 +11,6 @@
 }(this, function () {
 
 var p = function(o){ console.log(o) }
-// -----------------------
-// --- ENUMS, DEFAULTS ---
-// -----------------------
-
-EagleCanvas.LayerId = {
-	'BOTTOM_COPPER' : 1,
-	'BOTTOM_SILKSCREEN' : 2,
-	'BOTTOM_DOCUMENTATION' : 3,
-	'DIM_BOARD' : 4,
-	'TOP_COPPER' : 5,
-	'TOP_SILKSCREEN' : 6,
-	'TOP_DOCUMENTATION' : 7,
-	'VIAS' : 8,
-	'OUTLINE' : 9
-}
-
-EagleCanvas.LARGE_NUMBER = 99999;
-
-EagleCanvas.warnings = {};
-
-EagleCanvas.prototype.scale = 1;
-EagleCanvas.prototype.minScale = 0.1;
-EagleCanvas.prototype.maxScale = 10;
-EagleCanvas.prototype.minLineWidth = 0.05;
-EagleCanvas.prototype.boardFlipped = false;
-EagleCanvas.prototype.dimBoardAlpha = 0.7;
 
 // -------------------
 // --- CONSTRUCTOR ---
@@ -164,6 +138,32 @@ function EagleCanvas(canvasSelector) {
 
 }
 
+// -----------------------
+// --- ENUMS, DEFAULTS ---
+// -----------------------
+
+EagleCanvas.LayerId = {
+	'BOTTOM_COPPER' : 1,
+	'BOTTOM_SILKSCREEN' : 2,
+	'BOTTOM_DOCUMENTATION' : 3,
+	'DIM_BOARD' : 4,
+	'TOP_COPPER' : 5,
+	'TOP_SILKSCREEN' : 6,
+	'TOP_DOCUMENTATION' : 7,
+	'VIAS' : 8,
+	'OUTLINE' : 9
+}
+
+EagleCanvas.LARGE_NUMBER = 99999;
+
+EagleCanvas.warnings = {};
+
+EagleCanvas.prototype.scale = 1;
+EagleCanvas.prototype.minScale = 0.1;
+EagleCanvas.prototype.maxScale = 10;
+EagleCanvas.prototype.minLineWidth = 0.05;
+EagleCanvas.prototype.boardFlipped = false;
+EagleCanvas.prototype.dimBoardAlpha = 0.7;
 
 // -------------------------
 // --- GENERIC ACCESSORS ---
@@ -249,19 +249,16 @@ EagleCanvas.EagleParser = function (board) {
 }
 
 EagleCanvas.parsers = [
-	EagleCanvas.EagleParser
+	// EagleCanvas.EagleParser
 ];
 
 if ("KicadNewParser" in window) {
 	EagleCanvas.parsers.push (window.KicadNewParser);
 }
 
-EagleCanvas.EagleParser.supports = function (text) {
-	if (text.match (/\<\?xml/) && text.match (/\<eagle/)) return true;
+if ("EagleXMLParser" in window) {
+	EagleCanvas.parsers.push (window.EagleXMLParser);
 }
-
-EagleCanvas.EagleParser.name = "eagle brd";
-
 
 EagleCanvas.prototype.loadText = function (text) {
 	this.text = text;
@@ -301,570 +298,6 @@ EagleCanvas.prototype.loadURL = function (url, cb) {
 	request.send(null);
 };
 
-// ---------------
-// --- PARSING ---
-// ---------------
-
-EagleCanvas.prototype.parse = function (text) {
-	var parser = new DOMParser ();
-	var boardXML = parser.parseFromString (this.text,"text/xml");
-	this.parseDOM (boardXML)
-}
-
-EagleCanvas.prototype.parseDOM = function(boardXML) {
-  // store by eagle name
-	this.eagleLayersByName = {};
-  // store by eagle number
-	this.layersByNumber = {};
-
-	var layers = boardXML.getElementsByTagName('layer');
-	for (var layerIdx = 0; layerIdx < layers.length; layerIdx++) {
-		var layerDict = this.parseLayer( layers[layerIdx] );
-		this.eagleLayersByName[layerDict.name] = layerDict;
-		this.layersByNumber[layerDict.number]  = layerDict;
-	}
-
-	this.elements = {};
-	var elements = boardXML.getElementsByTagName('element');
-	for (var elementIdx = 0; elementIdx < elements.length; elementIdx++) {
-		var elemDict = this.parseElement( elements[elementIdx] )
-		this.elements[elemDict.name] = elemDict;
-	}
-
-	this.designRules = {};
-	//hashmap signal name -> hashmap layer number -> hashmap 'wires'->wires array, 'vias'->vias array
-	var rules = boardXML.getElementsByTagName('designrules');
-	for (var ruleIdx = 0; ruleIdx < rules.length; ruleIdx++) {
-		var rule = rules[ruleIdx];
-
-		var ruleParams = rule.getElementsByTagName('param');
-		for (var ruleParamIdx = 0; ruleParamIdx < ruleParams.length; ruleParamIdx++) {
-			var ruleParam = ruleParams[ruleParamIdx];
-			this.designRules[ruleParam.getAttribute ("name")] = ruleParam.getAttribute ("value");
-		}
-	}
-
-
-	this.signalItems = {};
-	//hashmap signal name -> hashmap layer number -> hashmap 'wires'->wires array, 'vias'->vias array
-	var signals = boardXML.getElementsByTagName('signal');
-	for (var sigIdx = 0; sigIdx < signals.length; sigIdx++) {
-		var signal = signals[sigIdx];
-		var name = signal.getAttribute('name');
-		var signalLayers = {};
-		this.signalItems[name] = signalLayers;
-
-		var wires = signal.getElementsByTagName('wire');
-		for (var wireIdx = 0; wireIdx < wires.length; wireIdx++) {
-			var wireDict = this.parseWire( wires[wireIdx] );
-			var layer = wireDict.layer;
-			if (!(signalLayers[layer])) signalLayers[layer] = {};
-			var layerItems = signalLayers[layer];
-			if (!(layerItems['wires'])) layerItems['wires'] = [];
-			var layerWires = layerItems['wires'];
-			layerWires.push(wireDict);
-		}
-
-		var vias = signal.getElementsByTagName('via');
-		for (var viaIdx = 0; viaIdx < vias.length; viaIdx++) {
-			var viaDict = this.parseVia(vias[viaIdx]);
-			var layers = viaDict.layers;
-			if (!(signalLayers[layers])) signalLayers[layers] = {};
-			var layerItems = signalLayers[layers];
-			if (!(layerItems['vias'])) layerItems['vias'] = [];
-			var layerVias = layerItems['vias'];
-			layerVias.push(viaDict);
-		}
-
-		var contacts = signal.getElementsByTagName('contactref');
-		for (var contactIdx = 0; contactIdx < contacts.length; contactIdx++) {
-			var contact = contacts[contactIdx];
-			var elemName = contact.getAttribute('element');
-			var padName = contact.getAttribute('pad');
-			var elem = this.elements[elemName];
-			if (elem) elem.padSignals[padName] = name;
-		}
-	}
-
-	this.packagesByName = {};
-	var packages = boardXML.getElementsByTagName('package');
-	for (var packageIdx = 0; packageIdx < packages.length; packageIdx++) {
-		var pkg = packages[packageIdx];
-		var packageName = pkg.getAttribute('name');
-
-		var descriptionEls = pkg.getElementsByTagName('description');
-		if (descriptionEls && descriptionEls.length)
-			var description = descriptionEls[0].textContent;
-
-		var packageSmds = [];
-		var smds = pkg.getElementsByTagName('smd');
-		for (var smdIdx = 0; smdIdx < smds.length; smdIdx++) {
-			var smd = smds[smdIdx];
-			packageSmds.push(this.parseSmd(smd));
-		}
-
-		var packageRects = [];
-		var rects = pkg.getElementsByTagName('rectangle');
-		for (var rectIdx = 0; rectIdx < rects.length; rectIdx++) {
-			var rect = rects[rectIdx];
-			packageRects.push(this.parseRect(rect));
-		}
-
-		var packagePads = [];
-		var pads = pkg.getElementsByTagName('pad');
-		for (var padIdx = 0; padIdx < pads.length; padIdx++) {
-			var pad = pads[padIdx];
-			packagePads.push(this.parsePad(pad));
-		}
-
-		var packagePolys = [];
-		var polys = pkg.getElementsByTagName('polygon');
-		for (var polyIdx = 0; polyIdx < polys.length; polyIdx++) {
-			var poly = polys[polyIdx];
-			packagePolys.push (this.parsePoly (poly));
-		}
-
-		var packageWires = [];
-		var wires = pkg.getElementsByTagName('wire');
-		for (var wireIdx = 0; wireIdx < wires.length; wireIdx++) {
-			var wire = wires[wireIdx];
-			var wireDict = this.parseWire(wire);
-			packageWires.push(wireDict);
-		}
-
-		var wires = pkg.getElementsByTagName('circle');
-		for (var wireIdx = 0; wireIdx < wires.length; wireIdx++) {
-			var wire = wires[wireIdx];
-			var wireDict = this.parseCircle(wire);
-			packageWires.push(wireDict);
-		}
-
-		var packageHoles = [];
-		var holes = pkg.getElementsByTagName('hole');
-		for (var holeIdx = 0; holeIdx < holes.length; holeIdx++) {
-			var hole = holes[holeIdx];
-			var holeDict = this.parseHole(hole);
-			packageHoles.push(holeDict);
-		}
-
-		var bbox = this.calcBBox (packageWires);
-
-		var packageTexts = [],
-			texts        = pkg.getElementsByTagName('text');
-		for (var textIdx = 0; textIdx < texts.length; textIdx++) {
-			var text = texts[textIdx];
-			packageTexts.push(this.parseText(text));
-		}
-
-
-		var packageDict = {
-			smds:  packageSmds,
-			wires: packageWires,
-			texts: packageTexts,
-			bbox:  bbox,
-			pads:  packagePads,
-			polys: packagePolys,
-			holes: packageHoles,
-			rects: packageRects,
-			description: description
-		};
-		this.packagesByName[packageName] = packageDict;
-	}
-
-	this.plainWires = {};
-	this.plainTexts = {};
-	this.plainHoles = [];
-	var plains = boardXML.getElementsByTagName('plain');	//Usually only one
-	for (var plainIdx = 0; plainIdx < plains.length; plainIdx++) {
-		var plain = plains[plainIdx],
-			wires = plain.getElementsByTagName('wire'),
-			texts = plain.getElementsByTagName('text'),
-			holes = plain.getElementsByTagName('hole');
-		for (var wireIdx = 0; wireIdx < wires.length; wireIdx++) {
-			var wire = wires[wireIdx],
-				wireDict = this.parseWire(wire),
-				layer = wireDict.layer;
-			if (!this.plainWires[layer]) this.plainWires[layer] = [];
-			this.plainWires[layer].push(wireDict);
-		}
-
-		for (var textIdx = 0; textIdx < texts.length; textIdx++) {
-			var text = texts[textIdx],
-				textDict = this.parseText(text),
-				layer = textDict.layer;
-			if (!this.plainTexts[layer]) this.plainTexts[layer] = [];
-			this.plainTexts[layer].push(textDict);
-		}
-
-		for (var holeIdx = 0; holeIdx < holes.length; holeIdx++) {
-			var hole = holes[holeIdx],
-				holeDict = this.parseHole(hole);
-			this.plainHoles.push(holeDict);
-		}
-	}
-}
-
-EagleCanvas.prototype.calcBBox = function (wires) {
-	var bbox = [EagleCanvas.LARGE_NUMBER,EagleCanvas.LARGE_NUMBER,-EagleCanvas.LARGE_NUMBER,-EagleCanvas.LARGE_NUMBER];
-	wires.forEach (function (wireDict) {
-		if (wireDict.x1 < bbox[0]) { bbox[0] = wireDict.x1; }
-		if (wireDict.x1 > bbox[2]) { bbox[2] = wireDict.x1; }
-		if (wireDict.y1 < bbox[1]) { bbox[1] = wireDict.y1; }
-		if (wireDict.y1 > bbox[3]) { bbox[3] = wireDict.y1; }
-		if (wireDict.x2 < bbox[0]) { bbox[0] = wireDict.x2; }
-		if (wireDict.x2 > bbox[2]) { bbox[2] = wireDict.x2; }
-		if (wireDict.y2 < bbox[1]) { bbox[1] = wireDict.y2; }
-		if (wireDict.y2 > bbox[3]) { bbox[3] = wireDict.y2; }
-	});
-	if ((bbox[0] >= bbox[2]) || (bbox[1] >= bbox[3])) {
-		bbox = null;
-	}
-
-	return bbox;
-}
-
-EagleCanvas.prototype.parseSmd = function(smd) {
-	var smdX  = parseFloat(smd.getAttribute('x')),
-		smdY  = parseFloat(smd.getAttribute('y')),
-		smdDX = parseFloat(smd.getAttribute('dx')),
-		smdDY = parseFloat(smd.getAttribute('dy')),
-		rot   = smd.getAttribute('rot') || "R0",
-		roundness = parseInt (smd.getAttribute('roundness'));
-
-	return {
-		x1:    smdX-0.5*smdDX,
-		y1:    smdY-0.5*smdDY,
-		x2:    smdX+0.5*smdDX,
-		y2:    smdY+0.5*smdDY,
-		rot:   rot,
-		roundness: roundness,
-		name:  smd.getAttribute('name'),
-		layer: smd.getAttribute('layer')
-	};
-}
-
-EagleCanvas.prototype.parseRect = function(rect) {
-	return {'x1'   : parseFloat(rect.getAttribute('x1')),
-			'y1'   : parseFloat(rect.getAttribute('y1')),
-			'x2'   : parseFloat(rect.getAttribute('x2')),
-			'y2'   : parseFloat(rect.getAttribute('y2')),
-			'layer': rect.getAttribute('layer')};
-}
-
-
-EagleCanvas.prototype.parsePoly = function(poly) {
-	var width = parseFloat(poly.getAttribute('width'));
-	var vertexes = [];
-	[].slice.apply (poly.getElementsByTagName ('vertex')).forEach (function (vertexEl) {
-		vertexes.push ({
-			'x':parseFloat (vertexEl.getAttribute ('x')),
-			'y':parseFloat (vertexEl.getAttribute ('y'))
-		});
-	});
-
-	return {
-		vertexes: vertexes,
-		layer: poly.getAttribute('layer'),
-		width: width
-	};
-}
-
-
-EagleCanvas.prototype.parsePad = function(pad) {
-	var drill = parseFloat(pad.getAttribute('drill'));
-	var diameter = parseFloat(pad.getAttribute('diameter'));
-	// TODO: use proper measurements
-	if (isNaN (diameter)) diameter = drill * 1.5;
-	var padRot = pad.getAttribute('rot') || "R0"
-	return {
-		x:     parseFloat(pad.getAttribute('x')),
-		y:     parseFloat(pad.getAttribute('y')),
-		drill: drill,
-		name:  pad.getAttribute('name'),
-		shape: pad.getAttribute('shape'),
-		diameter: diameter,
-		rot:   padRot
-	};
-}
-
-EagleCanvas.prototype.parseVia = function(via) {
-	return {'x':parseFloat(via.getAttribute('x')),
-			'y':parseFloat(via.getAttribute('y')),
-			 'drill':parseFloat(via.getAttribute('drill')),
-			'layers':via.getAttribute('extent'),
-			'shape': via.getAttribute('shape')
-		   };
-}
-
-EagleCanvas.prototype.parseHole = function(hole) {
-	return {
-		'x':parseFloat(hole.getAttribute('x')),
-		'y':parseFloat(hole.getAttribute('y')),
-		'drill':parseFloat(hole.getAttribute('drill'))
-	};
-}
-
-// special thanks to http://paulbourke.net/geometry/circlesphere/
-function circleCenter (x1, y1, x2, y2, angle) {
-
-	/* dx and dy are the vertical and horizontal distances between
-	* the circle centers.
-	*/
-	var dx = x2 - x1;
-	var dy = y2 - y1;
-
-	if (Math.abs(angle) === 180) {
-		var cx = x1 + dx/2,
-			cy = y1 + dy/2,
-			angle1 = Math.atan2 (y1 - cy, cx - x1),
-			angle2 = Math.atan2 (y2 - cy, cx - x2);
-		return [cx, cy, angle1, Math.sqrt (dx*dx/4 + dy*dy/4)];
-	}
-
-	/* Determine the straight-line distance between the centers. */
-	//d = sqrt((dy*dy) + (dx*dx));
-	//d = hypot(dx,dy); // Suggested by Keith Briggs
-	var d = Math.sqrt (dx*dx + dy*dy);
-
-	var r = Math.abs (d / 2 / Math.sin (angle/180/2*Math.PI)),
-		r0 = r,
-		r1 = r;
-
-	/* Check for solvability. */
-	if (d > (r0 + r1)) {
-		/* no solution. circles do not intersect. */
-		console.log ("no solution. circles do not intersect", d, r0, r1);
-		return;
-	}
-
-	if (d < Math.abs (r0 - r1)) {
-		/* no solution. one circle is contained in the other */
-		console.log ("no solution. one circle is contained in the other", d, r0, r1);
-		return;
-	}
-
-	/* 'point 2' is the point where the line through the circle
-	* intersection points crosses the line between the circle
-	* centers.
-	*/
-
-	/* Determine the distance from point 0 to point 2. */
-	var a = ((r0*r0) - (r1*r1) + (d*d)) / (2.0 * d) ;
-
-	/* Determine the coordinates of point 2. */
-	var x3 = x1 + (dx * a/d);
-	var y3 = y1 + (dy * a/d);
-
-	/* Determine the distance from point 2 to either of the
-	* intersection points.
-	*/
-	var h = Math.sqrt((r0*r0) - (a*a));
-
-	/* Now determine the offsets of the intersection points from
-	* point 2.
-	*/
-
-	var rx = -dy * (h/d),
-		ry = dx * (h/d);
-
-	/* Determine the absolute intersection points. */
-	var cx1 = x3 + rx,
-		cy1 = y3 + ry,
-		cx2 = x3 - rx,
-		cy2 = y3 - ry,
-		rad11 = Math.atan2 (y1 - cy1, cx1 - x1),
-		rad12 = Math.atan2 (y2 - cy1, cx1 - x2),
-		rad21 = Math.atan2 (y1 - cy2, cx2 - x1),
-		rad22 = Math.atan2 (y2 - cy2, cx2 - x2),
-		angle1 = (rad11 - rad12)/Math.PI*180,
-		angle2 = (rad21 - rad22)/Math.PI*180,
-		dAngle1 = (angle - angle1) % 360,
-		dAngle2 = (angle - angle2) % 360;
-
-	if (-0.0000001 < dAngle1 && dAngle1 < 0.0000001) {
-		return [cx1, cy1, rad11, r];
-	} else if (-0.0000001 < dAngle2 && dAngle2 < 0.0000001) {
-		return [cx2, cy2, rad21, r];
-	} else {
-		console.log ("something wrong: angle:", angle, "angle1:", angle1, "dangle1", (-0.0000001 < dAngle1 || dAngle1 < 0.0000001), "angle2:", angle2, "dangle2:", (-0.0000001 < dAngle2 || dAngle2 < 0.0000001));
-		return [cx2, cy2, rad21, r];
-	}
-
-	// return [cx1, cy1, cx2, cy2];
-}
-
-EagleCanvas.prototype.parseWire = function(wire) {
-	var width = parseFloat(wire.getAttribute('width'));
-	if (width <= 0.0) width = this.minLineWidth;
-
-	var layer = parseInt(wire.getAttribute('layer'));
-
-	var x1 = parseFloat(wire.getAttribute('x1')),
-		y1 = parseFloat(wire.getAttribute('y1')),
-		x2 = parseFloat(wire.getAttribute('x2')),
-		y2 = parseFloat(wire.getAttribute('y2'));
-
-	var style = wire.getAttribute ("style");
-
-	var curve = parseInt(wire.getAttribute('curve'));
-
-	if (curve) {
-
-		var center = circleCenter (x1, y1, x2, y2, curve);
-
-		var angle = Math.PI * (curve/180);
-
-		if (angle < 0) {
-			center[2] += - angle;
-			angle = - angle;
-		}
-
-		return {
-			x: center[0],
-			y: center[1],
-			radius: center[3],
-			start: Math.PI - center[2],
-			angle: angle,
-			curve: curve,
-			width: width,
-			layer: layer,
-			style: style,
-			cap: wire.getAttribute('cap'),
-			rot: wire.getAttribute('rot') || "R0"
-		}
-	}
-
-	return {
-		x1: x1,
-		y1: y1,
-		x2: x2,
-		y2: y2,
-		style: style,
-		width: width,
-		layer: layer
-	};
-
-}
-
-EagleCanvas.prototype.parseCircle = function(wire) {
-	var width = parseFloat(wire.getAttribute('width'));
-	if (width <= 0.0) width = this.minLineWidth;
-
-	var layer = parseInt(wire.getAttribute('layer'));
-
-	var tagName = wire.tagName;
-
-	return {
-		x: parseFloat(wire.getAttribute ("x")),
-		y: parseFloat(wire.getAttribute ("y")),
-		radius: parseFloat(wire.getAttribute ("radius")),
-		start: 0,
-		angle: Math.PI * 2,
-		curve: 360,
-		width: width,
-		layer: layer
-	}
-}
-
-
-EagleCanvas.prototype.parseText = function(text) {
-	var content = text.textContent;
-	if (!content) content = "";
-	var textRot = text.getAttribute('rot') || "R0";
-	var textAlign = text.getAttribute('align') || "",
-		align,
-		valign,
-		textAngle = this.angleForRot (textRot);
-
-	if (textAlign === "center") {
-		align = "center";
-		valign = "middle";
-	} else {
-		if (textAlign.match (/\-right$/)) {
-			align = "right";
-		} else if (textAlign.match (/\-left$/)) {
-			align = "left";
-		} else if (textAlign.match (/\-center$/)) {
-			align = "center";
-		}
-		if (textAlign.match (/^top\-/)) {
-			valign = "top";
-		} else if (textAlign.match (/^bottom\-/)) {
-			valign = "bottom";
-		} else if (textAlign.match (/^center\-/)) {
-			valign = "middle";
-		}
-	}
-
-	return {
-		x:       parseFloat(text.getAttribute('x')),
-		y:       parseFloat(text.getAttribute('y')),
-		size:    parseFloat(text.getAttribute('size')),
-		layer:   parseInt(text.getAttribute('layer')),
-		ratio:   parseInt(text.getAttribute('ratio')),
-		interlinear: parseInt(text.getAttribute('distance')) || 50,
-		align:   align,
-		valign:  valign,
-		rot:     textRot,
-		flipText: ((textAngle.degrees > 90) && (textAngle.degrees <=270)),
-		font:    text.getAttribute('font'),
-		content: content
-	};
-}
-
-EagleCanvas.prototype.parseElement = function(elem) {
-	var elemRot    = elem.getAttribute('rot') || "R0",
-		elemMatrix = this.matrixForRot(elemRot);
-
-	var attribs = {},
-		elemAngle = this.angleForRot (elemRot),
-		flipText = (elemAngle.degrees >= 90) && (elemAngle.degrees <= 270),
-		elemAttribs = elem.getElementsByTagName('attribute');
-
-	for (var attribIdx = 0; attribIdx < elemAttribs.length; attribIdx++) {
-
-		var elemAttrib = elemAttribs[attribIdx],
-			attribDict = {},
-			name = elemAttrib.getAttribute('name');
-
-		if (name) {
-			attribDict.name = name;
-			if (elemAttrib.getAttribute('x'))     { attribDict.x = parseFloat(elemAttrib.getAttribute('x')); }
-			if (elemAttrib.getAttribute('y'))     { attribDict.y = parseFloat(elemAttrib.getAttribute('y')); }
-			if (elemAttrib.getAttribute('size'))  { attribDict.size = parseFloat(elemAttrib.getAttribute('size')); }
-			if (elemAttrib.getAttribute('layer')) { attribDict.layer = parseInt(elemAttrib.getAttribute('layer')); }
-			attribDict.font = elemAttrib.getAttribute('font');
-
-			var rot = elemAttrib.getAttribute('rot');
-			if (!rot) { rot = "R0"; }
-			var attribAngle = this.angleForRot (rot);
-			attribDict.flipText = (attribAngle.degrees >= 90) && (attribAngle.degrees <= 270);
-			attribDict.rot = rot;
-			attribDict.display = elemAttrib.getAttribute('display');
-			attribs[name] = attribDict;
-		}
-	}
-	return {
-		'pkg'   : elem.getAttribute('package'),
-		'name'      : elem.getAttribute('name'),
-		'value'     : elem.getAttribute('value'),
-		'x'         : parseFloat(elem.getAttribute('x')),
-		'y'         : parseFloat(elem.getAttribute('y')),
-		'rot'       : elemRot,
-		'matrix'    : elemMatrix,
-		'mirror'    : elemRot.indexOf('M') == 0,
-		'flipText'  : flipText,
-		'smashed'   : elem.getAttribute('smashed') && (elem.getAttribute('smashed').toUpperCase() == 'YES'),
-		'attributes': attribs,
-		'padSignals': {}			//to be filled later
-	};
-};
-
-EagleCanvas.prototype.parseLayer = function(layer) {
-	return {'name'  : layer.getAttribute('name'),
-			'number': parseInt(layer.getAttribute('number')),
-			'color' : parseInt(layer.getAttribute('color'))};
-}
 
 // ---------------
 // --- DRAWING ---
@@ -1512,6 +945,31 @@ EagleCanvas.prototype.pointInRect = function(x, y, x1, y1, x2, y2, x3, y3, x4, y
 // --------------------
 // --- COMMON UTILS ---
 // --------------------
+
+EagleCanvas.prototype.calcBBox = function (wires) {
+	var bbox = [
+		EagleCanvas.LARGE_NUMBER,
+		EagleCanvas.LARGE_NUMBER,
+		-EagleCanvas.LARGE_NUMBER,
+		-EagleCanvas.LARGE_NUMBER
+	];
+	wires.forEach (function (wireDict) {
+		if (wireDict.x1 < bbox[0]) { bbox[0] = wireDict.x1; }
+		if (wireDict.x1 > bbox[2]) { bbox[2] = wireDict.x1; }
+		if (wireDict.y1 < bbox[1]) { bbox[1] = wireDict.y1; }
+		if (wireDict.y1 > bbox[3]) { bbox[3] = wireDict.y1; }
+		if (wireDict.x2 < bbox[0]) { bbox[0] = wireDict.x2; }
+		if (wireDict.x2 > bbox[2]) { bbox[2] = wireDict.x2; }
+		if (wireDict.y2 < bbox[1]) { bbox[1] = wireDict.y2; }
+		if (wireDict.y2 > bbox[3]) { bbox[3] = wireDict.y2; }
+	});
+	if ((bbox[0] >= bbox[2]) || (bbox[1] >= bbox[3])) {
+		bbox = null;
+	}
+
+	return bbox;
+}
+
 
 EagleCanvas.prototype.colorPalette = [
 	[127,127,127],
