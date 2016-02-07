@@ -16,11 +16,21 @@ var p = function(o){ console.log(o) }
 // --- CONSTRUCTOR ---
 // -------------------
 
-function EagleCanvas(canvasSelector) {
-	if (canvasSelector instanceof HTMLCanvasElement) {
-		this.canvas = canvasSelector;
+// parser just fill out board/scheme obect
+// board/scheme object can load data and check what parser is applicable,
+// also contains board data and can draw using renderer
+
+function EagleCanvas (targetSelector) {
+	if (targetSelector instanceof HTMLCanvasElement) {
+		this.canvas = targetSelector;
+	} else if (targetSelector instanceof SVGElement) {
+		this.svg = targetSelector;
+	} else if (targetSelector.constructor && targetSelector.constructor === String) {
+		var target = document.querySelector (targetSelector);
+		return EagleCanvas (target);
 	} else {
-		this.canvas = document.querySelector (canvasSelector);
+		console.error ('Cannot instantiate board for ', targetSelector);
+		return;
 	}
 
 	this.visibleLayers = {};
@@ -58,69 +68,69 @@ function EagleCanvas(canvasSelector) {
 
 	this.layerRenderFunctions = {};
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_COPPER] = function(that,ctx) {
-		that.drawSignalWires(that.eagleLayersByName['Bottom'],ctx);
-		that.drawElements(that.eagleLayersByName['Bottom'],ctx);
-		that.drawPlainTexts(that.eagleLayersByName['Bottom'],ctx);
+	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_COPPER] = function (renderer, board, ctx) {
+		renderer.drawSignalWires(board.eagleLayersByName['Bottom'],ctx);
+		renderer.drawElements(board.eagleLayersByName['Bottom'],ctx);
+		renderer.drawPlainTexts(board.eagleLayersByName['Bottom'],ctx);
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_SILKSCREEN] = function(that,ctx) {
-		that.drawElements(that.eagleLayersByName['bNames'],ctx);
-		that.drawElements(that.eagleLayersByName['bValues'],ctx);
-		that.drawElements(that.eagleLayersByName['bPlace'],ctx);
-		that.drawPlainTexts(that.eagleLayersByName['bNames'],ctx);
-		that.drawPlainTexts(that.eagleLayersByName['bValues'],ctx);
-		that.drawPlainTexts(that.eagleLayersByName['bPlace'],ctx);
-		that.drawPlainWires(that.eagleLayersByName['bNames'],ctx);
-		that.drawPlainWires(that.eagleLayersByName['bValues'],ctx);
-		that.drawPlainWires(that.eagleLayersByName['bPlace'],ctx);
+	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_SILKSCREEN] = function(renderer, board, ctx) {
+		renderer.drawElements(board.eagleLayersByName['bNames'],ctx);
+		renderer.drawElements(board.eagleLayersByName['bValues'],ctx);
+		renderer.drawElements(board.eagleLayersByName['bPlace'],ctx);
+		renderer.drawPlainTexts(board.eagleLayersByName['bNames'],ctx);
+		renderer.drawPlainTexts(board.eagleLayersByName['bValues'],ctx);
+		renderer.drawPlainTexts(board.eagleLayersByName['bPlace'],ctx);
+		renderer.drawPlainWires(board.eagleLayersByName['bNames'],ctx);
+		renderer.drawPlainWires(board.eagleLayersByName['bValues'],ctx);
+		renderer.drawPlainWires(board.eagleLayersByName['bPlace'],ctx);
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_DOCUMENTATION] = function(that,ctx) {
-		that.drawElements(that.eagleLayersByName['bKeepout'],ctx);
-		that.drawElements(that.eagleLayersByName['bDocu'],ctx);
-		that.drawPlainTexts(that.eagleLayersByName['bKeepout'],ctx);
-		that.drawPlainTexts(that.eagleLayersByName['bDocu'],ctx);
+	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_DOCUMENTATION] = function(renderer, board, ctx) {
+		renderer.drawElements(board.eagleLayersByName['bKeepout'],ctx);
+		renderer.drawElements(board.eagleLayersByName['bDocu'],ctx);
+		renderer.drawPlainTexts(board.eagleLayersByName['bKeepout'],ctx);
+		renderer.drawPlainTexts(board.eagleLayersByName['bDocu'],ctx);
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.TOP_COPPER] = function(that,ctx) {
-		that.drawSignalWires(that.eagleLayersByName['Top'],ctx);
-		that.drawElements   (that.eagleLayersByName['Top'],ctx);
-		that.drawPlainTexts(that.eagleLayersByName['Top'],ctx);
+	this.layerRenderFunctions[EagleCanvas.LayerId.TOP_COPPER] = function(renderer, board, ctx) {
+		renderer.drawSignalWires(board.eagleLayersByName['Top'],ctx);
+		renderer.drawElements   (board.eagleLayersByName['Top'],ctx);
+		renderer.drawPlainTexts(board.eagleLayersByName['Top'],ctx);
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.TOP_SILKSCREEN] = function(that,ctx) {
-		that.drawElements(that.eagleLayersByName['tNames'],ctx);
-		that.drawElements(that.eagleLayersByName['tValues'],ctx);
-		that.drawElements(that.eagleLayersByName['tPlace'],ctx);
-		that.drawPlainTexts(that.eagleLayersByName['tNames'],ctx);
-		that.drawPlainTexts(that.eagleLayersByName['tValues'],ctx);
-		that.drawPlainTexts(that.eagleLayersByName['tPlace'],ctx);
-		that.drawPlainWires(that.eagleLayersByName['tNames'],ctx);
-		that.drawPlainWires(that.eagleLayersByName['tValues'],ctx);
-		that.drawPlainWires(that.eagleLayersByName['tPlace'],ctx);
+	this.layerRenderFunctions[EagleCanvas.LayerId.TOP_SILKSCREEN] = function(renderer, board, ctx) {
+		renderer.drawElements(board.eagleLayersByName['tNames'],ctx);
+		renderer.drawElements(board.eagleLayersByName['tValues'],ctx);
+		renderer.drawElements(board.eagleLayersByName['tPlace'],ctx);
+		renderer.drawPlainTexts(board.eagleLayersByName['tNames'],ctx);
+		renderer.drawPlainTexts(board.eagleLayersByName['tValues'],ctx);
+		renderer.drawPlainTexts(board.eagleLayersByName['tPlace'],ctx);
+		renderer.drawPlainWires(board.eagleLayersByName['tNames'],ctx);
+		renderer.drawPlainWires(board.eagleLayersByName['tValues'],ctx);
+		renderer.drawPlainWires(board.eagleLayersByName['tPlace'],ctx);
 
 
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.TOP_DOCUMENTATION] = function(that,ctx) {
-		that.drawElements(that.eagleLayersByName['tKeepout'],ctx);
-		that.drawElements(that.eagleLayersByName['tDocu'],ctx);
-		that.drawPlainTexts(that.eagleLayersByName['tKeepout'],ctx);
-		that.drawPlainTexts(that.eagleLayersByName['tDocu'],ctx);
+	this.layerRenderFunctions[EagleCanvas.LayerId.TOP_DOCUMENTATION] = function(renderer, board, ctx) {
+		renderer.drawElements(board.eagleLayersByName['tKeepout'],ctx);
+		renderer.drawElements(board.eagleLayersByName['tDocu'],ctx);
+		renderer.drawPlainTexts(board.eagleLayersByName['tKeepout'],ctx);
+		renderer.drawPlainTexts(board.eagleLayersByName['tDocu'],ctx);
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.DIM_BOARD] = function(that,ctx) {
-		that.dimCanvas(ctx,that.dimBoardAlpha);
+	this.layerRenderFunctions[EagleCanvas.LayerId.DIM_BOARD] = function(renderer, board, ctx) {
+		renderer.dimCanvas(ctx,board.dimBoardAlpha);
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.VIAS] = function(that,ctx) {
-		that.drawSignalVias('1-16',ctx, that.viaPadColor());
+	this.layerRenderFunctions[EagleCanvas.LayerId.VIAS] = function(renderer, board, ctx) {
+		renderer.drawSignalVias('1-16',ctx, board.viaPadColor());
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.OUTLINE] = function(that,ctx) {
-		that.drawPlainWires(that.eagleLayersByName['Dimension'],ctx);
-		that.drawPlainHoles(that.eagleLayersByName['Dimension'],ctx);
+	this.layerRenderFunctions[EagleCanvas.LayerId.OUTLINE] = function(renderer, board, ctx) {
+		renderer.drawPlainWires(board.eagleLayersByName['Dimension'],ctx);
+		renderer.drawPlainHoles(board.eagleLayersByName['Dimension'],ctx);
 	}
 
 	this.hitTestFunctions = {};
@@ -181,7 +191,16 @@ EagleCanvas.prototype.getScale = function(scale) {
 /** sets the scale factor, triggers resizing and redrawing */
 EagleCanvas.prototype.setScale = function (scale, noResize) {
 	console.log (scale, this.scale, this.baseScale);
+
 	this.scale = scale // * (this.scale || 1);
+
+	if ('svg' in this) {
+		// TODO: svg scaling
+		this.svg.style.width  = scale * this.baseScale * this.nativeSize[0] + "px";
+		this.svg.style.height = scale * this.baseScale * this.nativeSize[1] + "px";
+
+	} else if ('canvas' in this) {
+
 	var canvas = this.canvas;
 	var context = canvas.getContext('2d'),
 		devicePixelRatio = window.devicePixelRatio || 1,
@@ -206,6 +225,7 @@ EagleCanvas.prototype.setScale = function (scale, noResize) {
 
 	this.ratio = ratio;
 
+	}
 	this.draw();
 }
 
@@ -239,26 +259,35 @@ EagleCanvas.prototype.setHighlightedItem = function(item) {
 	this.draw();
 }
 
+EagleCanvas.prototype.draw = function () {
+	if ('svg' in this) {
+		var renderer = new SVGRenderer (this);
+		renderer.draw ();
+	} else if ('canvas' in this) {
+		var renderer = new ViewEECanvasRenderer (this);
+		renderer.draw ();
+	}
+}
+
 // ---------------
 // --- PARSERS ---
 // ---------------
 
-EagleCanvas.EagleParser = function (board) {
-	// TODO: move all parsing to the new class
-	return board;
-}
-
 EagleCanvas.parsers = [
-	// EagleCanvas.EagleParser
 ];
+
+if ("EagleXMLParser" in window) {
+	EagleCanvas.parsers.push (window.EagleXMLParser);
+}
 
 if ("KicadNewParser" in window) {
 	EagleCanvas.parsers.push (window.KicadNewParser);
 }
 
-if ("EagleXMLParser" in window) {
-	EagleCanvas.parsers.push (window.EagleXMLParser);
+if ("AltiumParser" in window) {
+	EagleCanvas.parsers.push (window.AltiumParser);
 }
+
 
 EagleCanvas.prototype.loadText = function (text) {
 	this.text = text;
@@ -299,516 +328,6 @@ EagleCanvas.prototype.loadURL = function (url, cb) {
 };
 
 
-// ---------------
-// --- DRAWING ---
-// ---------------
-
-EagleCanvas.prototype.draw = function() {
-	var canvas = this.canvas,
-		ctx    = canvas.getContext('2d');
-
-	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-	ctx.save();
-
-	ctx.transform(
-		this.scale * this.baseScale * this.ratio * (this.boardFlipped ? -1.0 : 1.0),
-		0,
-		0,
-		(this.coordYFlip ? 1 : -1) * this.scale  * this.baseScale * this.ratio,
-		0,
-		this.coordYFlip ? 0 : ctx.canvas.height
-	);
-	ctx.translate(
-		(this.boardFlipped ? -this.nativeBounds[2] : -(this.nativeBounds[0])),
-		-this.nativeBounds[1]
-	);
-
-	var layerOrder = this.boardFlipped ? this.reverseRenderLayerOrder : this.renderLayerOrder;
-	for (var layerKey in layerOrder) {
-		var layerId = layerOrder[layerKey];
-		if (!this.visibleLayers[layerId]) { continue };
-		this.layerRenderFunctions[layerId](this,ctx);
-	}
-
-	ctx.restore();
-}
-
-EagleCanvas.prototype.drawWire = function (wire, ctx) {
-
-	var lineDash;
-	if (wire.style === "longdash") {
-		lineDash = [3];
-	} else if (wire.style === "shortdash") {
-		lineDash = [1];
-	} else if (wire.style === "dashdot") {
-		lineDash = [3, 1, 1, 1];
-	}
-
-	if (lineDash) ctx.setLineDash (lineDash);
-
-	if (wire.curve) {
-
-		var rotate = (wire.rot ? parseFloat(wire.rot.substr (wire.rot.indexOf ("R") + 1)) : 0)/180*Math.PI;
-
-		var radiusX, radiusY;
-		radiusX = radiusY = wire.radius;
-		if (wire.radius.constructor === Array) {
-			radiusX = wire.radius[0];
-			radiusY = wire.radius[1];
-		}
-		ctx.save();
-		ctx.translate(wire.x, wire.y);
-		// ctx.rotate(rotation);
-		ctx.scale(radiusX, radiusY);
-		ctx.arc(0, 0, 1, rotate + wire.start, rotate + wire.start + wire.angle); //, antiClockwise
-		ctx.restore();
-
-	} else {
-		ctx.moveTo(wire.x1, wire.y1);
-		ctx.lineTo(wire.x2, wire.y2);
-	}
-
-}
-
-EagleCanvas.prototype.drawPlainWires = function(layer, ctx) {
-	if (!layer) { return; }
-
-	ctx.lineCap = 'round';
-	ctx.strokeStyle = this.layerColor(layer.color);
-
-	var layerWires = this.plainWires[layer.number] || [];
-	layerWires.forEach(function(wire){
-
-		ctx.save();
-		ctx.beginPath();
-		this.drawWire (wire, ctx);
-		ctx.lineWidth = wire.width;
-		ctx.stroke();
-		ctx.restore();
-	}, this);
-}
-
-EagleCanvas.prototype.drawPlainHoles = function(layer, ctx) {
-	if (!layer) { return; }
-
-	ctx.lineCap = 'round';
-	ctx.strokeStyle = this.layerColor (layer.color);
-
-	var layerHoles = this.plainHoles || [];
-	layerHoles.forEach(function(hole){
-		ctx.beginPath();
-		ctx.arc(hole.x, hole.y, hole.drill/2, 0, 2 * Math.PI, false);
-		ctx.lineWidth = this.minLineWidth;
-		ctx.stroke();
-	}, this);
-}
-
-
-EagleCanvas.prototype.drawSignalWires = function(layer, ctx) {
-	if (!layer) { return; }
-	var layerNumber = layer.number;
-
-	ctx.lineCap = 'round';
-
-	for (var signalKey in this.signalItems) {
-
-		var highlight = (this.highlightedItem && (this.highlightedItem.type=='signal') && (this.highlightedItem.name==signalKey));
-		var color = highlight ? this.highlightColor(layer.color) : this.layerColor(layer.color);
-		ctx.strokeStyle = color;
-
-
-		var signalLayers = this.signalItems[signalKey],
-			layerItems = signalLayers[layer.number];
-		if (!layerItems) { continue; }
-		var layerWires = layerItems['wires'] || [];
-		layerWires.forEach(function(wire) {
-			ctx.beginPath();
-			this.drawWire (wire, ctx);
-			ctx.lineWidth = wire.width;
-			ctx.stroke();
-		}, this)
-	}
-}
-
-EagleCanvas.prototype.drawSignalVias = function(layersName, ctx, color) {
-	if (!layersName) return;
-
-	ctx.strokeStyle = color;
-
-	for (var signalKey in this.signalItems) {
-		var signalLayers = this.signalItems[signalKey],
-			layerItems = signalLayers[layersName];
-		if (!layerItems) {continue;}
-		var layerVias = layerItems['vias'] || [];
-		layerVias.forEach(function(via) {
-			ctx.beginPath();
-			// TODO: use following answer to draw shapes with holes:
-			// http://stackoverflow.com/questions/6271419/how-to-fill-the-opposite-shape-on-canvas
-			// TODO: make sure calculations is correct
-			ctx.arc(via.x, via.y, 0.75 * via.drill, 0, 2 * Math.PI, false);
-			ctx.lineWidth = 0.5 * via.drill;
-			ctx.stroke();
-
-			if (via.shape && via.shape !== "circle") {
-				if (!EagleCanvas.warnings["via_shape_" + via.shape]) {
-					EagleCanvas.warnings["via_shape_" + via.shape] = true;
-					console.warn ("via shape '%s' is not supported yet", via.shape);
-				}
-			}
-
-		})
-	}
-}
-
-EagleCanvas.prototype.drawText = function (attrs, text, ctx) {
-	var x = attrs.x || text.x,
-		y = attrs.y || text.y,
-		rot = attrs.rot || text.rot || "R0",
-		size = text.size,
-		flipText = attrs.flipText !== undefined ? attrs.flipText : text.flipText;
-
-	var content = attrs.content || text.content;
-	var color   = attrs.color;
-
-	var textAngle = this.angleForRot (rot);
-
-	//rotation from 90.1 to 270 causes Eagle to draw labels 180 degrees rotated with top right anchor point
-	var degrees  = textAngle.degrees,
-		textRot  = this.matrixForRot(rot),
-		fontSize = 10;
-
-	ctx.save();
-	ctx.fillStyle = color;
-	ctx.font = ''+fontSize+'pt vector';	//Use a regular font size - very small sizes seem to mess up spacing / kerning
-	ctx.translate(x,y);
-
-	var d = this.fontTestCpan = (this.fontTestCpan || document.createElement("span"));
-	d.font = ctx.font;
-	d.textContent = content;
-	//if height is not calculated - we'll use the font's 10pt size and hope it fits
-	var emHeight = d.offsetHeight || fontSize;
-
-	var strings = content.split (/\r?\n/);
-	var stringOffset = (text.interlinear || 50) * emHeight / 100;
-
-
-	if (0) { // enable to draw zero points for text
-		ctx.save();
-		ctx.beginPath();
-		ctx.arc(0, 0, 1, 0, 2 * Math.PI, false);
-		ctx.fillStyle = this.viaPadColor();
-		ctx.fill();
-		ctx.restore();
-	}
-
-	ctx.transform (textRot[0],textRot[2],textRot[1],textRot[3],0,0);
-	var textBlockHeight = (strings.length - 1) * (stringOffset + emHeight);
-	var textBlockWidth = 0;
-	strings.forEach (function (string, idx) {
-		textBlockWidth = Math.max (textBlockWidth, ctx.measureText(string).width);
-	}, this);
-	var scale = size / fontSize;
-	ctx.scale(scale,(this.coordYFlip ? 1 : -1)*scale);
-	var xOffset = 0;
-	if (flipText) {
-		var xMult = {center: 0, left: 1, right: 1};
-		var yMult = {middle: 0, bottom: -1, top: 1};
-		ctx.translate (
-			xMult[text.align || "left"] * textBlockWidth,
-			yMult[text.valign || "bottom"] * (textBlockHeight + emHeight)
-		);
-		if (!textAngle.spin) ctx.scale(-1,-1);
-	}
-
-	if (0) { // enable to draw zero points for text origin
-		ctx.save();
-		ctx.beginPath();
-		ctx.arc(0, 0, 1, 0, 2 * Math.PI, false);
-		ctx.fillStyle = "b00";
-		ctx.fill();
-		ctx.restore();
-	}
-
-	if (text.align)  ctx.textAlign = text.align;
-	if (text.valign) ctx.textBaseline = text.valign;
-
-	strings.forEach (function (string, idx) {
-		var yOffset = idx * (stringOffset + emHeight);
-		if (text.valign === "middle") {
-			yOffset -= textBlockHeight/2;
-		} else if (text.valign === "bottom") {
-			yOffset -= textBlockHeight;
-		}
-		ctx.fillText(string, xOffset, yOffset);
-	}, this);
-
-	ctx.restore();
-}
-
-EagleCanvas.prototype.drawPlainTexts = function (layer, ctx) {
-
-	if (!layer) return;
-
-	var layerTexts = this.plainTexts[layer.number] || [];
-
-	var color = this.layerColor(layer.color);
-
-	layerTexts.forEach (function (text) {
-
-		var content = text.content;
-
-		var attrs = {
-			color: color,
-			content: content
-		};
-
-		this.drawText (attrs, text, ctx);
-
-	}, this)
-}
-
-EagleCanvas.prototype.drawElements = function(layer, ctx) {
-	if (!layer) return;
-
-	for (var elemKey in this.elements) {
-		var elem = this.elements[elemKey];
-
-		var highlight = (this.highlightedItem && (this.highlightedItem.type=='element') && (this.highlightedItem.name==elem.name));
-		var color     = highlight ? this.highlightColor(layer.color) : this.layerColor(layer.color);
-
-		var pkg    = typeof elem.pkg === "string" ? this.packagesByName[elem.pkg] : elem.pkg;
-		var rotMat = elem.matrix;
-			pkg.smds.forEach(function(smd) {
-				var layerNum = smd.layer;
-				if (elem.mirror) { layerNum = this.mirrorLayer(layerNum); }
-				if (layer.number != layerNum) { return; }
-
-				var smdDX = smd.x2-smd.x1,
-					smdDY = smd.y2-smd.y1,
-					// smd center
-					smdX  = smd.x1 + smdDX/2,
-					smdY  = smd.y1 + smdDY/2,
-					smdXDir = smdDX/Math.abs(smdDX),
-					smdYDir = smdDY/Math.abs(smdDY),
-					smdDx1 = smd.x1,
-					smdDx2 = smd.x2,
-					smdDy1 = smd.y1,
-					smdDy2 = smd.y2;
-
-				var borderRadius = Math.min (Math.abs (smdDX), Math.abs (smdDY)) / 2;
-				if (smd.roundness) {
-					borderRadius *= smd.roundness / 100;
-					smdDx1 += 1 * smdXDir * borderRadius,
-					smdDx2 -= 1 * smdXDir * borderRadius,
-					smdDy1 += 1 * smdYDir * borderRadius,
-					smdDy2 -= 1 * smdYDir * borderRadius;
-					var drawSmdCircle = (smd.roundness === 100 && Math.abs (smdDX) === Math.abs (smdDY));
-				}
-
-				var smdRotMat = this.matrixForRot (smd.rot);
-				var smdX1 = smdX + smdRotMat[0] * (smdX - smdDx1) + smdRotMat[1] * (smdY - smdDy1),	//top left
-					smdY1 = smdY + smdRotMat[2] * (smdX - smdDx1) + smdRotMat[3] * (smdY - smdDy1),
-					smdX2 = smdX + smdRotMat[0] * (smdX - smdDx2) + smdRotMat[1] * (smdY - smdDy2),	//top right
-					smdY2 = smdY + smdRotMat[2] * (smdX - smdDx2) + smdRotMat[3] * (smdY - smdDy2);
-
-
-				//Note that rotation might be not axis aligned, so we have do transform all corners
-				var x1 = elem.x + rotMat[0]*smdX1 + rotMat[1]*smdY1,	//top left
-					y1 = elem.y + rotMat[2]*smdX1 + rotMat[3]*smdY1,
-					x2 = elem.x + rotMat[0]*smdX2 + rotMat[1]*smdY1,	//top right
-					y2 = elem.y + rotMat[2]*smdX2 + rotMat[3]*smdY1,
-					x3 = elem.x + rotMat[0]*smdX2 + rotMat[1]*smdY2,	//bottom right
-					y3 = elem.y + rotMat[2]*smdX2 + rotMat[3]*smdY2,
-					x4 = elem.x + rotMat[0]*smdX1 + rotMat[1]*smdY2,	//bottom left
-					y4 = elem.y + rotMat[2]*smdX1 + rotMat[3]*smdY2;
-
-				var padName = smd.name,
-					signalName = elem.padSignals[padName],
-					highlightPad = (this.highlightedItem && (this.highlightedItem.type=='signal') && (this.highlightedItem.name==signalName));
-
-				ctx.strokeStyle = ctx.fillStyle = highlightPad ? this.highlightColor(layer.color) : color;
-				ctx.lineJoin  = "round";
-				ctx.lineWidth = borderRadius * 2;
-				ctx.beginPath();
-				if (drawSmdCircle) {
-					ctx.arc (x1 - (x2-x1)/2, y1 - (y2-y1)/2, borderRadius, 0, Math.PI*2, false);
-					ctx.closePath();
-				} else {
-					ctx.moveTo(x1,y1);
-					ctx.lineTo(x2,y2);
-					ctx.lineTo(x3,y3);
-					ctx.lineTo(x4,y4);
-					ctx.closePath();
-					if (smd.roundness) ctx.stroke();
-				}
-				ctx.fill();
-			}, this)
-
-		if (pkg.rects) pkg.rects.forEach(function(rect) {
-			var layerNum = rect.layer;
-			if (elem.mirror) { layerNum = this.mirrorLayer(layerNum); }
-			if (layer.number != layerNum) { return; }
-
-			//Note that rotation might be not axis aligned, so we have do transform all corners
-			var x1 = elem.x + rotMat[0]*rect.x1 + rotMat[1]*rect.y1,	//top left
-				y1 = elem.y + rotMat[2]*rect.x1 + rotMat[3]*rect.y1,
-				x2 = elem.x + rotMat[0]*rect.x2 + rotMat[1]*rect.y1,	//top right
-				y2 = elem.y + rotMat[2]*rect.x2 + rotMat[3]*rect.y1,
-				x3 = elem.x + rotMat[0]*rect.x2 + rotMat[1]*rect.y2,	//bottom right
-				y3 = elem.y + rotMat[2]*rect.x2 + rotMat[3]*rect.y2,
-				x4 = elem.x + rotMat[0]*rect.x1 + rotMat[1]*rect.y2,	//bottom left
-				y4 = elem.y + rotMat[2]*rect.x1 + rotMat[3]*rect.y2;
-
-			var padName = rect.name,
-				signalName = elem.padSignals[padName],
-				highlightPad = (this.highlightedItem && (this.highlightedItem.type=='signal') && (this.highlightedItem.name==signalName));
-
-			ctx.strokeStyle = ctx.fillStyle = highlightPad ? this.highlightColor(layer.color) : color;
-			ctx.lineJoin  = "round";
-			ctx.beginPath();
-			ctx.moveTo(x1,y1);
-			ctx.lineTo(x2,y2);
-			ctx.lineTo(x3,y3);
-			ctx.lineTo(x4,y4);
-			ctx.closePath();
-			ctx.fill();
-		}, this)
-
-		pkg.polys.forEach(function(poly) {
-			var layerNum = poly.layer;
-			if (elem.mirror) { layerNum = this.mirrorLayer(layerNum); }
-			if (layer.number != layerNum) { return ; }
-
-			ctx.beginPath();
-			ctx.lineWidth = poly.width;
-			var vertex = poly.vertexes[0];
-			var x1  = elem.x + rotMat[0]*vertex.x  + rotMat[1]*vertex.y,
-				y1  = elem.y + rotMat[2]*vertex.x  + rotMat[3]*vertex.y;
-
-			ctx.moveTo(x1, y1);
-			for (var vId = 1; vId < poly.vertexes.length; vId ++) {
-				var vertex = poly.vertexes[vId],
-					x1  = elem.x + rotMat[0]*vertex.x  + rotMat[1]*vertex.y,
-					y1  = elem.y + rotMat[2]*vertex.x  + rotMat[3]*vertex.y;
-
-				ctx.lineTo(x1, y1);
-			}
-
-			ctx.closePath();
-			// ctx.strokeStyle = color;
-			// ctx.stroke();
-			ctx.fillStyle = color;
-			ctx.fill();
-		}, this)
-
-		pkg.wires.forEach(function(wire) {
-			var layerNum = wire.layer;
-			if (elem.mirror) { layerNum = this.mirrorLayer(layerNum); }
-			if (layer.number != layerNum) { return ; }
-			var x  = elem.x + rotMat[0]*wire.x  + rotMat[1]*wire.y,
-				y  = elem.y + rotMat[2]*wire.x  + rotMat[3]*wire.y,
-				x1 = elem.x + rotMat[0]*wire.x1 + rotMat[1]*wire.y1,
-				y1 = elem.y + rotMat[2]*wire.x1 + rotMat[3]*wire.y1,
-				x2 = elem.x + rotMat[0]*wire.x2 + rotMat[1]*wire.y2,
-				y2 = elem.y + rotMat[2]*wire.x2 + rotMat[3]*wire.y2;
-			ctx.beginPath();
-			ctx.lineWidth = wire.width;
-
-			if (wire.cap && wire.cap === "flat") {
-				ctx.lineCap = "butt";
-			} else {
-				ctx.lineCap = "round";
-			}
-
-			this.drawWire ({
-				curve: wire.curve, rot: elem.rot,
-				x1: x1, y1: y1, x2: x2, y2: y2,
-				x: x, y: y, radius: wire.radius, angle: wire.angle, start: wire.start
-			}, ctx);
-			ctx.strokeStyle = color;
-			ctx.stroke();
-		}, this)
-
-		// TODO: pads can be rotated too
-		pkg.pads.forEach(function(pad) {
-			var layerNum = pad.layer;
-			// We don't need to check layers, pads is pass through all layers
-			var x = elem.x + rotMat[0]*pad.x + rotMat[1]*pad.y,
-				y = elem.y + rotMat[2]*pad.x + rotMat[3]*pad.y;
-
-			if (pad.shape && pad.shape !== "circle") {
-				if (!EagleCanvas.warnings["pad_shape_" + pad.shape]) {
-					EagleCanvas.warnings["pad_shape_" + pad.shape] = true;
-					console.warn ("pad shape '%s' is not supported yet", pad.shape);
-				}
-			}
-
-			ctx.beginPath();
-			// TODO: make sure calculations is correct
-			var lineWidth = (pad.diameter - pad.drill) / 2;
-			if (lineWidth <= 0) lineWidth = this.minLineWidth;
-			ctx.lineWidth = lineWidth;
-			ctx.arc(x, y, pad.drill * 0.75, 0, Math.PI * 2, false);
-			ctx.strokeStyle = this.viaPadColor();
-			ctx.stroke();
-		}, this)
-
-		pkg.holes.forEach(function(hole) {
-			var layerNum = hole.layer;
-			// We don't need to check layers, holes is pass through all layers
-			var x = elem.x + rotMat[0]*hole.x + rotMat[1]*hole.y,
-				y = elem.y + rotMat[2]*hole.x + rotMat[3]*hole.y;
-
-			ctx.beginPath();
-
-			ctx.lineWidth = this.minLineWidth;
-			ctx.arc(x, y, hole.drill / 2, 0, Math.PI * 2, false);
-			ctx.strokeStyle = this.layerColor(15); // ouline/dimension color
-			ctx.stroke();
-		}, this)
-
-		var smashed = elem.smashed,
-			absText = elem.absText === undefined ? elem.smashed : elem.absText,
-			textCollection = smashed ? elem.attributes : pkg.texts;	//smashed : use element attributes instead of package texts
-		for (var textIdx in textCollection) {
-			if (!textCollection.hasOwnProperty (textIdx)) continue;
-			var text = textCollection[textIdx];
-			if (smashed && (text.display === "off" || !text.font)) continue;
-			var layerNum = text.layer;
-			if ((!elem.smashed) && (elem.mirror)) {
-				layerNum = this.mirrorLayer(layerNum);
-			}
-			if (layer.number != layerNum) { continue; }
-
-			var content = smashed ? null : text.content,
-				attribName = smashed ? text.name : ((text.content.indexOf('>') == 0) ? text.content.substring(1) : null);
-			if (attribName == "NAME")  { content = elem.name;  }
-			if (attribName == "VALUE") { content = elem.value; }
-			if (!content) { continue; }
-
-			var x = absText ? text.x : (elem.x + rotMat[0]*text.x + rotMat[1]*text.y),
-				y = absText ? text.y : (elem.y + rotMat[2]*text.x + rotMat[3]*text.y),
-				rot = smashed ? text.rot : elem.rot,
-				flipText = smashed ? text.flipText : elem.flipText,
-				size = text.size;
-
-			if (!text.size) continue;
-
-			this.drawText ({
-				x: x, y: y, content: content, color: color, rot: rot, flipText: flipText
-			}, text, ctx);
-		}
-	}
-}
-
-EagleCanvas.prototype.dimCanvas = function(ctx, alpha) {
-	ctx.save();
-	ctx.setTransform(1, 0, 0, 1, 0, 0);
-	ctx.globalCompositeOperation = 'destination-out';
-	ctx.fillStyle = 'rgba(0,0,0,'+alpha+')'
-	ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-	ctx.restore();
-};
 
 // -------------------
 // --- HIT TESTING ---
