@@ -127,6 +127,7 @@ function ViewEE (options, EagleCanvasClass) {
 	this.hintsTitleSel  = options.hintsTitleSel  || '#hintstitle';
 	this.hintsTextSel   = options.hintsTextSel   || '#hintstext';
 
+	this.canvas = new EagleCanvas (this.node.querySelector (this.canvasSelector));
 
 	var form = this.node.querySelector (this.formSelector);
 	var radios = [].slice.apply (form.querySelectorAll ('input[name=side]'));
@@ -214,8 +215,6 @@ ViewEE.prototype.loadUrl = function (url) {
 		var option = form.querySelector ("select.board option");
 		defaultUrl = option.value;
 	}
-
-	this.canvas = new EagleCanvas (this.node.querySelector (this.canvasSelector));
 
 	this.canvas.setScaleToFit (this.scaleSelector);
 	if (!ViewEE.fontReady) {
