@@ -184,6 +184,23 @@ EagleCanvas.prototype.setScaleToFit = function(elementSelector) {
 	this.scaleToFitSelector = elementSelector;
 }
 
+EagleCanvas.prototype.scaleToFit = function(a) {
+	// if (!this.scaleToFitSelector) { return; }
+	var fitElement = this.scaleToFitSelector ? document.querySelector (this.scaleToFitSelector) : this.canvas;
+	if (!fitElement) { return; }
+	var fitWidth  = fitElement.offsetWidth,
+		fitHeight = fitElement.offsetHeight,
+		scaleX    = fitWidth / this.nativeSize[0],
+		scaleY    = fitHeight / this.nativeSize[1],
+		scale     = Math.min(scaleX, scaleY);
+	scale *= 0.9;
+	this.baseScale = scale;
+	this.minScale = scale / 10;
+	this.maxScale = scale * 10;
+	this.setScale (1);
+}
+
+
 EagleCanvas.prototype.getScale = function(scale) {
 	return this.scale;
 }
@@ -635,22 +652,6 @@ EagleCanvas.prototype.calculateBounds = function() {
 		}
 	}
 	return [minX, minY, maxX, maxY];
-}
-
-EagleCanvas.prototype.scaleToFit = function(a) {
-	// if (!this.scaleToFitSelector) { return; }
-	var fitElement = this.scaleToFitSelector ? document.querySelector (this.scaleToFitSelector) : this.canvas;
-	if (!fitElement) { return; }
-	var fitWidth  = fitElement.offsetWidth,
-		fitHeight = fitElement.offsetHeight,
-		scaleX    = fitWidth / this.nativeSize[0],
-		scaleY    = fitHeight / this.nativeSize[1],
-		scale     = Math.min(scaleX, scaleY);
-	scale *= 0.9;
-	this.baseScale = scale;
-	this.minScale = scale / 10;
-	this.maxScale = scale * 10;
-	this.setScale (1);
 }
 
 	return EagleCanvas;
