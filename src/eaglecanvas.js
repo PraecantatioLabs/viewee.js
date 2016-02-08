@@ -243,7 +243,7 @@ EagleCanvas.prototype.setScale = function (scale, noResize) {
 	this.ratio = ratio;
 
 	}
-	this.draw();
+	this.redraw();
 }
 
 
@@ -256,7 +256,7 @@ EagleCanvas.prototype.isLayerVisible = function (layerId) {
 EagleCanvas.prototype.setLayerVisible = function (layerId, on) {
 	if (this.isLayerVisible(layerId) == on) { return; }
 	this.visibleLayers[layerId] = on ? true : false;
-	this.draw();
+	this.redraw();
 }
 
 /** Returns whether the board is flipped (bottom at fromt) or not */
@@ -268,21 +268,37 @@ EagleCanvas.prototype.isBoardFlipped = function () {
 EagleCanvas.prototype.setBoardFlipped = function (flipped) {
 	if (this.boardFlipped == flipped) { return; }
 	this.boardFlipped = flipped ? true : false;
-	this.draw();
+
+	this.redraw();
 }
 
 EagleCanvas.prototype.setHighlightedItem = function(item) {
 	this.highlightedItem = item;
-	this.draw();
+
+	this.redraw();
 }
 
+// Draw is need to be called just once for single layout,
+// redraw is needed to rerender layout for new parameters, like scale, selection and so on
+// Usually, for objects like svg draw is important and redraw is empty,
+// for a canvas, draw will be empty and redraw need to contain actual drawing code
+
 EagleCanvas.prototype.draw = function () {
-	if ('svg' in this) {
-		var renderer = new ViewEESVGRenderer (this);
-		renderer.draw ();
-	} else if ('canvas' in this) {
-		var renderer = new ViewEECanvasRenderer (this);
-		renderer.draw ();
+	if (!this.renderer) this.initRenderer ();
+
+	this.renderer.draw ();
+}
+
+EagleCanvas.prototype.redraw = function () {
+	if (!this.renderer) this.initRenderer ();
+	this.renderer.redraw ();
+}
+
+EagleCanvas.prototype.initRenderer = function () {
+	if ('svg' in this && !this.renderer) {
+		this.renderer = new ViewEESVGRenderer (this);
+	} else if ('canvas' in this && !this.renderer) {
+		this.renderer = new ViewEECanvasRenderer (this);
 	}
 }
 
@@ -323,6 +339,7 @@ EagleCanvas.prototype.loadText = function (text) {
 	this.nativeBounds = this.calculateBounds();
 	this.nativeSize   = [this.nativeBounds[2]-this.nativeBounds[0],this.nativeBounds[3]-this.nativeBounds[1]];
 	this.scaleToFit();
+	this.draw();
 }
 
 

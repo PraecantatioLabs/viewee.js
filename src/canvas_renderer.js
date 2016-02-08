@@ -31,7 +31,9 @@ CanvasRenderer.prototype.getScope = function (ctx, attrs) {
 	return ctx;
 }
 
-CanvasRenderer.prototype.draw = function() {
+CanvasRenderer.prototype.draw = function() {}
+
+CanvasRenderer.prototype.redraw = function () {
 	var canvas = this.canvas,
 		ctx    = canvas.getContext('2d');
 

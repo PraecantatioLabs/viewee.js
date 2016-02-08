@@ -94,7 +94,11 @@
 		return g;
 	}
 
-	SVGRenderer.prototype.draw = function() {
+	SVGRenderer.prototype.redraw = function () {
+
+	}
+
+	SVGRenderer.prototype.draw = function () {
 		var svg = this.el;
 
 		var board = this.board;
@@ -112,7 +116,7 @@
 		var scaleY = (board.coordYFlip ? 1 : -1) * board.scale  * board.baseScale * board.ratio;
 		var scaleTransY = board.coordYFlip ? 0 : parseFloat (svg.style.height);
 
-		var transX = (board.boardFlipped ? -board.nativeBounds[2] : -(board.nativeBounds[0]));
+		var transX = board.boardFlipped ? -board.nativeBounds[2] : -board.nativeBounds[0];
 		var transY = -board.nativeBounds[1]; //board.coordYFlip ? 0 : board.nativeBounds[1]; //-board.nativeBounds[1];
 
 		var g;
