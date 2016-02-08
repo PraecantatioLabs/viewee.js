@@ -10,6 +10,11 @@
 
 	<script type="text/javascript" src="src/eagle_xml_parser.js"></script>
 	<script type="text/javascript" src="src/kicad_pcb_parser.js"></script>
+
+	<script type="text/javascript" src="src/renderer.js"></script>
+	<script type="text/javascript" src="src/canvas_renderer.js"></script>
+	<script type="text/javascript" src="src/svg_renderer.js"></script>
+
 	<script type="text/javascript" src="src/eaglecanvas.js"></script>
 
 	<script type="text/javascript" src="interface.js"></script>
@@ -58,8 +63,8 @@
 		</form>
 		<div id="hcenter">
 			<div id="vcenter">
-				<canvas id="canvas" width="800" height="600">
-				</canvas>
+				<!--canvas id="canvas" width="800" height="600"></canvas-->
+				<svg id="canvas"></svg>
 			</div>
 		</div>
 	</div>

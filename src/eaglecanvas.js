@@ -190,7 +190,7 @@ EagleCanvas.prototype.getScale = function(scale) {
 
 /** sets the scale factor, triggers resizing and redrawing */
 EagleCanvas.prototype.setScale = function (scale, noResize) {
-	console.log (scale, this.scale, this.baseScale);
+	// console.log (scale, this.scale, this.baseScale);
 
 	this.scale = scale // * (this.scale || 1);
 
@@ -261,7 +261,7 @@ EagleCanvas.prototype.setHighlightedItem = function(item) {
 
 EagleCanvas.prototype.draw = function () {
 	if ('svg' in this) {
-		var renderer = new SVGRenderer (this);
+		var renderer = new ViewEESVGRenderer (this);
 		renderer.draw ();
 	} else if ('canvas' in this) {
 		var renderer = new ViewEECanvasRenderer (this);

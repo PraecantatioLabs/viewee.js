@@ -55,16 +55,16 @@ function loadWebFonts (cb) {
 	fontLoader.loadFonts();
 }
 
-function MakeEl (name, attributes) {
-	var el = document.createElement (name);
-	if (typeof attributes == 'object') {
-		for (var i in attributes) {
-			el.setAttribute (i, attributes[i]);
-			if (i.toLowerCase() == 'class') {
-				el.className = attributes[i];  // for IE compatibility
-			} else if (i.toLowerCase() == 'style') {
-				el.style.cssText = attributes[i]; // for IE compatibility
-			}
+function MakeEl (name, attrs) {
+	attrs = attrs || {};
+	var el = attrs.xmlns ? document.createElementNS (attrs.xmlns, name) : document.createElement (name);
+	for (var i in attrs) {
+		if (i === 'xmlns') continue;
+		el.setAttributeNS (null, i, attrs[i]);
+		if (i.toLowerCase() == 'class') {
+			el.className = attrs[i];  // for IE compatibility
+		} else if (i.toLowerCase() == 'style') {
+			el.style.cssText = attrs[i]; // for IE compatibility
 		}
 	}
 	for (var i = 2; i<arguments.length; i++) {
@@ -76,6 +76,8 @@ function MakeEl (name, attributes) {
 	}
 	return el;
 }
+
+window.MakeEl = MakeEl;
 
 function getFormFields (formEl, formData) {
 	formData = formData || {};
@@ -108,7 +110,7 @@ var layers = [
 var EagleCanvas;
 
 function ViewEE (options, EagleCanvasClass) {
-	
+
 	if (!options) options = {};
 
 	if (!options.fromScratch && ViewEE.initialized)

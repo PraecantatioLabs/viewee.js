@@ -38,12 +38,18 @@
 
 		var board = this.board;
 
+		var layerCtx = this.getScope (ctx, {name: layer.name});
+
 		var layerWires = board.plainWires[layer.number] || [];
 		layerWires.forEach (function (wire) {
 			this.drawSingleWire (Object.assign (
 				{}, wire,
-				{cap: 'round', strokeStyle: board.layerColor (layer.color)}
-			), ctx);
+				{
+					cap: 'round',
+					strokeStyle: board.layerColor (layer.color),
+					strokeWidth: wire.width || board.minLineWidth,
+				}
+			), layerCtx);
 		}, this);
 	}
 
@@ -51,9 +57,13 @@
 		if (!layer) { return; }
 		var layerNumber = layer.number;
 
+		var layerCtx = this.getScope (ctx, {name: layer.name});
+
 		var board = this.board;
 
 		for (var signalKey in board.signalItems) {
+
+			var signalCtx = this.getScope (layerCtx, {name: signalKey});
 
 			var highlight = (board.highlightedItem && (board.highlightedItem.type=='signal') && (board.highlightedItem.name==signalKey));
 			var color = highlight ? board.highlightColor(layer.color) : board.layerColor(layer.color);
@@ -62,17 +72,22 @@
 				layerItems = signalLayers[layer.number];
 			if (!layerItems) { continue; }
 			var layerWires = layerItems['wires'] || [];
+
 			layerWires.forEach(function(wire) {
+				// TODO: join wires
+				// console.log (wire);
 				this.drawSingleWire (Object.assign (
 					{}, wire,
 					{cap: 'round', strokeStyle: color}
-				), ctx);
+				), signalCtx);
 			}, this)
 		}
 	}
 
 	ViewEERenderer.prototype.drawPlainHoles = function(layer, ctx) {
 		if (!layer) { return; }
+
+		var layerCtx = this.getScope (ctx, {name: layer.name});
 
 		var board = this.board;
 
@@ -81,14 +96,14 @@
 			this.drawHole (Object.assign ({}, hole, {
 				strokeStyle: board.layerColor (layer.color),
 				strokeWidth: board.minLineWidth, // TODO: bad width
-			}), ctx);
+			}), layerCtx);
 		}, this);
 	}
 
 	ViewEERenderer.prototype.drawSignalVias = function(layersName, ctx, color) {
 		if (!layersName) return;
 
-		ctx.strokeStyle = color;
+		var layerCtx = this.getScope (ctx, {name: 'via'});
 
 		var board = this.board;
 
@@ -102,7 +117,7 @@
 				this.drawHole (Object.assign ({}, via, {
 					strokeStyle: color,
 					strokeWidth: 0.5 * via.drill, // TODO: bad width
-				}), ctx);
+				}), layerCtx);
 
 				if (via.shape && via.shape !== "circle") {
 					if (!this.warnings["via_shape_" + via.shape]) {
@@ -134,24 +149,14 @@
 			textRot  = board.matrixForRot(rot),
 			fontSize = 10;
 
-		ctx.save();
-		ctx.fillStyle = color;
-		ctx.font = ''+fontSize+'pt vector';	//Use a regular font size - very small sizes seem to mess up spacing / kerning
-		ctx.translate(x,y);
-
-		// TODO: board object is a bad place for this
-		var d = board.fontTestCpan = (board.fontTestCpan || document.createElement("span"));
-		d.font = ctx.font;
-		d.textContent = content;
-		//if height is not calculated - we'll use the font's 10pt size and hope it fits
-		var emHeight = d.offsetHeight || fontSize;
+		var font = ''+fontSize+'pt vector';	//Use a regular font size - very small sizes seem to mess up spacing / kerning
 
 		var strings = content.split (/\r?\n/);
-		var stringOffset = (text.interlinear || 50) * emHeight / 100;
-
+		var stringOffset = (text.interlinear || 50) * fontSize / 100;
 
 		if (0) { // enable to draw zero points for text
 			ctx.save();
+			ctx.translate(x,y);
 			ctx.beginPath();
 			ctx.arc(0, 0, 1, 0, 2 * Math.PI, false);
 			ctx.fillStyle = board.viaPadColor();
@@ -159,8 +164,16 @@
 			ctx.restore();
 		}
 
+		var textCtx = this.getScope (ctx, {name: 'text'});
+
+		ctx.save();
+		ctx.fillStyle = color;
+		ctx.font = font;
+		ctx.translate(x,y);
+
+		// TODO: move text rotation to the parser?
 		ctx.transform (textRot[0],textRot[2],textRot[1],textRot[3],0,0);
-		var textBlockHeight = (strings.length - 1) * (stringOffset + emHeight);
+		var textBlockHeight = (strings.length - 1) * (stringOffset + fontSize);
 		var textBlockWidth = 0;
 		strings.forEach (function (string, idx) {
 			textBlockWidth = Math.max (textBlockWidth, ctx.measureText(string).width);
@@ -173,7 +186,7 @@
 			var yMult = {middle: 0, bottom: -1, top: 1};
 			ctx.translate (
 				xMult[text.align || "left"] * textBlockWidth,
-				yMult[text.valign || "bottom"] * (textBlockHeight + emHeight)
+				yMult[text.valign || "bottom"] * (textBlockHeight + fontSize)
 			);
 			if (!textAngle.spin) ctx.scale(-1,-1);
 		}
@@ -191,7 +204,7 @@
 		if (text.valign) ctx.textBaseline = text.valign;
 
 		strings.forEach (function (string, idx) {
-			var yOffset = idx * (stringOffset + emHeight);
+			var yOffset = idx * (stringOffset + fontSize);
 			if (text.valign === "middle") {
 				yOffset -= textBlockHeight/2;
 			} else if (text.valign === "bottom") {
@@ -206,6 +219,8 @@
 	ViewEERenderer.prototype.drawPlainTexts = function (layer, ctx) {
 
 		if (!layer) return;
+
+		var layerCtx = this.getScope (ctx, {name: layer.name});
 
 		var board = this.board;
 
@@ -222,7 +237,7 @@
 				content: content
 			};
 
-			this.drawText (attrs, text, ctx);
+			this.drawText (attrs, text, layerCtx);
 
 		}, this)
 	}
@@ -230,10 +245,14 @@
 	ViewEERenderer.prototype.drawElements = function(layer, ctx) {
 		if (!layer) return;
 
+		var layerCtx = this.getScope (ctx, {name: layer.name});
+
 		var board = this.board;
 
 		for (var elemKey in board.elements) {
 			var elem = board.elements[elemKey];
+
+			var elemCtx = this.getScope (layerCtx, {name: elemKey});
 
 			var highlight = (board.highlightedItem && (board.highlightedItem.type=='element') && (board.highlightedItem.name==elem.name));
 			var color     = highlight ? board.highlightColor(layer.color) : board.layerColor(layer.color);
@@ -296,7 +315,7 @@
 						fillStyle: color,
 						strokeWidth: borderRadius * 2,
 						strokeStyle: smd.roundness ? color : null,
-					}), ctx);
+					}), elemCtx);
 				} else {
 					var points = [{x: x1, y: y1}, {x: x2, y: y2}, {x: x3, y: y3}, {x: x4, y: y4}];
 
@@ -305,7 +324,7 @@
 						fillStyle: color,
 						strokeWidth: borderRadius * 2,
 						strokeStyle: smd.roundness ? color : null,
-					}), ctx);
+					}), elemCtx);
 				}
 
 			}, this)
@@ -334,7 +353,7 @@
 					points: points,
 					fillStyle: highlightPad ? board.highlightColor(layer.color) : color,
 					// strokeStyle: color,
-				}), ctx);
+				}), elemCtx);
 
 			}, this)
 
@@ -356,7 +375,7 @@
 				this.drawFilledPoly (Object.assign ({}, poly, {
 					points: points,
 					fillStyle: color,
-				}), ctx);
+				}), elemCtx);
 
 			}, this)
 
@@ -377,7 +396,7 @@
 					x1: x1, y1: y1, x2: x2, y2: y2,
 					x: x, y: y, radius: wire.radius, angle: wire.angle, start: wire.start,
 					strokeStyle: color
-				}, ctx);
+				}, elemCtx);
 			}, this)
 
 			// TODO: pads can be rotated too
@@ -403,7 +422,7 @@
 					y: y,
 					strokeWidth: lineWidth,
 					strokeStyle: board.viaPadColor(), // ouline/dimension color
-				}), ctx);
+				}), elemCtx);
 			}, this)
 
 			pkg.holes.forEach(function(hole) {
@@ -417,7 +436,7 @@
 					y: y,
 					strokeWidth: board.minLineWidth,
 					strokeStyle: board.layerColor(15), // ouline/dimension color
-				}), ctx);
+				}), elemCtx);
 
 			}, this)
 
@@ -450,7 +469,7 @@
 
 				this.drawText ({
 					x: x, y: y, content: content, color: color, rot: rot, flipText: flipText
-				}, text, ctx);
+				}, text, elemCtx);
 			}
 		}
 	}
