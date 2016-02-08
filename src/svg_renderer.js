@@ -99,6 +99,9 @@
 
 		var board = this.board;
 
+		if (board.interactive && board.interactive.destroy)
+			board.interactive.destroy ();
+
 		while (svg.firstChild) {
 			svg.removeChild (svg.firstChild);
 		}
@@ -129,6 +132,9 @@
 			if (!board.visibleLayers[layerId]) { continue };
 			board.layerRenderFunctions[layerId](this, board, g);
 		}
+
+		if (board.initInteractive)
+			board.initInteractive ();
 
 	}
 
