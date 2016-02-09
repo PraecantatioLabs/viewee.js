@@ -536,7 +536,7 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 			el.attributes.value = txt;
 			txt.font = "vector";
 		} else {
-			console.warn ("text not processed:", txt);
+			console.warn ("text type '%s' not processed:", txt.type, txt);
 		}
 	}, this);
 
