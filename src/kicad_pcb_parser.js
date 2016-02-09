@@ -53,8 +53,8 @@ KicadNewParser.name = "kicad kicad_pcb";
 var layerMaps = {
 	"Front": "Top",
 	"Back": "Bottom",
-//	"F.Cu": "Top",
-//	"B.Cu": "Bottom",
+	"F.Cu": "Top",
+	"B.Cu": "Bottom",
 //	"Inner1.Cu": "Inner1",
 //	"Inner2.Cu": "Inner2",
 	"B.Adhes": "bGlue",
@@ -603,22 +603,39 @@ KicadNewParser.prototype.cmdDone = function () {
 
 	// layers
 	if (this.cmd.name === "layers") {
+
+		var signalLayers = [];
 		this.cmd.args.forEach (function (layer) {
-			var eagleLayer = this.eagleLayer (layer.args[0]);
-			// Layer names can be changed
 			var layerId = parseInt (layer.name);
-			if (layerId >= 0 && layerId <= 31) {
+			if (layer.args[1] === 'signal')
+				signalLayers[layerId] = true;
+		});
+
+		var maxSignalLayer = signalLayers.length - 1;
+
+		this.cmd.args.forEach (function (layer) {
+
+			// Layer names can be changed
+			console.log (layer);
+			var layerId = parseInt (layer.name);
+			var layerName = layer.args[0]; // F.Cu, B.Cu and so on
+			var layerType = layer.args[1]; // user, signal, mixed
+			var layerShow = layer.args[2] === 'hide' ? false : true; // 'hide' or nothin
+
+			var eagleLayer = this.eagleLayer (layerName);
+
+			if (!eagleLayer && layerId >= 0 && layerId <= 31) {
 				if (layerId === 0) {
-					layerMaps[layer.args[0]] = "Top";
+					layerMaps[layerName] = "Top";
 					eagleLayer = this.eagleLayer ("Front");
-				} else if (layerId === 31) {
-					layerMaps[layer.args[0]] = "Bottom";
+				} else if (layerId === maxSignalLayer) {
+					layerMaps[layerName] = "Bottom";
 					eagleLayer = this.eagleLayer ("Back");
-				} else if (layerId > 0 && layerId < 15) {
-					layerMaps[layer.args[0]] = "Inner" + (layerId + 1);
+				} else if (layerId > 0 && layerId < maxSignalLayer) {
+					layerMaps[layerName] = "Inner" + (layerId + 1);
 					eagleLayer = this.eagleLayer ("Inner" + (layerId + 1));
-				} else {
-					console.warn ("We currently not supporting parsing files with more than 16 signal layers, but found layer with id = %d", layerId);
+				} else if (!eagleLayer) {
+					console.warn ("(Maybe unknown layer) We currently not supporting parsing files with more than 16 signal layers, but found layer with id = %d", layerId);
 				}
 			}
 
