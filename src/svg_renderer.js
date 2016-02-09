@@ -123,12 +123,17 @@
 
 		svg.appendChild (MakeEl ('g', {
 			xmlns: SVGNS,
+			className: 'viewport'
+		}, MakeEl ('g', {
+			xmlns: SVGNS,
 			transform: 'matrix('+scaleX+', 0, 0, '+scaleY+', 0, '+scaleTransY+')', // board.scale*board.baseScale
 		}, g = MakeEl ('g', {
 			xmlns: SVGNS,
 			className: 'container',
 			transform: 'translate('+transX+', '+transY+')'
-		})));
+		}))));
+
+		this.svgCtx = g;
 
 		var layerOrder = board.boardFlipped ? board.reverseRenderLayerOrder : board.renderLayerOrder;
 		for (var layerKey in layerOrder) {
