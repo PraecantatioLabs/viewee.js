@@ -473,13 +473,17 @@ KicadNewParser.prototype.parsePad = function (cmd, angle) {
 		y: y,
 		name: name,
 		type: type,
-		shape: shape,
+		shape: shape === 'rect' ? 'square' : shape,
 		layers: cmd.attrs.layers,
 		net: net,
-		drill: cmd.attrs.drill ? parseFloat(cmd.attrs.drill[0]) : w,
-		diameter: w
+		// drill can be ['<drill>'], or ['<shape=oval?>', '<drill>', '<drill-length>']
+		drill: cmd.attrs.drill ? (parseFloat(cmd.attrs.drill[0]) || parseFloat(cmd.attrs.drill[1])) : w,
+		diameter: w,
+		drillLength: cmd.attrs.drill ? parseFloat(cmd.attrs.drill[2]) : null,
 	}}
-	return pad;
+
+	console.warn ('pad type %s is not supported', type, cmd);
+	return {};
 }
 
 KicadNewParser.prototype.parseModule = function (cmd) {
