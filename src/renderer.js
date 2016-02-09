@@ -47,7 +47,7 @@
 				{
 					cap: 'round',
 					strokeStyle: board.layerColor (layer.color),
-					strokeWidth: wire.width || board.minLineWidth,
+					width: wire.width || board.minLineWidth,
 				}
 			), layerCtx);
 		}, this);
