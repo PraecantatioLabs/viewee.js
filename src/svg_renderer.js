@@ -197,15 +197,69 @@
 
 		var board = this.board;
 
-		ctx.appendChild (MakeEl ('circle', {
+		var attrs = {
 			xmlns: SVGNS,
-			cx: hole.x,
-			cy: hole.y,
-			fill: "none",
-			r: hole.drill/2 + hole.strokeWidth/2,
-			stroke: hole.strokeStyle,
-			'stroke-width': hole.strokeWidth,
-		}));
+			fill: hole.strokeStyle,
+			'fill-rule': 'even-odd'
+		};
+
+		hole.shape = hole.shape || 'circle';
+
+		var drillRadius = hole.drill/2;
+		var shapeRadius = drillRadius + hole.strokeWidth/2;
+
+		var dShapeAttr = '';
+		if (hole.shape === 'square') {
+			var poly = {points: [
+				{x: hole.x + shapeRadius, y: hole.y + shapeRadius},
+				{x: hole.x - shapeRadius, y: hole.y + shapeRadius},
+				{x: hole.x - shapeRadius, y: hole.y - shapeRadius},
+				{x: hole.x + shapeRadius, y: hole.y - shapeRadius}
+			]};
+			dShapeAttr = this.polyToD (poly);
+
+		} else if (hole.shape === 'octagon') {
+			// TODO: support rotation
+			var mult = .4;
+			var poly = {points: [
+				{x: hole.x + shapeRadius, y: hole.y + shapeRadius*mult},
+				{x: hole.x + shapeRadius*mult, y: hole.y + shapeRadius},
+				{x: hole.x - shapeRadius*mult, y: hole.y + shapeRadius},
+				{x: hole.x - shapeRadius, y: hole.y + shapeRadius*mult},
+				{x: hole.x - shapeRadius, y: hole.y - shapeRadius*mult},
+				{x: hole.x - shapeRadius*mult, y: hole.y - shapeRadius},
+				{x: hole.x + shapeRadius*mult, y: hole.y - shapeRadius},
+				{x: hole.x + shapeRadius, y: hole.y - shapeRadius*mult}
+			]};
+			dShapeAttr = this.polyToD (poly);
+
+		} else {
+			if (hole.shape !== 'circle') {
+
+				if (!this.warnings["pad_shape_" + hole.shape]) {
+					this.warnings["pad_shape_" + hole.shape] = true;
+					console.warn ("pad shape '%s' is not supported yet", hole.shape);
+				}
+			}
+
+			attrs.fill = "none";
+			attrs.stroke = hole.strokeStyle;
+			attrs['stroke-width'] = hole.strokeWidth;
+			drillRadius = hole.drill/2 + hole.strokeWidth/4;
+		}
+
+		// two arcs
+		var dAttr = describeArcRadians (
+			hole.x, hole.y, drillRadius, 0, Math.PI
+		) + describeArcRadians (
+			hole.x, hole.y, drillRadius, Math.PI, Math.PI*2
+		).replace (
+			/M.*A/, 'A'
+		) + 'z';
+
+		attrs.d = dShapeAttr + ' ' + dAttr;
+
+		ctx.appendChild (MakeEl ('path', attrs));
 	}
 
 
@@ -310,22 +364,28 @@
 		ctx.restore();
 	}
 
-	SVGRenderer.prototype.drawFilledPoly = function (poly, ctx) {
+	SVGRenderer.prototype.polyToD = function (poly) {
 		var dAttr = [];
 		poly.points.forEach (function (point, idx) {
 			if (idx === 0)
 				dAttr.push ('M')
 			else
 				dAttr.push ('L')
-			dAttr.push (point.x);
+				dAttr.push (point.x);
 			dAttr.push (point.y);
 		});
 		dAttr.push ('z');
 
+		return dAttr.join (' ');
+	}
+
+	SVGRenderer.prototype.drawFilledPoly = function (poly, ctx) {
+		var dAttr = this.polyToD (poly);
+
 		ctx.appendChild (MakeEl ('path', {
 			className: 'package-rect',
 			xmlns: SVGNS,
-			d: dAttr.join (' '),
+			d: dAttr,
 			fill: poly.fillStyle,
 			//"stroke-width": board.minLineWidth,
 			"stroke-linecap": "round"

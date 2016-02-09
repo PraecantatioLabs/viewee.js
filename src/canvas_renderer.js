@@ -129,6 +129,13 @@ CanvasRenderer.prototype.drawHole = function (hole, ctx) {
 
 	// TODO: hole.shape !!!
 
+	if (hole.shape && hole.shape !== "circle") {
+		if (!this.warnings["pad_shape_" + hole.shape]) {
+			this.warnings["pad_shape_" + hole.shape] = true;
+			console.warn ("pad shape '%s' is not supported yet", hole.shape);
+		}
+	}
+
 	ctx.lineCap = 'round';
 	ctx.strokeStyle = hole.strokeStyle;
 

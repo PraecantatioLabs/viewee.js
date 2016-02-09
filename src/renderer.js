@@ -119,13 +119,6 @@
 					strokeWidth: 0.5 * via.drill, // TODO: bad width
 				}), layerCtx);
 
-				if (via.shape && via.shape !== "circle") {
-					if (!this.warnings["via_shape_" + via.shape]) {
-						this.warnings["via_shape_" + via.shape] = true;
-						console.warn ("via shape '%s' is not supported yet", via.shape);
-					}
-				}
-
 			}, this)
 		}
 	}
@@ -405,13 +398,6 @@
 				// We don't need to check layers, pads is pass through all layers
 				var x = elem.x + rotMat[0]*pad.x + rotMat[1]*pad.y,
 					y = elem.y + rotMat[2]*pad.x + rotMat[3]*pad.y;
-
-				if (pad.shape && pad.shape !== "circle") {
-					if (!this.warnings["pad_shape_" + pad.shape]) {
-						this.warnings["pad_shape_" + pad.shape] = true;
-						console.warn ("pad shape '%s' is not supported yet", pad.shape);
-					}
-				}
 
 				var lineWidth = (pad.diameter - pad.drill) / 2;
 				if (lineWidth <= 0) lineWidth = board.minLineWidth;
