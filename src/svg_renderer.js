@@ -57,8 +57,8 @@
 		var arcSweep = endAngle - startAngle <= Math.PI ? "0" : "1";
 
 		var d = [
-			"M", start.x.toFixed (3), start.y.toFixed (3),
-			"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (3), end.y.toFixed (3)
+			"M", start.x.toFixed (4), start.y.toFixed (4),
+			"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (4), end.y.toFixed (4)
 		].join(" ");
 
 		return d;
