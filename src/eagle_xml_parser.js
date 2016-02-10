@@ -215,7 +215,11 @@
 			var ruleParams = rule.getElementsByTagName('param');
 			for (var ruleParamIdx = 0; ruleParamIdx < ruleParams.length; ruleParamIdx++) {
 				var ruleParam = ruleParams[ruleParamIdx];
-				board.designRules[ruleParam.getAttribute ("name")] = ruleParam.getAttribute ("value");
+				var ruleParamVal = ruleParam.getAttribute ("value");
+				var m;
+				if (m = ruleParamVal.match (/^([\d\.]+)mil$/))
+					ruleParamVal = parseFloat(m[1])*0.0254;
+				board.designRules[ruleParam.getAttribute ("name")] = ruleParamVal;
 			}
 		}
 
@@ -431,6 +435,11 @@
 		var drill = parseFloat(pad.getAttribute('drill'));
 		var diameter = parseFloat(pad.getAttribute('diameter'));
 		// TODO: use proper measurements
+		// designrules contains such parameters:
+		// restring in pads and vias are defined in percent of the drill diameter
+		// rvPadTop, rvPadInner, rvPadBottom — is a restring for top, inner and bottom layers
+		// rlMinPadTop, rlMaxPadTop — min and max limits for top layer and so on
+
 		if (isNaN (diameter)) diameter = drill * 1.5;
 		var padRot = pad.getAttribute('rot') || "R0"
 		return {
@@ -445,12 +454,33 @@
 	}
 
 	EagleXMLParser.prototype.parseVia = function(via) {
+		// TODO: use proper measurements
+		// designrules contains such parameters:
+		// restring in pads and vias are defined in percent of the drill diameter
+		// rvViaOuter, rvViaInner — is a restring for top/bottom and inner layers
+		// rlMinViaOuter, rlMaxViaOuter — min and max limits for top layer and so on
+
+		// TODO: check for inner vias
+		var drill = parseFloat(via.getAttribute('drill'));
+		var viaType = 'Outer';
+		var dr = this.board.designRules;
+		var viaMult = parseFloat (dr['rvVia' + viaType]);
+		var viaMax  = parseFloat (dr['rlMaxVia' + viaType]);
+		var viaMin  = parseFloat (dr['rlMinVia' + viaType]);
+		var viaRest = drill * viaMult;
+		if (viaRest < viaMin) {
+			viaRest = viaMin;
+		} else if (viaRest > viaMax) {
+			viaRest = viaMax;
+		}
+
 		return {
-			'x':parseFloat(via.getAttribute('x')),
-			'y':parseFloat(via.getAttribute('y')),
-			'drill':parseFloat(via.getAttribute('drill')),
-			'layers':via.getAttribute('extent'),
-			'shape': via.getAttribute('shape')
+			x:        parseFloat(via.getAttribute('x')),
+			y:        parseFloat(via.getAttribute('y')),
+			drill:    drill,
+			diameter: drill + viaRest*2,
+			layers:   via.getAttribute('extent'),
+			shape:    via.getAttribute('shape')
 		};
 	}
 

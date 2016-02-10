@@ -210,8 +210,10 @@
 
 		hole.shape = hole.shape || 'circle';
 
+		// TODO: get rid of strokeWidth
+
 		var drillRadius = hole.drill/2;
-		var shapeRadius = drillRadius + hole.strokeWidth/2;
+		var shapeRadius = hole.diameter/2 || drillRadius + hole.strokeWidth/2;
 
 		var dShapeAttr = '';
 		if (hole.shape === 'square') {
@@ -249,8 +251,12 @@
 
 			attrs.fill = "none";
 			attrs.stroke = hole.strokeStyle;
-			attrs['stroke-width'] = hole.strokeWidth;
-			drillRadius = hole.drill/2 + hole.strokeWidth/4;
+			var restring = (hole.diameter - hole.drill)/2 || hole.strokeWidth;
+			attrs['stroke-width'] = restring;
+			drillRadius = (hole.drill + restring)/2 || hole.drill/2 + hole.strokeWidth/2;
+
+			if (isNaN (restring))
+				console.log (hole.diameter, hole.drill, hole.strokeWidth, drillRadius);
 		}
 
 		// two arcs

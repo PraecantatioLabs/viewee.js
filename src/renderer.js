@@ -116,7 +116,7 @@
 
 				this.drawHole (Object.assign ({}, via, {
 					strokeStyle: color,
-					strokeWidth: 0.5 * via.drill, // TODO: bad width
+					diameter: via.diameter || 1.5 * via.drill, // TODO: bad width
 				}), layerCtx);
 
 			}, this)
