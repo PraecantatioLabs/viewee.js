@@ -123,33 +123,74 @@ CanvasRenderer.prototype.drawHole = function (hole, ctx) {
 
 	var board = this.board;
 
-	// TODO: use following answer to draw shapes with holes:
 	// http://stackoverflow.com/questions/6271419/how-to-fill-the-opposite-shape-on-canvas
-	// TODO: make sure calculations is correct
+	hole.shape = hole.shape || 'circle';
 
-	// TODO: hole.shape !!!
+	// TODO: get rid of strokeWidth
+	var drillRadius = hole.drill/2;
+	var shapeRadius = hole.diameter/2 || drillRadius + hole.strokeWidth/2;
 
-	if (hole.shape && hole.shape !== "circle") {
-		if (!this.warnings["pad_shape_" + hole.shape]) {
-			this.warnings["pad_shape_" + hole.shape] = true;
-			console.warn ("pad shape '%s' is not supported yet", hole.shape);
+	ctx.beginPath();
+
+	var poly;
+	if (hole.shape === 'square') {
+		poly = {points: [
+			{x: hole.x + shapeRadius, y: hole.y + shapeRadius},
+			{x: hole.x - shapeRadius, y: hole.y + shapeRadius},
+			{x: hole.x - shapeRadius, y: hole.y - shapeRadius},
+			{x: hole.x + shapeRadius, y: hole.y - shapeRadius}
+		]};
+
+		ctx.fillStyle = hole.strokeStyle;
+		this.drawRawPoly (poly, ctx);
+
+	} else if (hole.shape === 'octagon') {
+		// TODO: support rotation
+		var mult = .4;
+		poly = {points: [
+			{x: hole.x + shapeRadius, y: hole.y + shapeRadius*mult},
+			{x: hole.x + shapeRadius*mult, y: hole.y + shapeRadius},
+			{x: hole.x - shapeRadius*mult, y: hole.y + shapeRadius},
+			{x: hole.x - shapeRadius, y: hole.y + shapeRadius*mult},
+			{x: hole.x - shapeRadius, y: hole.y - shapeRadius*mult},
+			{x: hole.x - shapeRadius*mult, y: hole.y - shapeRadius},
+			{x: hole.x + shapeRadius*mult, y: hole.y - shapeRadius},
+			{x: hole.x + shapeRadius, y: hole.y - shapeRadius*mult}
+		]};
+
+		ctx.fillStyle = hole.strokeStyle;
+		this.drawRawPoly (poly, ctx);
+
+	} else {
+		if (hole.shape !== 'circle') {
+
+			if (!this.warnings["pad_shape_" + hole.shape]) {
+				this.warnings["pad_shape_" + hole.shape] = true;
+				console.warn ("pad shape '%s' is not supported yet", hole.shape);
+			}
 		}
+
+		ctx.strokeStyle = hole.strokeStyle;
+		var restring = (hole.diameter - hole.drill)/2 || hole.strokeWidth;
+		ctx.lineWidth = restring;
+		drillRadius = (hole.drill + restring)/2 || hole.drill/2 + hole.strokeWidth/2;
+
+		//if (isNaN (restring))
+		//	console.log (hole.diameter, hole.drill, hole.strokeWidth, drillRadius);
 	}
 
 	ctx.lineCap = 'round';
-	ctx.strokeStyle = hole.strokeStyle;
 
-	ctx.beginPath();
-	ctx.arc(hole.x, hole.y, hole.drill/2 + hole.strokeWidth/2, 0, 2 * Math.PI, false);
-	ctx.lineWidth = hole.strokeWidth;
-	ctx.stroke();
+	ctx.arc(hole.x, hole.y, drillRadius, 2 * Math.PI, 0, true);
+
+	if (poly) {
+		ctx.fill();
+	} else {
+		ctx.stroke();
+	}
 }
 
-
-CanvasRenderer.prototype.drawFilledPoly = function (poly, ctx) {
-	ctx.beginPath();
-	ctx.lineWidth = poly.strokeWidth;
-
+CanvasRenderer.prototype.drawRawPoly = function (poly, ctx) {
 	poly.points.forEach (function (point, idx) {
 		if (idx === 0)
 			ctx.moveTo(point.x, point.y);
@@ -160,6 +201,14 @@ CanvasRenderer.prototype.drawFilledPoly = function (poly, ctx) {
 	ctx.lineJoin  = "round";
 
 	ctx.closePath();
+}
+
+CanvasRenderer.prototype.drawFilledPoly = function (poly, ctx) {
+	ctx.beginPath();
+	ctx.lineWidth = poly.strokeWidth;
+
+	this.drawRawPoly (poly, ctx);
+
 	ctx.strokeStyle = poly.strokeStyle;
 	if (poly.strokeStyle) ctx.stroke();
 	ctx.fillStyle = poly.fillStyle;
