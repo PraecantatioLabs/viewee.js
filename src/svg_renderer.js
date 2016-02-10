@@ -95,6 +95,81 @@
 	}
 
 	SVGRenderer.prototype.redraw = function () {
+		// TODO: layer visibility
+
+		// flip board
+
+		if (this.svgCtx) {
+			var layerNodes = [].slice.apply (this.svgCtx.childNodes);
+			var isFlipped;
+			layerNodes.some (function (layerNode) {
+				var layerName = layerNode.getAttribute ('name');
+				// console.log (layerName);
+				if (layerName === 'Bottom') {
+					isFlipped = false;
+					return true;
+				} else if (layerName === 'Top') {
+					isFlipped = true;
+					return true;
+				}
+			});
+
+			// console.log ('is render flipped? %s is board flipped? %s', isFlipped, this.board.boardFlipped);
+			if (isFlipped !== this.board.boardFlipped) {
+				var layerNodesCount = layerNodes.length;
+				var viaLayer;
+				for (var i = layerNodesCount - 1; i >= 0; i--) {
+					var layerNode = layerNodes[i];
+					var layerName = layerNode.getAttribute ('name');
+					var n = this.svgCtx.removeChild (layerNodes[i]);
+					if (layerName === 'via') {
+						viaLayer = n;
+					} else {
+						this.svgCtx.appendChild (n);
+					}
+
+					if (layerName === 'Top' && isFlipped === true) {
+						this.svgCtx.appendChild (viaLayer);
+					} else if (layerName === 'Bottom' && isFlipped === false) {
+						this.svgCtx.appendChild (viaLayer);
+					}
+				}
+			}
+		}
+
+		// TODO: element selection
+
+		// scale change
+		this.rescale ();
+	}
+
+	SVGRenderer.prototype.rescale = function () {
+
+		if (!this.svgCtx) return;
+
+		var board = this.board;
+
+		board.ratio = 1;
+
+		var scaleX = board.scale * board.baseScale * board.ratio * (board.boardFlipped ? -1.0 : 1.0);
+		var scaleY = (board.coordYFlip ? 1 : -1) * board.scale  * board.baseScale * board.ratio;
+		var scaleTransY = board.coordYFlip ? 0 : parseFloat (this.el.style.height);
+
+		var transX = board.boardFlipped ? -board.nativeBounds[2] : -board.nativeBounds[0];
+		var transY = -board.nativeBounds[1]; //board.coordYFlip ? 0 : board.nativeBounds[1]; //-board.nativeBounds[1];
+
+
+		this.svgCtx.setAttributeNS (
+			null,
+			'transform',
+			'translate('+transX+', '+transY+')'
+		);
+
+		this.svgCtx.parentNode.setAttributeNS (
+			null,
+			'transform',
+			'matrix('+scaleX+', 0, 0, '+scaleY+', 0, '+scaleTransY+')' // board.scale*board.baseScale
+		);
 
 	}
 
@@ -110,14 +185,7 @@
 			svg.removeChild (svg.firstChild);
 		}
 
-		board.ratio = 1;
 
-		var scaleX = board.scale * board.baseScale * board.ratio * (board.boardFlipped ? -1.0 : 1.0);
-		var scaleY = (board.coordYFlip ? 1 : -1) * board.scale  * board.baseScale * board.ratio;
-		var scaleTransY = board.coordYFlip ? 0 : parseFloat (svg.style.height);
-
-		var transX = board.boardFlipped ? -board.nativeBounds[2] : -board.nativeBounds[0];
-		var transY = -board.nativeBounds[1]; //board.coordYFlip ? 0 : board.nativeBounds[1]; //-board.nativeBounds[1];
 
 		var g;
 
@@ -126,14 +194,16 @@
 			className: 'viewport'
 		}, MakeEl ('g', {
 			xmlns: SVGNS,
-			transform: 'matrix('+scaleX+', 0, 0, '+scaleY+', 0, '+scaleTransY+')', // board.scale*board.baseScale
+
 		}, g = MakeEl ('g', {
 			xmlns: SVGNS,
 			className: 'container',
-			transform: 'translate('+transX+', '+transY+')'
+
 		}))));
 
 		this.svgCtx = g;
+
+		this.rescale ();
 
 		var layerOrder = board.boardFlipped ? board.reverseRenderLayerOrder : board.renderLayerOrder;
 		for (var layerKey in layerOrder) {
