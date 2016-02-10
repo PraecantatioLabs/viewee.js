@@ -354,6 +354,8 @@ KicadNewParser.prototype.parseText = function (cmd, angle) {
 		content: cmd.name === "gr_text" ? cmd.args[0] : cmd.args[1]
 	};
 
+	text.content = text.content.replace (/\\n/g, "\n");
+
 	text.size = 1;
 	// TODO: size has two children, do something if those don't match
 	if (cmd.attrs.effects.font && cmd.attrs.effects.font.size)
