@@ -298,69 +298,43 @@
 		var strings = content.split (/\r?\n/);
 		var stringOffset = (text.interlinear || 50) * fontSize / 100;
 
-		var scale = size / fontSize;
-		var scaleX = scale,
-			scaleY = (board.coordYFlip ? 1 : -1)*scale;
+		var textCtx;
 
-		var textCtx = this.getScope (ctx, {
-			name: 'text',
-			transform: 'matrix('+[textRot[0],textRot[2],textRot[1],textRot[3],x,y].join(', ')+')'
-		});
+		ctx.appendChild (MakeEl ('g', {
+			xmlns: SVGNS,
+			className: 'text',
+			transform: 'matrix('+[textRot[0],textRot[2],textRot[1],textRot[3], x, y].join(', ')+')'
+		}, textCtx = MakeEl ('g', {
+			xmlns: SVGNS,
 
-		textCtx.appendChild (MakeEl ('text', {
+		})));
+
+		if (0) { // enable to draw zero points for text origin
+			textCtx.appendChild (MakeEl ('circle', {xmlns: SVGNS, cx: 0, cy: 0, r: 0.2, fill: textAngle.spin ? "grey" : flipText ? "blue" : "red"}));
+		}
+
+		var textEl;
+
+		var textBlockHeight = (strings.length - 1) * (stringOffset + fontSize);
+		var textBlockWidth = 0;
+
+		var textAttrs = {
 			xmlns: SVGNS,
 			'font-size': fontSize + 'pt',
 			'font-family': 'vector',
-			transform: 'scale('+scaleX+', '+scaleY+')',
 			fill: color
-		}, content));
+		};
 
-		return;
+		var svgAlign = {left: 'start', center: 'middle', right: 'end'};
+		var svgBaseline = {top: 'start', middle: 'middle', bottom: 'end'};
 
-		if (0) { // enable to draw zero points for text
-			ctx.save();
-			ctx.beginPath();
-			ctx.arc(0, 0, 1, 0, 2 * Math.PI, false);
-			ctx.fillStyle = board.viaPadColor();
-			ctx.fill();
-			ctx.restore();
-		}
+		if (text.align)  textAttrs['text-anchor'] = svgAlign[text.align];
+		//if (text.valign) textAttrs['dominant-baseline'] = text.valign;
+		if (text.valign) textAttrs['alignment-baseline'] = text.valign;
 
-		ctx.save();
-		ctx.fillStyle = color;
-		ctx.font = font;
-		ctx.translate(x,y);
-
-		ctx.transform (textRot[0],textRot[2],textRot[1],textRot[3],0,0);
-		var textBlockHeight = (strings.length - 1) * (stringOffset + fontSize);
-		var textBlockWidth = 0;
-		strings.forEach (function (string, idx) {
-			textBlockWidth = Math.max (textBlockWidth, ctx.measureText(string).width);
-		}, this);
-		ctx.scale (scaleX, scaleY);
+		textCtx.appendChild (textEl = MakeEl ('text', textAttrs));
 
 		var xOffset = 0;
-		if (flipText) {
-			var xMult = {center: 0, left: 1, right: 1};
-			var yMult = {middle: 0, bottom: -1, top: 1};
-			ctx.translate (
-				xMult[text.align || "left"] * textBlockWidth,
-				yMult[text.valign || "bottom"] * (textBlockHeight + fontSize)
-			);
-			if (!textAngle.spin) ctx.scale(-1,-1);
-		}
-
-		if (0) { // enable to draw zero points for text origin
-			ctx.save();
-			ctx.beginPath();
-			ctx.arc(0, 0, 1, 0, 2 * Math.PI, false);
-			ctx.fillStyle = "b00";
-			ctx.fill();
-			ctx.restore();
-		}
-
-		if (text.align)  ctx.textAlign = text.align;
-		if (text.valign) ctx.textBaseline = text.valign;
 
 		strings.forEach (function (string, idx) {
 			var yOffset = idx * (stringOffset + fontSize);
@@ -369,10 +343,37 @@
 			} else if (text.valign === "bottom") {
 				yOffset -= textBlockHeight;
 			}
-			ctx.fillText(string, xOffset, yOffset);
+			var tspan = MakeEl ('tspan', {xmlns: SVGNS, x: xOffset, y: yOffset}, string);
+			textEl.appendChild (tspan);
+			textBlockWidth = Math.max (textBlockWidth, tspan.getComputedTextLength());
+			// ctx.fillText(string, xOffset, yOffset);
 		}, this);
 
-		ctx.restore();
+		var translateX = 0;
+		var translateY = 0;
+
+		var scale = size / fontSize;
+		var scaleX = scale * 1.35,
+			scaleY = (board.coordYFlip ? 1 : -1) * scale;
+
+		if (flipText) {
+			var xMult = {center: 0, left: 1, right: 1};
+			var yMult = {middle: 0, bottom: -1, top: 1};
+
+			translateX = xMult[text.align || "left"] * textBlockWidth;
+			translateY = yMult[text.valign || "bottom"] * (textBlockHeight + fontSize);
+
+			if (!textAngle.spin) {
+				//textCtx.setAttributeNS (null, 'transform', 'matrix('+[-textRot[0],textRot[2],textRot[1],-textRot[3], x, y].join(', ')+')');
+				scaleX = -scaleX;
+				scaleY = -scaleY;
+				translateX = -translateX;
+				translateY = -translateY;
+			};
+		}
+
+		textEl.setAttributeNS (null, 'transform', 'scale('+scaleX+', '+scaleY+') translate('+translateX+', '+translateY+')');
+
 	}
 
 	SVGRenderer.prototype.polyToD = function (poly) {
