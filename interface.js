@@ -176,9 +176,13 @@ function ViewEE (options, EagleCanvasClass) {
 	}.bind (this);
 
 	var resizeTimer;
-	window.addEventListener ("resize", function() {
+	window.addEventListener ('resize', function() {
 		clearTimeout (resizeTimer);
 		resizeTimer = setTimeout (resizeHandler, 100);
+	});
+
+	window.addEventListener ('orientationchange', function(){
+		resizeHandler ();
 	});
 
 	loadWebFonts (function () {
