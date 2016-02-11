@@ -211,10 +211,23 @@ EagleCanvas.prototype.setScale = function (scale, noResize) {
 
 	this.scale = scale // * (this.scale || 1);
 
+	var fitElement = this.scaleToFitSelector
+	? document.querySelector (this.scaleToFitSelector)
+	: this.canvas;
+	if (!fitElement) { return; }
+	var fitWidth  = fitElement.offsetWidth,
+		fitHeight = fitElement.offsetHeight;
+
+	var scrollX = (fitElement.scrollLeft + fitElement.clientWidth  / 2) / fitElement.scrollWidth;
+	var scrollY = (fitElement.scrollTop  + fitElement.clientHeight / 2) / fitElement.scrollHeight;
+
+	// console.log ('scroll amount: %s, position: %s, width: %s', scrollX, fitElement.scrollLeft, fitElement.scrollWidth);
+
 	if ('svg' in this) {
 		// TODO: svg scaling
-		this.svg.style.width  = scale * this.baseScale * this.nativeSize[0] + "px";
-		this.svg.style.height = scale * this.baseScale * this.nativeSize[1] + "px";
+
+		this.svg.style.width  = scale * this.baseScale * this.nativeSize[0] + "px"; // fitElement.offsetWidth //
+		this.svg.style.height = scale * this.baseScale * this.nativeSize[1] + "px"; // fitElement.offsetHeight //
 
 	} else if ('canvas' in this) {
 
@@ -243,6 +256,12 @@ EagleCanvas.prototype.setScale = function (scale, noResize) {
 	this.ratio = ratio;
 
 	}
+
+	// console.log ('new scroll position: %s, width: %s', scrollX * fitElement.scrollWidth, fitElement.scrollWidth);
+
+	fitElement.scrollLeft = scrollX * fitElement.scrollWidth  - fitElement.clientWidth  / 2;
+	fitElement.scrollTop  = scrollY * fitElement.scrollHeight - fitElement.clientHeight / 2;
+
 	this.redraw();
 }
 
