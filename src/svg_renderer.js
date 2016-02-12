@@ -16,6 +16,8 @@
 
 	var SVGNS = 'http://www.w3.org/2000/svg';
 
+	var significantDigits = 4;
+
 	function polarToCartesian(centerX, centerY, radius, angleInDegrees, angleInRadians) {
 		if (!angleInRadians)
 			angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
@@ -39,8 +41,8 @@
 		var arcSweep = endAngle - startAngle <= 180 ? "1" : "0";
 
 		var d = [
-			"M", start.x.toFixed (3), start.y.toFixed (3),
-			"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (3), end.y.toFixed (3)
+			"M", start.x.toFixed (significantDigits), start.y.toFixed (significantDigits),
+			"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (significantDigits), end.y.toFixed (significantDigits)
 		].join(" ");
 
 		return d;
@@ -57,8 +59,8 @@
 		var arcSweep = endAngle - startAngle <= Math.PI ? "0" : "1";
 
 		var d = [
-			"M", start.x.toFixed (4), start.y.toFixed (4),
-			"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (4), end.y.toFixed (4)
+			"M", start.x.toFixed (significantDigits), start.y.toFixed (significantDigits),
+			"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (significantDigits), end.y.toFixed (significantDigits)
 		].join(" ");
 
 		return d;
@@ -151,13 +153,16 @@
 
 		board.ratio = 1;
 
-		var scaleX = board.scale * board.baseScale * board.ratio * (board.boardFlipped ? -1.0 : 1.0);
-		var scaleY = (board.coordYFlip ? 1 : -1) * board.scale  * board.baseScale * board.ratio;
-		var scaleTransY = board.coordYFlip ? 0 : parseFloat (this.el.style.height);
+		var scale = 1; // board.scale;
 
-		var transX = board.boardFlipped ? -board.nativeBounds[2] : -board.nativeBounds[0];
-		var transY = -board.nativeBounds[1]; //board.coordYFlip ? 0 : board.nativeBounds[1]; //-board.nativeBounds[1];
+		var baseScale = 1; // board.baseScale;
 
+		var scaleX = (scale * baseScale * board.ratio * (board.boardFlipped ? -1.0 : 1.0)).toFixed (significantDigits);
+		var scaleY = ((board.coordYFlip ? 1 : -1) * scale  * baseScale * board.ratio).toFixed (significantDigits);
+		var scaleTransY = board.coordYFlip ? 0 : board.nativeBounds[3].toFixed (significantDigits);
+
+		var transX = (board.boardFlipped ? -board.nativeBounds[2] : -board.nativeBounds[0]).toFixed (significantDigits);
+		var transY = (-board.nativeBounds[1]).toFixed (significantDigits); //board.coordYFlip ? 0 : board.nativeBounds[1]; //-board.nativeBounds[1];
 
 		this.svgCtx.setAttributeNS (
 			null,
@@ -185,7 +190,14 @@
 			svg.removeChild (svg.firstChild);
 		}
 
+		this.el.setAttributeNS (null, 'preserveAspectRatio', 'xMinYMin meet');
 
+		this.el.setAttributeNS (null, 'viewBox', [
+			0,
+			0,
+			board.nativeSize[0].toFixed (significantDigits),
+			board.nativeSize[1].toFixed (significantDigits)
+		].join (','));
 
 		var g;
 
@@ -259,7 +271,14 @@
 			attrs.d = describeArcRadians (wire.x, wire.y, radiusX, rotate + wire.start, rotate + wire.start + wire.angle);
 			// attrs.transform = 'scale('+radiusX+','+radiusY+') translate('+wire.x+', '+wire.y+')';
 		} else {
-			attrs.d = ['M', wire.x1, wire.y1, 'L', wire.x2, wire.y2].join (' ');
+			attrs.d = [
+				'M',
+				wire.x1.toFixed (significantDigits),
+				wire.y1.toFixed (significantDigits),
+				'L',
+				wire.x2.toFixed (significantDigits),
+				wire.y2.toFixed (significantDigits)
+			].join (' ');
 		}
 
 		var path = MakeEl ('path', attrs);
@@ -422,9 +441,9 @@
 		var translateX = 0;
 		var translateY = 0;
 
-		var scale = size / fontSize;
-		var scaleX = scale * 1.35,
-			scaleY = (board.coordYFlip ? 1 : -1) * scale;
+		var scale = (size / fontSize).toFixed (significantDigits);
+		var scaleX = (scale * 1.25).toFixed (significantDigits),
+			scaleY = ((board.coordYFlip ? 1 : -1) * scale).toFixed (significantDigits);
 
 		if (flipText) {
 			var xMult = {center: 0, left: 1, right: 1};
@@ -453,8 +472,8 @@
 				dAttr.push ('M')
 			else
 				dAttr.push ('L')
-				dAttr.push (point.x);
-			dAttr.push (point.y);
+				dAttr.push (point.x.toFixed (significantDigits));
+			dAttr.push (point.y.toFixed (significantDigits));
 		});
 		dAttr.push ('z');
 
