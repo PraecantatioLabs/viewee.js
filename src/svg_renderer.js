@@ -291,6 +291,8 @@
 
 		var board = this.board;
 
+		// TODO: rotation
+
 		var attrs = {
 			xmlns: SVGNS,
 			fill: hole.strokeStyle,
@@ -328,6 +330,67 @@
 				{x: hole.x + shapeRadius, y: hole.y - shapeRadius*mult}
 			]};
 			dShapeAttr = this.polyToD (poly);
+
+		// shape long is without hole
+//		} else if (hole.shape === 'long') {
+//
+//			dShapeAttr = [
+//				describeArcRadians (
+//					hole.x - shapeRadius, hole.y, shapeRadius, Math.PI*.5, Math.PI*1.5
+//				),
+//				//'M', hole.x + shapeRadius, hole.y + shapeRadius,
+//				'L', hole.x + shapeRadius, hole.y + shapeRadius,
+//				describeArcRadians (
+//					hole.x + shapeRadius, hole.y, shapeRadius, Math.PI*1.5, Math.PI*2.5
+//				).replace (
+//					/M.*A/, 'A'
+//				),
+//				'L', hole.x - shapeRadius, hole.y - shapeRadius,
+////				'z'
+//			].join (' ');
+//
+//			attrs.d = dShapeAttr// + ' ' + dAttr;
+//
+//			ctx.appendChild (MakeEl ('path', attrs));
+//			return;
+
+//		} else if (hole.shape === 'oval') {
+//
+//			dShapeAttr = [
+//				describeArcRadians (
+//					hole.x - shapeRadius, hole.y, shapeRadius, Math.PI*.5, Math.PI*1.5
+//				),
+//				//'M', hole.x + shapeRadius, hole.y + shapeRadius,
+//				'L', hole.x + shapeRadius, hole.y + shapeRadius,
+//				describeArcRadians (
+//					hole.x + shapeRadius, hole.y, shapeRadius, Math.PI*1.5, Math.PI*2.5
+//				).replace (
+//					/M.*A/, 'A'
+//				),
+//				'L', hole.x - shapeRadius, hole.y - shapeRadius,
+////				'z'
+//			].join (' ');
+
+//			dAttr = [
+//				describeArcRadians (
+//					hole.x - drillRadius, hole.y, drillRadius, Math.PI*.5, Math.PI*1.5
+//				),
+//				//'M', hole.x + drillRadius, hole.y + drillRadius,
+//				'L', hole.x + drillRadius, hole.y + drillRadius,
+//				describeArcRadians (
+//					hole.x + drillRadius, hole.y, drillRadius, Math.PI*1.5, Math.PI*2.5
+//				).replace (
+//					/M.*A/, 'A'
+//				),
+//				'L', hole.x - drillRadius, hole.y - drillRadius,
+////				'z'
+//			].join (' ');
+//
+//			attrs.d = dShapeAttr// + ' ' + dAttr;
+//
+//			ctx.appendChild (MakeEl ('path', attrs));
+//			return;
+
 
 		} else {
 			if (hole.shape !== 'circle') {
