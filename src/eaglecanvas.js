@@ -209,6 +209,8 @@ EagleCanvas.prototype.getScale = function(scale) {
 EagleCanvas.prototype.setScale = function (scale, noResize) {
 	// console.log (scale, this.scale, this.baseScale);
 
+	console.time && console.time ('scale');
+
 	this.scale = scale // * (this.scale || 1);
 
 	var fitElement = this.scaleToFitSelector
@@ -263,6 +265,8 @@ EagleCanvas.prototype.setScale = function (scale, noResize) {
 	fitElement.scrollTop  = scrollY * fitElement.scrollHeight - fitElement.clientHeight / 2;
 
 	this.redraw();
+
+	console.timeEnd && console.timeEnd ('scale');
 }
 
 
@@ -305,12 +309,17 @@ EagleCanvas.prototype.setHighlightedItem = function(item) {
 EagleCanvas.prototype.draw = function () {
 	if (!this.renderer) this.initRenderer ();
 
+	console.time && console.time ('draw');
 	this.renderer.draw ();
+	console.timeEnd && console.timeEnd ('draw');
 }
 
 EagleCanvas.prototype.redraw = function () {
 	if (!this.renderer) this.initRenderer ();
+
+	console.time && console.time ('redraw');
 	this.renderer.redraw ();
+	console.timeEnd && console.timeEnd ('redraw');
 }
 
 EagleCanvas.prototype.initRenderer = function () {
