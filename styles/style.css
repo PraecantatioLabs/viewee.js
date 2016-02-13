@@ -10,15 +10,16 @@ html, body {
 }
 
 #outer {
-	position:			absolute;
-	display:			block;
-	top:				2px;
-	left:				2px;
-	right:				2px;
-	bottom:				2px;
-	text-align:			center;
-	overflow:			auto;
-	border:				0px none;
+	position:           absolute;
+	display:            block;
+	top:                0;
+	left:               0;
+	right:              0;
+	bottom:             0;
+	text-align:         center;
+	overflow:           auto;
+	border:             0px none;
+	padding:            2px;
 }
 
 #hcenter {
@@ -40,12 +41,13 @@ html, body {
 
 /* controls is too wide */
 #controls {
-	position:			fixed;
-	z-index:			2;
-	left:				0;
-	top:				10px;
-	text-align:			left;
+	position:           fixed;
+	z-index:            2;
+	left:               0;
+	top:                0;
+	text-align:         left;
 	width:              100%;
+	background-color:  cadetblue;
 }
 
 #controls>div, #controls>select {
