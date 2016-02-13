@@ -226,7 +226,8 @@ EagleCanvas.prototype.setScale = function (scale, noResize) {
 	// console.log ('scroll amount: %s, position: %s, width: %s', scrollX, fitElement.scrollLeft, fitElement.scrollWidth);
 
 	if ('svg' in this) {
-		// TODO: svg scaling
+		// this.svg.setAttributeNS (null, 'width', scale * this.baseScale * this.nativeSize[0]);
+		// this.svg.setAttributeNS (null, 'height', scale * this.baseScale * this.nativeSize[1]);
 
 		this.svg.style.width  = scale * this.baseScale * this.nativeSize[0] + "px"; // fitElement.offsetWidth //
 		this.svg.style.height = scale * this.baseScale * this.nativeSize[1] + "px"; // fitElement.offsetHeight //
