@@ -172,7 +172,7 @@ function ViewEE (options, EagleCanvasClass) {
 
 	var resizeHandler = function () {
 		this.canvas.scaleToFit ();
-		this.canvas.draw ();
+		// this.canvas.draw ();
 	}.bind (this);
 
 	var resizeTimer;
