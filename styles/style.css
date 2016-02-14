@@ -54,15 +54,14 @@ html, body {
 	display: inline-block;
 }
 
-
-.button {
+.button, select {
 	display:			block;
 	margin:				5px 10px 0;
 	padding:            .2em 1em;
-	border-radius: 		.5em;
+	border-radius: 		.25em;
 	background-color: 	rgba(255,255,255,0.5);
 	font-family:		sans-serif;
-	font-weight:		500;
+/*	font-weight:		500;*/
 	color:				black;
 	border:				1px solid black;
 	cursor:				pointer;
@@ -102,19 +101,21 @@ html, body {
 #controls .split label:first-of-type {
 	border-radius: 0;
 	border-right: 0;
-	border-bottom-left-radius: .5em;
-	border-top-left-radius: .5em;
+	border-bottom-left-radius: .25em;
+	border-top-left-radius: .25em;
 }
 
 #controls .split label:last-of-type {
 	border-radius: 0;
 	border-left: 0;
-	border-bottom-right-radius: .5em;
-	border-top-right-radius: .5em;
+	border-bottom-right-radius: .25em;
+	border-top-right-radius: .25em;
 }
 
 #controls div.dropdown {
 	float: right;
+	position: absolute;
+	right: 0;
 }
 
 
@@ -135,8 +136,8 @@ html, body {
 
 .dropdown ul {
 	list-style-type:	none;
-	margin:				0px;
-	padding:			0px;
+	margin:				10px 0 0 0;
+	padding:			0;
 	display:			none;
 	text-align:			left;
 }
@@ -160,7 +161,7 @@ html, body {
 	bottom:				5px;
 	min-height:			50px;
 	margin:				0;
-	border-radius: 		5px;
+	border-radius: 		.25em;
 	background-color: 	rgba(47,79,79,1);
 	font-family:		sans-serif;
 	font-weight:		500;
