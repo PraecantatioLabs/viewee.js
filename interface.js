@@ -92,7 +92,7 @@ function ViewEE (options, EagleCanvasClass) {
 	if (!options.fromScratch && ViewEE.initialized)
 		return ViewEE.initialized;
 
-	EagleCanvas = EagleCanvas || EagleCanvasClass || window.EagleCanvas;
+	EagleCanvas = EagleCanvas || EagleCanvasClass || window.ViewEEPCB;
 
 	this.node = options.node || document;
 
