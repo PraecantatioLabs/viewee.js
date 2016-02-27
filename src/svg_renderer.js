@@ -14,8 +14,6 @@
 	// --- HELPERS ---
 	// ---------------
 
-	var SVGNS = 'http://www.w3.org/2000/svg';
-
 	var significantDigits = 4;
 
 	function polarToCartesian(centerX, centerY, radius, angleInDegrees, angleInRadians) {
@@ -85,7 +83,7 @@
 
 		var g = ctx.querySelector ('g[name="'+attrs.name+'"]');
 		if (!g) {
-			g = MakeEl ('g', {xmlns: SVGNS, name: attrs.name});
+			g = SvgEl ('g', {name: attrs.name});
 			ctx.appendChild (g);
 		}
 
@@ -201,16 +199,11 @@
 
 		var g;
 
-		svg.appendChild (MakeEl ('g', {
-			xmlns: SVGNS,
+		svg.appendChild (SvgEl ('g', {
 			className: 'viewport'
-		}, MakeEl ('g', {
-			xmlns: SVGNS,
-
-		}, g = MakeEl ('g', {
-			xmlns: SVGNS,
+		}, SvgEl ('g', {
+		}, g = SvgEl ('g', {
 			className: 'container',
-
 		}))));
 
 		this.svgCtx = g;
@@ -238,7 +231,7 @@
 
 	SVGRenderer.prototype.drawWire = function (wire, ctx) {
 
-		var attrs = {xmlns: SVGNS};
+		var attrs = {};
 
 		var lineDash;
 		if (wire.style === "longdash") {
@@ -281,7 +274,7 @@
 			].join (' ');
 		}
 
-		var path = MakeEl ('path', attrs);
+		var path = SvgEl ('path', attrs);
 		ctx.appendChild (path);
 		return path;
 
@@ -294,7 +287,6 @@
 		// TODO: rotation
 
 		var attrs = {
-			xmlns: SVGNS,
 			fill: hole.strokeStyle,
 			'fill-rule': 'even-odd'
 		};
@@ -351,7 +343,7 @@
 //
 //			attrs.d = dShapeAttr// + ' ' + dAttr;
 //
-//			ctx.appendChild (MakeEl ('path', attrs));
+//			ctx.appendChild (SvgEl ('path', attrs));
 //			return;
 
 //		} else if (hole.shape === 'oval') {
@@ -388,7 +380,7 @@
 //
 //			attrs.d = dShapeAttr// + ' ' + dAttr;
 //
-//			ctx.appendChild (MakeEl ('path', attrs));
+//			ctx.appendChild (SvgEl ('path', attrs));
 //			return;
 
 
@@ -422,7 +414,7 @@
 
 		attrs.d = dShapeAttr + ' ' + dAttr;
 
-		ctx.appendChild (MakeEl ('path', attrs));
+		ctx.appendChild (SvgEl ('path', attrs));
 	}
 
 
@@ -452,17 +444,15 @@
 
 		var textCtx;
 
-		ctx.appendChild (MakeEl ('g', {
-			xmlns: SVGNS,
+		ctx.appendChild (SvgEl ('g', {
 			className: 'text',
 			transform: 'matrix('+[textRot[0],textRot[2],textRot[1],textRot[3], x, y].join(', ')+')'
-		}, textCtx = MakeEl ('g', {
-			xmlns: SVGNS,
+		}, textCtx = SvgEl ('g', {
 
 		})));
 
 		if (0) { // enable to draw zero points for text origin
-			textCtx.appendChild (MakeEl ('circle', {xmlns: SVGNS, cx: 0, cy: 0, r: 0.2, fill: textAngle.spin ? "grey" : flipText ? "blue" : "red"}));
+			textCtx.appendChild (SvgEl ('circle', {cx: 0, cy: 0, r: 0.2, fill: textAngle.spin ? "grey" : flipText ? "blue" : "red"}));
 		}
 
 		var textEl;
@@ -471,7 +461,6 @@
 		var textBlockWidth = 0;
 
 		var textAttrs = {
-			xmlns: SVGNS,
 			'font-size': fontSize + 'pt',
 			'font-family': 'vector',
 			fill: color
@@ -484,7 +473,7 @@
 		//if (text.valign) textAttrs['dominant-baseline'] = text.valign;
 		if (text.valign) textAttrs['alignment-baseline'] = text.valign;
 
-		textCtx.appendChild (textEl = MakeEl ('text', textAttrs));
+		textCtx.appendChild (textEl = SvgEl ('text', textAttrs));
 
 		var xOffset = 0;
 
@@ -495,7 +484,7 @@
 			} else if (text.valign === "bottom") {
 				yOffset -= textBlockHeight;
 			}
-			var tspan = MakeEl ('tspan', {xmlns: SVGNS, x: xOffset, y: yOffset}, string);
+			var tspan = SvgEl ('tspan', {x: xOffset, y: yOffset}, string);
 			textEl.appendChild (tspan);
 			textBlockWidth = Math.max (textBlockWidth, tspan.getComputedTextLength());
 			// ctx.fillText(string, xOffset, yOffset);
@@ -546,9 +535,8 @@
 	SVGRenderer.prototype.drawFilledPoly = function (poly, ctx) {
 		var dAttr = this.polyToD (poly);
 
-		ctx.appendChild (MakeEl ('path', {
+		ctx.appendChild (SvgEl ('path', {
 			className: 'package-rect',
-			xmlns: SVGNS,
 			d: dAttr,
 			fill: poly.fillStyle,
 			//"stroke-width": board.minLineWidth,
@@ -558,9 +546,8 @@
 
 	SVGRenderer.prototype.drawFilledCircle = function (poly, ctx) {
 
-		ctx.appendChild (MakeEl ('circle', {
+		ctx.appendChild (SvgEl ('circle', {
 			className: 'package-circle',
-			xmlns: SVGNS,
 			cx: poly.x,
 			cy: poly.y,
 			r: poly.radius,
@@ -570,12 +557,11 @@
 		}));
 	}
 
-	SVGRenderer.prototype.dimCanvas = function(ctx, alpha) {
+	SVGRenderer.prototype.dimCanvas = function(alpha, ctx) {
 
 		var board = this.board;
 
-		ctx.appendChild (MakeEl ('rect', {
-			xmlns: SVGNS,
+		ctx.appendChild (SvgEl ('rect', {
 			x: board.boardFlipped ? board.nativeBounds[2] : board.nativeBounds[0],
 			y: board.nativeBounds[1],
 			width: board.nativeSize[0],

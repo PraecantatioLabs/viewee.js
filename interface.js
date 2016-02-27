@@ -55,30 +55,6 @@ function loadWebFonts (cb) {
 	fontLoader.loadFonts();
 }
 
-function MakeEl (name, attrs) {
-	attrs = attrs || {};
-	var el = attrs.xmlns ? document.createElementNS (attrs.xmlns, name) : document.createElement (name);
-	for (var i in attrs) {
-		if (i === 'xmlns') continue;
-		el.setAttributeNS (null, i, attrs[i]);
-		if (i.toLowerCase() == 'class') {
-			el.className = attrs[i];  // for IE compatibility
-		} else if (i.toLowerCase() == 'style') {
-			el.style.cssText = attrs[i]; // for IE compatibility
-		}
-	}
-	for (var i = 2; i<arguments.length; i++) {
-		var val = arguments[i];
-		if (typeof val == 'string')
-			val = document.createTextNode( val );
-		if (el && el.appendChild)
-			el.appendChild (val);
-	}
-	return el;
-}
-
-window.MakeEl = MakeEl;
-
 function getFormFields (formEl, formData) {
 	formData = formData || {};
 	for (var k in formData) {
@@ -145,13 +121,13 @@ function ViewEE (options, EagleCanvasClass) {
 
 	for (var i = 0; i < layers.length; i++) {
 		var layerNum = layers[i].id;
-		var chk = MakeEl ('input', {
+		var chk = HtmlEl ('input', {
 			type: "checkbox", checked: "true", id: "layer-"+layerNum, "data-layer": layerNum
 		});
-		var li = MakeEl (
+		var li = HtmlEl (
 			'li', {},
 			chk,
-			MakeEl ('label', {for: "layer-"+layerNum}, layers[i].title)
+			HtmlEl ('label', {for: "layer-"+layerNum}, layers[i].title)
 		);
 
 		layerList.appendChild (li);
