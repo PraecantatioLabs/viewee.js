@@ -22,6 +22,8 @@ function CanvasRenderer (board) {
 	this.board  = board;
 
 	this.warnings = [];
+
+	this.cacheDrawingOperations = true;
 }
 
 CanvasRenderer.prototype = Object.create (ViewEERenderer.prototype);
@@ -31,13 +33,10 @@ CanvasRenderer.prototype.getScope = function (ctx, attrs) {
 	return ctx;
 }
 
-CanvasRenderer.prototype.draw = function() {}
-
-CanvasRenderer.prototype.redraw = function () {
+CanvasRenderer.prototype.scaleCanvas = function () {
 	var canvas = this.canvas,
-		ctx    = canvas.getContext('2d');
-
-	var board = this.board;
+		ctx    = canvas.getContext('2d'),
+		board  = this.board;
 
 	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 	ctx.save();
@@ -54,26 +53,81 @@ CanvasRenderer.prototype.redraw = function () {
 		(board.boardFlipped ? -board.nativeBounds[2] : -(board.nativeBounds[0])),
 		-board.nativeBounds[1]
 	);
+}
+
+CanvasRenderer.prototype.draw = function() {
+
+	var canvas = this.canvas,
+		ctx    = canvas.getContext('2d'),
+		board  = this.board;
+
+	if (!this.cacheDrawingOperations)
+		return;
+
+	this.scaleCanvas();
+
+	this._currentLayerDrawRoutines = [];
+	this.layerDrawRoutines = {};
 
 	var layerOrder = board.boardFlipped ? board.reverseRenderLayerOrder : board.renderLayerOrder;
 	for (var layerKey in layerOrder) {
 		var layerId = layerOrder[layerKey];
-		if (!board.visibleLayers[layerId]) { continue };
+
+		// prerender every layer
+		// if (!board.visibleLayers[layerId]) { continue };
+
 		board.layerRenderFunctions[layerId](this, board, ctx);
+
+		this.layerDrawRoutines[layerId] = this._currentLayerDrawRoutines;
+
+		this._currentLayerDrawRoutines.forEach (function (routine) {
+			var method = routine[0];
+			this[method].apply (this, routine.slice(1).concat ([ctx]));
+		}, this);
+
+		this._currentLayerDrawRoutines = [];
+	}
+
+}
+
+CanvasRenderer.prototype.redraw = function () {
+	var canvas = this.canvas,
+		ctx    = canvas.getContext('2d'),
+		board  = this.board;
+
+
+	this.scaleCanvas ();
+
+	var layerOrder = board.boardFlipped ? board.reverseRenderLayerOrder : board.renderLayerOrder;
+	if (this.layerDrawRoutines || !this.cacheDrawingOperations)
+	for (var layerKey in layerOrder) {
+		var layerId = layerOrder[layerKey];
+		if (!board.visibleLayers[layerId]) { continue };
+
+		if (this.cacheDrawingOperations) {
+			this.layerDrawRoutines[layerId].forEach (function (routine) {
+				var method = routine[0];
+				this[method].apply (this, routine.slice(1).concat ([ctx]));
+			}, this);
+		} else {
+			board.layerRenderFunctions[layerId](this, board, ctx);
+		}
 	}
 
 	ctx.restore();
 }
 
-CanvasRenderer.prototype.drawSingleWire = function (wire, ctx) {
+// primitives drawings is cached, actual drawing functions called on redraw
+
+CanvasRenderer.prototype._drawSingleWire = function (wire, ctx) {
 	ctx.beginPath();
-	this.drawWire (wire, ctx);
+	this._drawWire (wire, ctx);
 	ctx.lineWidth = wire.width;
 	ctx.strokeStyle = wire.strokeStyle;
 	ctx.stroke();
 }
 
-CanvasRenderer.prototype.drawWire = function (wire, ctx) {
+CanvasRenderer.prototype._drawWire = function (wire, ctx) {
 
 	ctx.save();
 
@@ -119,7 +173,7 @@ CanvasRenderer.prototype.drawWire = function (wire, ctx) {
 
 }
 
-CanvasRenderer.prototype.drawHole = function (hole, ctx) {
+CanvasRenderer.prototype._drawHole = function (hole, ctx) {
 
 	var board = this.board;
 
@@ -142,7 +196,7 @@ CanvasRenderer.prototype.drawHole = function (hole, ctx) {
 		]};
 
 		ctx.fillStyle = hole.strokeStyle;
-		this.drawRawPoly (poly, ctx);
+		this._drawRawPoly (poly, ctx);
 
 	} else if (hole.shape === 'octagon') {
 		// TODO: support rotation
@@ -159,7 +213,7 @@ CanvasRenderer.prototype.drawHole = function (hole, ctx) {
 		]};
 
 		ctx.fillStyle = hole.strokeStyle;
-		this.drawRawPoly (poly, ctx);
+		this._drawRawPoly (poly, ctx);
 
 	} else {
 		if (hole.shape !== 'circle') {
@@ -190,7 +244,7 @@ CanvasRenderer.prototype.drawHole = function (hole, ctx) {
 	}
 }
 
-CanvasRenderer.prototype.drawRawPoly = function (poly, ctx) {
+CanvasRenderer.prototype._drawRawPoly = function (poly, ctx) {
 	poly.points.forEach (function (point, idx) {
 		if (idx === 0)
 			ctx.moveTo(point.x, point.y);
@@ -203,11 +257,11 @@ CanvasRenderer.prototype.drawRawPoly = function (poly, ctx) {
 	ctx.closePath();
 }
 
-CanvasRenderer.prototype.drawFilledPoly = function (poly, ctx) {
+CanvasRenderer.prototype._drawFilledPoly = function (poly, ctx) {
 	ctx.beginPath();
 	ctx.lineWidth = poly.strokeWidth;
 
-	this.drawRawPoly (poly, ctx);
+	this._drawRawPoly (poly, ctx);
 
 	ctx.strokeStyle = poly.strokeStyle;
 	if (poly.strokeStyle) ctx.stroke();
@@ -216,7 +270,7 @@ CanvasRenderer.prototype.drawFilledPoly = function (poly, ctx) {
 
 }
 
-CanvasRenderer.prototype.drawFilledCircle = function (circle, ctx) {
+CanvasRenderer.prototype._drawFilledCircle = function (circle, ctx) {
 
 	ctx.fillStyle = circle.fillStyle;
 	ctx.lineJoin  = "round";
@@ -230,7 +284,7 @@ CanvasRenderer.prototype.drawFilledCircle = function (circle, ctx) {
 
 }
 
-ViewEERenderer.prototype.drawText = function (attrs, text, ctx) {
+CanvasRenderer.prototype._drawText = function (attrs, text, ctx) {
 	var x = attrs.x || text.x,
 		y = attrs.y || text.y,
 		rot = attrs.rot || text.rot || "R0",
@@ -317,7 +371,7 @@ ViewEERenderer.prototype.drawText = function (attrs, text, ctx) {
 }
 
 
-CanvasRenderer.prototype.dimCanvas = function(ctx, alpha) {
+CanvasRenderer.prototype._dimCanvas = function (alpha, ctx) {
 	ctx.save();
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
 	ctx.globalCompositeOperation = 'destination-out';
@@ -325,6 +379,20 @@ CanvasRenderer.prototype.dimCanvas = function(ctx, alpha) {
 	ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 	ctx.restore();
 };
+
+	Object.keys (CanvasRenderer.prototype).forEach (function (method) {
+		if (method.charAt (0) === '_' && CanvasRenderer.prototype.hasOwnProperty (method)) {
+			CanvasRenderer.prototype[method.substring (1)] = function () {
+				if (!this.cacheDrawingOperations) {
+					this[method].apply (this, arguments);
+					return;
+				}
+				var routine = [method].concat ([].slice.call (arguments).filter (function (arg) {return !(arg instanceof CanvasRenderingContext2D)}));
+				// console.log (routine);
+				this._currentLayerDrawRoutines.push (routine);
+			};
+		}
+	});
 
 	return CanvasRenderer;
 
