@@ -622,7 +622,7 @@ KicadNewParser.prototype.cmdDone = function () {
 		this.cmd.args.forEach (function (layer) {
 
 			// Layer names can be changed
-			console.log (layer);
+			//console.log (layer);
 			var layerId = parseInt (layer.name);
 			var layerName = layer.args[0]; // F.Cu, B.Cu and so on
 			var layerType = layer.args[1]; // user, signal, mixed
@@ -641,7 +641,7 @@ KicadNewParser.prototype.cmdDone = function () {
 					layerMaps[layerName] = "Inner" + (layerId + 1);
 					eagleLayer = this.eagleLayer ("Inner" + (layerId + 1));
 				} else if (!eagleLayer) {
-					console.warn ("(Maybe unknown layer) We currently not supporting parsing files with more than 16 signal layers, but found layer with id = %d", layerId);
+					console.warn ("(Maybe unknown layer) We currently not supporting parsing files with more than 16 signal layers, but found layer with id = %d", layerId, layer.args[0]);
 				}
 			}
 
