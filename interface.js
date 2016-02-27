@@ -103,11 +103,13 @@ function ViewEE (options, EagleCanvasClass) {
 	this.hintsTitleSel  = options.hintsTitleSel  || '#hintstitle';
 	this.hintsTextSel   = options.hintsTextSel   || '#hintstext';
 
+	this.progressBarSel   = options.progressBarSel   || '#controls';
+
 	this.canvas = new EagleCanvas (this.node.querySelector (this.canvasSelector));
 
 	var form = this.node.querySelector (this.formSelector);
-	var radios = [].slice.apply (form.querySelectorAll ('input[name=side]'));
-	radios.forEach (function (radio) {
+	var sideFlip = [].slice.apply (form.querySelectorAll ('input[name=side]'));
+	sideFlip.forEach (function (radio) {
 		radio.addEventListener ('click', function (e) {
 			e = e || window.event;
 			if (e) e.stopPropagation();
@@ -161,10 +163,38 @@ function ViewEE (options, EagleCanvasClass) {
 		resizeHandler ();
 	});
 
+	var changeProgressGen = function (className) {
+		var progressBarSel = this.progressBarSel;
+		var node = this.node;
+		return function () {
+			var progressBar = node.querySelector (progressBarSel);
+			progressBar.className = className;
+		}
+	}.bind (this);
+
+	this.canvas.on ('draw-start', changeProgressGen ('pending'));
+	this.canvas.on ('redraw-start', changeProgressGen ('pending'));
+	this.canvas.on ('parse-start', changeProgressGen ('pending'));
+
+	this.canvas.on ('draw-end', changeProgressGen (''));
+	this.canvas.on ('redraw-end', changeProgressGen (''));
+	this.canvas.on ('parse-end', changeProgressGen (''));
+
+	this.beforeRender = options.beforeRender;
+	this.afterRender  = options.afterRender;
+
+	// TODO: refactor this crap
 	loadWebFonts (function () {
 		ViewEE.fontReady = true;
 		if (this.loadUrl.delayed) {
-			this.canvas.loadURL (this.loadUrl.delayed);
+			this.canvas.loadURL (this.loadUrl.delayed, function (data) {
+				this.beforeRender && this.beforeRender ();
+				console.log ('before render', this.beforeRender);
+				this.canvas.loadText (data);
+				console.log ('after render', this.afterRender);
+				this.afterRender && this.afterRender ();
+				return true;
+			}.bind (this));
 			delete this.loadUrl.delayed;
 		} else if (this.loadText.delayed) {
 			this.canvas.loadText (this.loadText.delayed);
@@ -207,7 +237,7 @@ ViewEE.prototype.loadUrl = function (url) {
 
 ViewEE.prototype.loadText = function (text) {
 
-	this.canvas = new EagleCanvas (this.node.querySelector (this.canvasSelector));
+	// this.canvas = new EagleCanvas (this.node.querySelector (this.canvasSelector));
 
 	this.canvas.setScaleToFit (this.scaleSelector);
 
