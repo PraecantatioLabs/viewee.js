@@ -376,15 +376,22 @@ EagleCanvas.prototype.loadText = function (text) {
 // --- LOADING ---
 // ---------------
 
+// TODO: use binary loading for binary formats such as altium
+// TextEncoder polyfill https://github.com/inexorabletash/text-encoding
+// Ajax binary data https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Sending_and_Receiving_Binary_Data
 EagleCanvas.prototype.loadURL = function (url, cb) {
 	this.url = url;
 	var request = new XMLHttpRequest(),
 		self = this;
 	request.open('GET', this.url, true);
+	// XHR binary charset opt by Marcus Granado 2006 [http://mgran.blogspot.com]
+	// request.overrideMimeType('text/plain; charset=x-user-defined');
 	request.onreadystatechange = function () {
 		if (request.readyState == 4) {
-			self.loadText(request.responseText);
-			cb && cb(self);
+			var result = cb && cb(request.responseText);
+			if (result === undefined)
+				self.loadText (request.responseText);
+
 		}
 	};
 	request.send(null);
