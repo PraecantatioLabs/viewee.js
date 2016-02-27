@@ -6,7 +6,7 @@
 	} else if(typeof module === "object" && module.exports) {
 		module.exports = factory();
 	} else {
-		root.EagleCanvas = factory();
+		root.ViewEEPCB = factory();
 	}
 }(this, function () {
 
@@ -20,61 +20,64 @@ var p = function(o){ console.log(o) }
 // board/scheme object can load data and check what parser is applicable,
 // also contains board data and can draw using renderer
 
-function EagleCanvas (targetSelector) {
+function ViewEE (targetSelector) {
 	if (targetSelector instanceof HTMLCanvasElement) {
 		this.canvas = targetSelector;
 	} else if (targetSelector instanceof SVGElement) {
 		this.svg = targetSelector;
 	} else if (targetSelector.constructor && targetSelector.constructor === String) {
 		var target = document.querySelector (targetSelector);
-		return EagleCanvas (target);
+		return ViewEE (target);
 	} else {
 		console.error ('Cannot instantiate board for ', targetSelector);
 		return;
 	}
 
+	// using minivents library
+	new Minivents (this);
+
 	this.visibleLayers = {};
-	this.visibleLayers[EagleCanvas.LayerId.BOTTOM_COPPER]        = true;
-	this.visibleLayers[EagleCanvas.LayerId.BOTTOM_SILKSCREEN]    = true;
-	this.visibleLayers[EagleCanvas.LayerId.BOTTOM_DOCUMENTATION] = true;
-	this.visibleLayers[EagleCanvas.LayerId.DIM_BOARD]            = true;
-	this.visibleLayers[EagleCanvas.LayerId.TOP_COPPER]           = true;
-	this.visibleLayers[EagleCanvas.LayerId.TOP_SILKSCREEN]       = true;
-	this.visibleLayers[EagleCanvas.LayerId.TOP_DOCUMENTATION]    = true;
-	this.visibleLayers[EagleCanvas.LayerId.VIAS]                 = true;
-	this.visibleLayers[EagleCanvas.LayerId.OUTLINE]              = true;
+	this.visibleLayers[ViewEE.LayerId.BOTTOM_COPPER]        = true;
+	this.visibleLayers[ViewEE.LayerId.BOTTOM_SILKSCREEN]    = true;
+	this.visibleLayers[ViewEE.LayerId.BOTTOM_DOCUMENTATION] = true;
+	this.visibleLayers[ViewEE.LayerId.DIM_BOARD]            = true;
+	this.visibleLayers[ViewEE.LayerId.TOP_COPPER]           = true;
+	this.visibleLayers[ViewEE.LayerId.TOP_SILKSCREEN]       = true;
+	this.visibleLayers[ViewEE.LayerId.TOP_DOCUMENTATION]    = true;
+	this.visibleLayers[ViewEE.LayerId.VIAS]                 = true;
+	this.visibleLayers[ViewEE.LayerId.OUTLINE]              = true;
 
 	this.renderLayerOrder = [];
-	this.renderLayerOrder.push(EagleCanvas.LayerId.BOTTOM_DOCUMENTATION);
-	this.renderLayerOrder.push(EagleCanvas.LayerId.BOTTOM_SILKSCREEN);
-	this.renderLayerOrder.push(EagleCanvas.LayerId.BOTTOM_COPPER);
-	this.renderLayerOrder.push(EagleCanvas.LayerId.DIM_BOARD);
-	this.renderLayerOrder.push(EagleCanvas.LayerId.OUTLINE);
-	this.renderLayerOrder.push(EagleCanvas.LayerId.TOP_COPPER);
-	this.renderLayerOrder.push(EagleCanvas.LayerId.VIAS);
-	this.renderLayerOrder.push(EagleCanvas.LayerId.TOP_SILKSCREEN);
-	this.renderLayerOrder.push(EagleCanvas.LayerId.TOP_DOCUMENTATION);
+	this.renderLayerOrder.push(ViewEE.LayerId.BOTTOM_DOCUMENTATION);
+	this.renderLayerOrder.push(ViewEE.LayerId.BOTTOM_SILKSCREEN);
+	this.renderLayerOrder.push(ViewEE.LayerId.BOTTOM_COPPER);
+	this.renderLayerOrder.push(ViewEE.LayerId.DIM_BOARD);
+	this.renderLayerOrder.push(ViewEE.LayerId.OUTLINE);
+	this.renderLayerOrder.push(ViewEE.LayerId.TOP_COPPER);
+	this.renderLayerOrder.push(ViewEE.LayerId.VIAS);
+	this.renderLayerOrder.push(ViewEE.LayerId.TOP_SILKSCREEN);
+	this.renderLayerOrder.push(ViewEE.LayerId.TOP_DOCUMENTATION);
 
 	this.reverseRenderLayerOrder = [];
-	this.reverseRenderLayerOrder.push(EagleCanvas.LayerId.TOP_DOCUMENTATION);
-	this.reverseRenderLayerOrder.push(EagleCanvas.LayerId.TOP_SILKSCREEN);
-	this.reverseRenderLayerOrder.push(EagleCanvas.LayerId.TOP_COPPER);
-	this.reverseRenderLayerOrder.push(EagleCanvas.LayerId.DIM_BOARD);
-	this.reverseRenderLayerOrder.push(EagleCanvas.LayerId.OUTLINE);
-	this.reverseRenderLayerOrder.push(EagleCanvas.LayerId.BOTTOM_COPPER);
-	this.reverseRenderLayerOrder.push(EagleCanvas.LayerId.VIAS);
-	this.reverseRenderLayerOrder.push(EagleCanvas.LayerId.BOTTOM_SILKSCREEN);
-	this.reverseRenderLayerOrder.push(EagleCanvas.LayerId.BOTTOM_DOCUMENTATION);
+	this.reverseRenderLayerOrder.push(ViewEE.LayerId.TOP_DOCUMENTATION);
+	this.reverseRenderLayerOrder.push(ViewEE.LayerId.TOP_SILKSCREEN);
+	this.reverseRenderLayerOrder.push(ViewEE.LayerId.TOP_COPPER);
+	this.reverseRenderLayerOrder.push(ViewEE.LayerId.DIM_BOARD);
+	this.reverseRenderLayerOrder.push(ViewEE.LayerId.OUTLINE);
+	this.reverseRenderLayerOrder.push(ViewEE.LayerId.BOTTOM_COPPER);
+	this.reverseRenderLayerOrder.push(ViewEE.LayerId.VIAS);
+	this.reverseRenderLayerOrder.push(ViewEE.LayerId.BOTTOM_SILKSCREEN);
+	this.reverseRenderLayerOrder.push(ViewEE.LayerId.BOTTOM_DOCUMENTATION);
 
 	this.layerRenderFunctions = {};
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_COPPER] = function (renderer, board, ctx) {
+	this.layerRenderFunctions[ViewEE.LayerId.BOTTOM_COPPER] = function (renderer, board, ctx) {
 		renderer.drawSignalWires(board.eagleLayersByName['Bottom'],ctx);
 		renderer.drawElements(board.eagleLayersByName['Bottom'],ctx);
 		renderer.drawPlainTexts(board.eagleLayersByName['Bottom'],ctx);
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_SILKSCREEN] = function(renderer, board, ctx) {
+	this.layerRenderFunctions[ViewEE.LayerId.BOTTOM_SILKSCREEN] = function(renderer, board, ctx) {
 		renderer.drawElements(board.eagleLayersByName['bNames'],ctx);
 		renderer.drawElements(board.eagleLayersByName['bValues'],ctx);
 		renderer.drawElements(board.eagleLayersByName['bPlace'],ctx);
@@ -86,20 +89,20 @@ function EagleCanvas (targetSelector) {
 		renderer.drawPlainWires(board.eagleLayersByName['bPlace'],ctx);
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.BOTTOM_DOCUMENTATION] = function(renderer, board, ctx) {
+	this.layerRenderFunctions[ViewEE.LayerId.BOTTOM_DOCUMENTATION] = function(renderer, board, ctx) {
 		renderer.drawElements(board.eagleLayersByName['bKeepout'],ctx);
 		renderer.drawElements(board.eagleLayersByName['bDocu'],ctx);
 		renderer.drawPlainTexts(board.eagleLayersByName['bKeepout'],ctx);
 		renderer.drawPlainTexts(board.eagleLayersByName['bDocu'],ctx);
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.TOP_COPPER] = function(renderer, board, ctx) {
+	this.layerRenderFunctions[ViewEE.LayerId.TOP_COPPER] = function(renderer, board, ctx) {
 		renderer.drawSignalWires(board.eagleLayersByName['Top'],ctx);
 		renderer.drawElements   (board.eagleLayersByName['Top'],ctx);
 		renderer.drawPlainTexts(board.eagleLayersByName['Top'],ctx);
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.TOP_SILKSCREEN] = function(renderer, board, ctx) {
+	this.layerRenderFunctions[ViewEE.LayerId.TOP_SILKSCREEN] = function(renderer, board, ctx) {
 		renderer.drawElements(board.eagleLayersByName['tNames'],ctx);
 		renderer.drawElements(board.eagleLayersByName['tValues'],ctx);
 		renderer.drawElements(board.eagleLayersByName['tPlace'],ctx);
@@ -113,34 +116,34 @@ function EagleCanvas (targetSelector) {
 
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.TOP_DOCUMENTATION] = function(renderer, board, ctx) {
+	this.layerRenderFunctions[ViewEE.LayerId.TOP_DOCUMENTATION] = function(renderer, board, ctx) {
 		renderer.drawElements(board.eagleLayersByName['tKeepout'],ctx);
 		renderer.drawElements(board.eagleLayersByName['tDocu'],ctx);
 		renderer.drawPlainTexts(board.eagleLayersByName['tKeepout'],ctx);
 		renderer.drawPlainTexts(board.eagleLayersByName['tDocu'],ctx);
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.DIM_BOARD] = function(renderer, board, ctx) {
-		renderer.dimCanvas(ctx,board.dimBoardAlpha);
+	this.layerRenderFunctions[ViewEE.LayerId.DIM_BOARD] = function(renderer, board, ctx) {
+		renderer.dimCanvas(board.dimBoardAlpha, ctx);
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.VIAS] = function(renderer, board, ctx) {
+	this.layerRenderFunctions[ViewEE.LayerId.VIAS] = function(renderer, board, ctx) {
 		renderer.drawSignalVias('1-16',ctx, board.viaPadColor());
 	}
 
-	this.layerRenderFunctions[EagleCanvas.LayerId.OUTLINE] = function(renderer, board, ctx) {
+	this.layerRenderFunctions[ViewEE.LayerId.OUTLINE] = function(renderer, board, ctx) {
 		renderer.drawPlainWires(board.eagleLayersByName['Dimension'],ctx);
 		renderer.drawPlainHoles(board.eagleLayersByName['Dimension'],ctx);
 	}
 
 	this.hitTestFunctions = {};
 
-	this.hitTestFunctions[EagleCanvas.LayerId.BOTTOM_COPPER] = function(x,y) {
+	this.hitTestFunctions[ViewEE.LayerId.BOTTOM_COPPER] = function(x,y) {
 		return this.hitTestElements (this.eagleLayersByName['Bottom'],x,y)
 			|| this.hitTestSignals  (this.eagleLayersByName['Bottom'],x,y);
 	}.bind (this);
 
-	this.hitTestFunctions[EagleCanvas.LayerId.TOP_COPPER] = function(x,y) {
+	this.hitTestFunctions[ViewEE.LayerId.TOP_COPPER] = function(x,y) {
 		return this.hitTestElements (this.eagleLayersByName['Top'],x,y)
 			|| this.hitTestSignals  (this.eagleLayersByName['Top'],x,y);
 	}.bind (this);
@@ -152,7 +155,7 @@ function EagleCanvas (targetSelector) {
 // --- ENUMS, DEFAULTS ---
 // -----------------------
 
-EagleCanvas.LayerId = {
+ViewEE.LayerId = {
 	'BOTTOM_COPPER' : 1,
 	'BOTTOM_SILKSCREEN' : 2,
 	'BOTTOM_DOCUMENTATION' : 3,
@@ -164,27 +167,27 @@ EagleCanvas.LayerId = {
 	'OUTLINE' : 9
 }
 
-EagleCanvas.LARGE_NUMBER = 99999;
+ViewEE.LARGE_NUMBER = 99999;
 
-EagleCanvas.warnings = {};
+ViewEE.warnings = {};
 
-EagleCanvas.prototype.scale = 1;
-EagleCanvas.prototype.minScale = 0.1;
-EagleCanvas.prototype.maxScale = 10;
-EagleCanvas.prototype.minLineWidth = 0.05;
-EagleCanvas.prototype.boardFlipped = false;
-EagleCanvas.prototype.dimBoardAlpha = 0.7;
+ViewEE.prototype.scale = 1;
+ViewEE.prototype.minScale = 0.1;
+ViewEE.prototype.maxScale = 10;
+ViewEE.prototype.minLineWidth = 0.05;
+ViewEE.prototype.boardFlipped = false;
+ViewEE.prototype.dimBoardAlpha = 0.7;
 
 // -------------------------
 // --- GENERIC ACCESSORS ---
 // -------------------------
 
 /** sets an element id to which the drawing should be initially scaled */
-EagleCanvas.prototype.setScaleToFit = function(elementSelector) {
+ViewEE.prototype.setScaleToFit = function(elementSelector) {
 	this.scaleToFitSelector = elementSelector;
 }
 
-EagleCanvas.prototype.scaleToFit = function(a) {
+ViewEE.prototype.scaleToFit = function(a) {
 	// if (!this.scaleToFitSelector) { return; }
 	var fitElement = this.scaleToFitSelector ? document.querySelector (this.scaleToFitSelector) : this.canvas;
 	if (!fitElement) { return; }
@@ -201,12 +204,12 @@ EagleCanvas.prototype.scaleToFit = function(a) {
 }
 
 
-EagleCanvas.prototype.getScale = function(scale) {
+ViewEE.prototype.getScale = function(scale) {
 	return this.scale;
 }
 
 /** sets the scale factor, triggers resizing and redrawing */
-EagleCanvas.prototype.setScale = function (scale, noResize) {
+ViewEE.prototype.setScale = function (scale, noResize) {
 	// console.log (scale, this.scale, this.baseScale);
 
 	console.time && console.time ('scale');
@@ -214,8 +217,8 @@ EagleCanvas.prototype.setScale = function (scale, noResize) {
 	this.scale = scale // * (this.scale || 1);
 
 	var fitElement = this.scaleToFitSelector
-	? document.querySelector (this.scaleToFitSelector)
-	: this.canvas;
+		? document.querySelector (this.scaleToFitSelector)
+		: this.canvas;
 	if (!fitElement) { return; }
 	var fitWidth  = fitElement.offsetWidth,
 		fitHeight = fitElement.offsetHeight;
@@ -265,38 +268,39 @@ EagleCanvas.prototype.setScale = function (scale, noResize) {
 	fitElement.scrollLeft = scrollX * fitElement.scrollWidth  - fitElement.clientWidth  / 2;
 	fitElement.scrollTop  = scrollY * fitElement.scrollHeight - fitElement.clientHeight / 2;
 
+	console.timeEnd && console.timeEnd ('scale');
+
 	this.redraw();
 
-	console.timeEnd && console.timeEnd ('scale');
 }
 
 
 /** Returns whether a given layer is visible or not */
-EagleCanvas.prototype.isLayerVisible = function (layerId) {
+ViewEE.prototype.isLayerVisible = function (layerId) {
 	return this.visibleLayers[layerId] ? true : false;
 }
 
 /** Turns a layer on or off */
-EagleCanvas.prototype.setLayerVisible = function (layerId, on) {
+ViewEE.prototype.setLayerVisible = function (layerId, on) {
 	if (this.isLayerVisible(layerId) == on) { return; }
 	this.visibleLayers[layerId] = on ? true : false;
 	this.redraw();
 }
 
 /** Returns whether the board is flipped (bottom at fromt) or not */
-EagleCanvas.prototype.isBoardFlipped = function () {
+ViewEE.prototype.isBoardFlipped = function () {
 	return this.boardFlipped;
 }
 
 /** Turns top or bottom to the front */
-EagleCanvas.prototype.setBoardFlipped = function (flipped) {
+ViewEE.prototype.setBoardFlipped = function (flipped) {
 	if (this.boardFlipped == flipped) { return; }
 	this.boardFlipped = flipped ? true : false;
 
 	this.redraw();
 }
 
-EagleCanvas.prototype.setHighlightedItem = function(item) {
+ViewEE.prototype.setHighlightedItem = function(item) {
 	this.highlightedItem = item;
 
 	this.redraw();
@@ -307,23 +311,31 @@ EagleCanvas.prototype.setHighlightedItem = function(item) {
 // Usually, for objects like svg draw is important and redraw is empty,
 // for a canvas, draw will be empty and redraw need to contain actual drawing code
 
-EagleCanvas.prototype.draw = function () {
+ViewEE.prototype.draw = function () {
 	if (!this.renderer) this.initRenderer ();
 
+	this.emit ('draw-start');
 	console.time && console.time ('draw');
+
 	this.renderer.draw ();
+
 	console.timeEnd && console.timeEnd ('draw');
+	this.emit ('draw-end');
 }
 
-EagleCanvas.prototype.redraw = function () {
+ViewEE.prototype.redraw = function () {
 	if (!this.renderer) this.initRenderer ();
 
+	this.emit ('redraw-start');
 	console.time && console.time ('redraw');
+
 	this.renderer.redraw ();
+
 	console.timeEnd && console.timeEnd ('redraw');
+	this.emit ('redraw-end');
 }
 
-EagleCanvas.prototype.initRenderer = function () {
+ViewEE.prototype.initRenderer = function () {
 	if ('svg' in this && !this.renderer) {
 		this.renderer = new ViewEESVGRenderer (this);
 	} else if ('canvas' in this && !this.renderer) {
@@ -335,40 +347,53 @@ EagleCanvas.prototype.initRenderer = function () {
 // --- PARSERS ---
 // ---------------
 
-EagleCanvas.parsers = [
+ViewEE.parsers = [
 ];
 
 if ("EagleXMLParser" in window) {
-	EagleCanvas.parsers.push (window.EagleXMLParser);
+	ViewEE.parsers.push (window.EagleXMLParser);
 }
 
 if ("KicadNewParser" in window) {
-	EagleCanvas.parsers.push (window.KicadNewParser);
+	ViewEE.parsers.push (window.KicadNewParser);
 }
 
 if ("AltiumParser" in window) {
-	EagleCanvas.parsers.push (window.AltiumParser);
+	ViewEE.parsers.push (window.AltiumParser);
 }
 
 
-EagleCanvas.prototype.loadText = function (text) {
-	this.text = text;
-
-	EagleCanvas.parsers.some (function (parser) {
+ViewEE.prototype.findParser = function (text) {
+	ViewEE.parsers.some (function (parser) {
 		if (!parser) return;
 
 		if (parser.supports (text)) {
-			console.log (parser.name, "can parse this file");
+			var timerLabel = 'parsing using ' + parser.name;
+			console.time && console.time (timerLabel);
 			var parser = new parser (this);
 			parser.parse (text);
+			console.timeEnd && console.timeEnd (timerLabel);
+
+			this.emit ('parse-end');
+
+			this.nativeBounds = this.calculateBounds();
+			this.nativeSize   = [this.nativeBounds[2]-this.nativeBounds[0],this.nativeBounds[3]-this.nativeBounds[1]];
+			this.scaleToFit();
+			this.draw();
 			return true;
 		}
 	}, this)
+}
 
-	this.nativeBounds = this.calculateBounds();
-	this.nativeSize   = [this.nativeBounds[2]-this.nativeBounds[0],this.nativeBounds[3]-this.nativeBounds[1]];
-	this.scaleToFit();
-	this.draw();
+ViewEE.prototype.loadText = function (text) {
+	this.text = text;
+
+	this.emit ('parse-start');
+
+	typeof requestAnimationFrame !== "undefined"
+		? requestAnimationFrame (this.findParser.bind (this, text))
+		: this.findParser (text);
+
 }
 
 
@@ -379,7 +404,7 @@ EagleCanvas.prototype.loadText = function (text) {
 // TODO: use binary loading for binary formats such as altium
 // TextEncoder polyfill https://github.com/inexorabletash/text-encoding
 // Ajax binary data https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Sending_and_Receiving_Binary_Data
-EagleCanvas.prototype.loadURL = function (url, cb) {
+ViewEE.prototype.loadURL = function (url, cb) {
 	this.url = url;
 	var request = new XMLHttpRequest(),
 		self = this;
@@ -403,7 +428,7 @@ EagleCanvas.prototype.loadURL = function (url, cb) {
 // --- HIT TESTING ---
 // -------------------
 
-EagleCanvas.prototype.hitTest = function(x,y) {
+ViewEE.prototype.hitTest = function(x,y) {
 	var canvas = this.canvas;
 	//Translate screen to model coordinates
 	var rx = x / (this.scale * this.baseScale);
@@ -423,7 +448,7 @@ EagleCanvas.prototype.hitTest = function(x,y) {
 	return null;
 }
 
-EagleCanvas.prototype.hitTestElements = function(layer, x, y) {
+ViewEE.prototype.hitTestElements = function(layer, x, y) {
 	if (!layer) { return; }
 
 	for (var elemKey in this.elements) {
@@ -477,7 +502,7 @@ EagleCanvas.prototype.hitTestElements = function(layer, x, y) {
 	return null;
 }
 
-EagleCanvas.prototype.hitTestSignals = function(layer, x, y) {
+ViewEE.prototype.hitTestSignals = function(layer, x, y) {
 	for (var signalName in this.signalItems) {
 		var signalLayers = this.signalItems[signalName];
 		if (!signalLayers) { continue; }
@@ -501,7 +526,7 @@ EagleCanvas.prototype.hitTestSignals = function(layer, x, y) {
 	return null;
 }
 
-EagleCanvas.prototype.pointInLine = function(x, y, x1, y1, x2, y2, width) {
+ViewEE.prototype.pointInLine = function(x, y, x1, y1, x2, y2, width) {
 	var width2 = width * width;
 
 	if (((x-x1)*(x-x1)+(y-y1)*(y-y1)) < width2) { return true; }	//end 1
@@ -521,7 +546,7 @@ EagleCanvas.prototype.pointInLine = function(x, y, x1, y1, x2, y2, width) {
 	return false;
 }
 
-EagleCanvas.prototype.pointInRect = function(x, y, x1, y1, x2, y2, x3, y3, x4, y4) {
+ViewEE.prototype.pointInRect = function(x, y, x1, y1, x2, y2, x3, y3, x4, y4) {
 	//p1..p4 in clockwise or counterclockwise order
 	//Do four half-area tests
 	return (((x-x1)*(x2-x1)+(y-y1)*(y2-y1)) >= 0)
@@ -535,12 +560,12 @@ EagleCanvas.prototype.pointInRect = function(x, y, x1, y1, x2, y2, x3, y3, x4, y
 // --- COMMON UTILS ---
 // --------------------
 
-EagleCanvas.prototype.calcBBox = function (wires) {
+ViewEE.prototype.calcBBox = function (wires) {
 	var bbox = [
-		EagleCanvas.LARGE_NUMBER,
-		EagleCanvas.LARGE_NUMBER,
-		-EagleCanvas.LARGE_NUMBER,
-		-EagleCanvas.LARGE_NUMBER
+		ViewEE.LARGE_NUMBER,
+		ViewEE.LARGE_NUMBER,
+		-ViewEE.LARGE_NUMBER,
+		-ViewEE.LARGE_NUMBER
 	];
 	wires.forEach (function (wireDict) {
 		if (wireDict.x1 < bbox[0]) { bbox[0] = wireDict.x1; }
@@ -560,7 +585,7 @@ EagleCanvas.prototype.calcBBox = function (wires) {
 }
 
 
-EagleCanvas.prototype.colorPalette = [
+ViewEE.prototype.colorPalette = [
 	[127,127,127],
 	[ 35, 35,141],
 	[ 35,141, 35],
@@ -580,7 +605,7 @@ EagleCanvas.prototype.colorPalette = [
 	//[  0,  0,  0]
 ];
 
-EagleCanvas.prototype.layerColor = function(colorIdx) {
+ViewEE.prototype.layerColor = function(colorIdx) {
 	var rgb = this.colorPalette[colorIdx];
 	if (!rgb) {
 		console.warn ("color %s not defined, using default color", colorIdx, this.colorPalette[0]);
@@ -589,7 +614,7 @@ EagleCanvas.prototype.layerColor = function(colorIdx) {
 	return 'rgb('+rgb[0]+','+rgb[1]+','+rgb[2]+')';
 }
 
-EagleCanvas.prototype.highlightColor = function(colorIdx) {
+ViewEE.prototype.highlightColor = function(colorIdx) {
 	var rgb = this.colorPalette[colorIdx];
 	if (!rgb) {
 		console.warn ("color %s not defined, using default color", colorIdx, this.colorPalette[0]);
@@ -598,18 +623,18 @@ EagleCanvas.prototype.highlightColor = function(colorIdx) {
 	return 'rgb('+(rgb[0]+50)+','+(rgb[1]+50)+','+(rgb[2]+50)+')';
 }
 
-EagleCanvas.prototype.viaPadColor = function () {
+ViewEE.prototype.viaPadColor = function () {
 	return "#0b0";
 }
 
-EagleCanvas.prototype.angleForRot = function (rot) {
+ViewEE.prototype.angleForRot = function (rot) {
 	var spin    = (rot.indexOf('S') >= 0), // TODO: spin rotate
 		flipped = (rot.indexOf('M') >= 0),
 		degrees = parseFloat (rot.split ('R')[1]);
 	return {spin: spin, flipped: flipped, degrees: degrees};
 }
 
-EagleCanvas.prototype.matrixForRot = function(rot) {
+ViewEE.prototype.matrixForRot = function(rot) {
 	var angle = this.angleForRot (rot);
 	var spin         = angle.spin, // TODO: spin rotate
 		flipped      = angle.flipped,
@@ -625,7 +650,7 @@ EagleCanvas.prototype.matrixForRot = function(rot) {
 	return matrix;
 }
 
-EagleCanvas.prototype.mirrorLayer = function(layerIdx) {
+ViewEE.prototype.mirrorLayer = function(layerIdx) {
 	if (layerIdx == 1) {
 		return 16;
 	} else if (layerIdx == 16) {
@@ -649,11 +674,11 @@ EagleCanvas.prototype.mirrorLayer = function(layerIdx) {
 	return layerIdx;
 }
 
-EagleCanvas.prototype.calculateBounds = function() {
-	var minX = EagleCanvas.LARGE_NUMBER,
-		minY = EagleCanvas.LARGE_NUMBER,
-		maxX = -EagleCanvas.LARGE_NUMBER,
-		maxY = -EagleCanvas.LARGE_NUMBER;
+ViewEE.prototype.calculateBounds = function() {
+	var minX = ViewEE.LARGE_NUMBER,
+		minY = ViewEE.LARGE_NUMBER,
+		maxX = -ViewEE.LARGE_NUMBER,
+		maxY = -ViewEE.LARGE_NUMBER;
 	//Plain elements
 	for (var layerKey in this.plainWires) {
 		var lines = this.plainWires[layerKey];
@@ -707,6 +732,6 @@ EagleCanvas.prototype.calculateBounds = function() {
 	return [minX, minY, maxX, maxY];
 }
 
-	return EagleCanvas;
+	return ViewEE;
 
 }));
