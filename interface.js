@@ -94,7 +94,7 @@ function ViewEE (options, EagleCanvasClass) {
 
 	EagleCanvas = EagleCanvas || EagleCanvasClass || window.ViewEEPCB;
 
-	this.node = options.node || document;
+	var node = this.node = options.node || document;
 
 	this.canvasSelector = options.canvasSelector || '#canvas';
 	this.scaleSelector  = options.scaleSelector  || '#outer';
@@ -102,6 +102,7 @@ function ViewEE (options, EagleCanvasClass) {
 	this.hintsBoxSel    = options.hintsBoxSel    || '#hintsbox';
 	this.hintsTitleSel  = options.hintsTitleSel  || '#hintstitle';
 	this.hintsTextSel   = options.hintsTextSel   || '#hintstext';
+	this.boardsSel      = options.boardsSel      || '.board';
 
 	this.progressBarSel   = options.progressBarSel   || '#controls';
 
@@ -117,6 +118,45 @@ function ViewEE (options, EagleCanvasClass) {
 			this.canvas.setBoardFlipped (ff.side === 'back');
 		}.bind (this));
 	}, this);
+
+	var outer = node.querySelector (this.scaleSelector);
+	outer.addEventListener ('click', function () {
+		ViewEE.deselect();
+	});
+
+	var boardsSelect = this.node.querySelector (this.boardsSel);
+	boardsSelect.addEventListener ("change", function () {
+		var value = this.options[this.selectedIndex].value;
+		if (value === 'file') {
+			// var evObj = document.createEvent('MouseEvents');
+			// evObj.initMouseEvent('click', true, true, window);
+			// node.querySelector ('input[type=file]').dispatchEvent(evObj);
+			// console.log (value, node.querySelector ('input[type=file]'));
+			node.querySelector ('input[type=file]').click();
+		} else {
+			ViewEE.init (value);
+		}
+	});
+
+	node.querySelector ('input[type=file]').addEventListener ('change', function (evt) {
+		var files = evt.target.files; // FileList object
+
+		// files is a FileList of File objects. List some properties.
+		var output = [];
+		for (var i = 0, f; f = files[i]; i++) {
+			console.log (f);
+			var fr = new FileReader ();
+			fr.addEventListener ('loadend', function () {
+				console.log (fr.result);
+			});
+
+			fr.readAsText (f);
+			//output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
+			//			f.size, ' bytes, last modified: ',
+			//			f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
+			//			'</li>');
+		}
+	});
 
 	var layerList = form.querySelector ('div.dropdown ul.layers');
 	layerList.innerHTML = '';
@@ -215,6 +255,9 @@ ViewEE.deselect = function () {
 	viewee.selectItem (null);
 }
 
+ViewEE.prototype.addEventListeners = function () {
+
+}
 
 ViewEE.prototype.loadUrl = function (url) {
 

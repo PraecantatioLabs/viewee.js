@@ -28,20 +28,21 @@
 
 <body onload="ViewEE.init()">
 	<div style="font-family: vector; visibility: hidden; position: absolute; opacity: .01"> </div>
-	<div id="outer" onclick="ViewEE.deselect()">
+	<div id="outer">
 		<div id="hintsbox">
 
 			<p><span id="hintstitle"></span> <span id="hintstext"></span></p>
 		</div>
 		<form id="controls">
-			<select class="board" onchange="ViewEE.init(this.options[this.selectedIndex].value);">
 				<option value="problems/wlan_radar.kicad_pcb">wlan radar</option>
 				<option value="problems/panelone.kicad_pcb">panelone</option>
 				<option value="problems/circles - microsd.brd">microsd</option>
+			<select class="board">
 				<option value="lpcprog.kicad_pcb">kicad_pcb</option>
 				<option value="hm-11.brd">hm-11</option>
 				<option value="board.brd">board</option>
 			</select>
+			<input type="file" id="files" name="files" />
 			<div class="split">
 				<input type="radio" id="side-front" value="front" name="side" checked="true"/>
 				<label for="side-front">Front</label>
