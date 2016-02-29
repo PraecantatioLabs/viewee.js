@@ -362,9 +362,12 @@ if ("AltiumParser" in window) {
 	ViewEE.parsers.push (window.AltiumParser);
 }
 
+if ("GEDAParser" in window) {
+	ViewEE.parsers.push (window.GEDAParser);
+}
 
 ViewEE.prototype.findParser = function (text) {
-	ViewEE.parsers.some (function (parser) {
+	var parserFound = ViewEE.parsers.some (function (parser) {
 		if (!parser) return;
 
 		if (parser.supports (text)) {
@@ -382,7 +385,10 @@ ViewEE.prototype.findParser = function (text) {
 			this.draw();
 			return true;
 		}
-	}, this)
+	}, this);
+
+	if (!parserFound)
+		alert ('cannot find parser for selected file');
 }
 
 ViewEE.prototype.loadText = function (text) {
