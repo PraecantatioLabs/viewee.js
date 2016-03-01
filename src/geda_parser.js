@@ -679,6 +679,7 @@
 
 		var shape = "square";
 
+		// TODO: ?
 		// To make a square or round pad, specify the same coordinate twice.
 		if (pos.x1 === pos.x2 && pos.y1 === pos.y2) {
 			shape = flags.square ? "square" : "circle";
@@ -693,7 +694,7 @@
 			rot: "R0", // those seems already rotated
 			name: name,
 			//type: type,
-			shape: shape,
+			roundness: flags.square ? 0 : 100,
 			//layers: cmd.attrs.layers,
 			//net: net
 		}
