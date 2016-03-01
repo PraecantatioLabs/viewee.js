@@ -47,8 +47,9 @@ html, body {
 	left:               0;
 	top:                0;
 	text-align:         left;
-	width:              100%;
+	width:              calc(100% - 160px);
 	background-color:   rgba(64, 96, 128, .4);
+	padding:            0 80px;
 }
 
 #controls>div, #controls>select {
@@ -157,18 +158,16 @@ html, body {
 	display:			none;
 	position:			fixed;
 	z-index:			2;
-	left:				5px;
-	right:				5px;
-	bottom:				5px;
+	left:				0;
+	right:				0;
+	bottom:				0;
 	min-height:			50px;
 	margin:				0;
-	border-radius: 		.25em;
-	background-color: 	rgba(64, 96, 128,1);
+	background-color: 	rgba(64, 96, 128, .4);
 	font-family:		sans-serif;
 	font-weight:		500;
 	color:				white;
-	border:				1px solid black;
-	opacity:			0.5;
+	text-shadow:        1px 1px 2px gray;
 }
 
 #hintstitle {
