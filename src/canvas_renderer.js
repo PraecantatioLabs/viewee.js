@@ -120,16 +120,8 @@ CanvasRenderer.prototype.redraw = function () {
 // primitives drawings is cached, actual drawing functions called on redraw
 
 CanvasRenderer.prototype._drawSingleWire = function (wire, ctx) {
-	ctx.beginPath();
-	this._drawWire (wire, ctx);
-	ctx.lineWidth = wire.width;
-	ctx.strokeStyle = wire.strokeStyle;
-	ctx.stroke();
-}
-
-CanvasRenderer.prototype._drawWire = function (wire, ctx) {
-
 	ctx.save();
+	ctx.beginPath();
 
 	var lineDash;
 	if (wire.style === "longdash") {
@@ -148,9 +140,23 @@ CanvasRenderer.prototype._drawWire = function (wire, ctx) {
 
 	if (lineDash) ctx.setLineDash (lineDash);
 
+	this._drawWire (wire, ctx);
+
+	ctx.lineWidth = wire.width;
+	ctx.strokeStyle = wire.strokeStyle;
+	ctx.stroke();
+	ctx.restore();
+}
+
+CanvasRenderer.prototype._drawWire = function (wire, ctx) {
+
+	ctx.save();
+
 	if (wire.curve) {
 
 		var rotate = (wire.rot ? parseFloat(wire.rot.substr (wire.rot.indexOf ("R") + 1)) : 0)/180*Math.PI;
+
+		var mirror = wire.rot.indexOf ("M") > -1;
 
 		var radiusX, radiusY;
 		radiusX = radiusY = wire.radius;
