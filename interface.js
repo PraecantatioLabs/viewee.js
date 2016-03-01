@@ -138,6 +138,8 @@ function ViewEE (options, EagleCanvasClass) {
 		}
 	});
 
+	var self = this;
+
 	node.querySelector ('input[type=file]').addEventListener ('change', function (evt) {
 		var files = evt.target.files; // FileList object
 
@@ -147,7 +149,7 @@ function ViewEE (options, EagleCanvasClass) {
 			console.log (f);
 			var fr = new FileReader ();
 			fr.addEventListener ('loadend', function () {
-				console.log (fr.result);
+				self.loadText (fr.result);
 			});
 
 			fr.readAsText (f);
