@@ -250,20 +250,7 @@
 			attrs["stroke-linecap"] = "round";
 		}
 
-		if (wire.curve) {
-
-			var rotate = (wire.rot ? parseFloat(wire.rot.substr (wire.rot.indexOf ("R") + 1)) : 0)/180*Math.PI;
-
-			var radiusX, radiusY;
-			radiusX = radiusY = wire.radius;
-			if (wire.radius.constructor === Array) {
-				radiusX = wire.radius[0];
-				radiusY = wire.radius[1];
-			}
-
-			attrs.d = describeArcRadians (wire.x, wire.y, radiusX, rotate + wire.start, rotate + wire.start + wire.angle);
-			// attrs.transform = 'scale('+radiusX+','+radiusY+') translate('+wire.x+', '+wire.y+')';
-		} else {
+		if (wire.curve === undefined) {
 			attrs.d = [
 				'M',
 				wire.x1.toFixed (significantDigits),
@@ -272,6 +259,39 @@
 				wire.x2.toFixed (significantDigits),
 				wire.y2.toFixed (significantDigits)
 			].join (' ');
+
+		} else if (wire.curve === 360) {
+
+			attrs.cx = wire.x;
+			attrs.cy = wire.y;
+
+			attrs.r  = wire.radius.constructor === Array ? wire.radius[0] : wire.radius;
+
+			var circle = SvgEl ('circle', attrs);
+			ctx.appendChild (circle);
+			return circle;
+
+		} else {
+			var rotate = (wire.rot ? parseFloat(wire.rot.substr (wire.rot.indexOf ("R") + 1)) : 0)/180*Math.PI;
+
+			var startAngle = rotate + wire.start;
+			var endAngle   = rotate + wire.start + wire.angle;
+
+			var mirror = wire.rot.indexOf ("M") > -1;
+			if (mirror) {
+				// startAngle = rotate - wire.start;
+				// endAngle   = rotate - wire.start - wire.angle;
+			}
+
+			var radiusX, radiusY;
+			radiusX = radiusY = wire.radius;
+			if (wire.radius.constructor === Array) {
+				radiusX = wire.radius[0];
+				radiusY = wire.radius[1];
+			}
+
+			attrs.d = describeArcRadians (wire.x, wire.y, radiusX, startAngle, endAngle);
+			// attrs.transform = 'scale('+radiusX+','+radiusY+') translate('+wire.x+', '+wire.y+')';
 		}
 
 		var path = SvgEl ('path', attrs);
