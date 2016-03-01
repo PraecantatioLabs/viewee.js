@@ -429,7 +429,7 @@ KicadNewParser.prototype.parseCircle = function (cmd) {
 		radius: radius,
 		start: 0,
 		angle: 2*Math.PI,
-		curve: 2*Math.PI,
+		curve: 360,
 		width: cmd.attrs.width[0],
 		layer: cmd.attrs.layer[0]
 	};

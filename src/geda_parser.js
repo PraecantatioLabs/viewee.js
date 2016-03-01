@@ -486,7 +486,7 @@
 			y: pos.y,
 			width: thickness,
 			// layer: line.layer,
-			curve: true,
+			curve: deltaAngle - startAngle,
 			angle: deltaAngle / 180.0 * Math.PI,
 			//angle: Math.PI * (this.start + this.sweep) / 180.0,
 			radius: pos.width, // Math.sqrt (dx * dx + dy * dy),
