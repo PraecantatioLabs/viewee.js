@@ -819,6 +819,9 @@
 
 		el.matrix = this.board.matrixForRot (el.rot);
 
+		var bbox = this.board.calcBBox (pkg.wires);
+		pkg.bbox = bbox;
+
 		return el;
 
 		cmd.attrs.fp_text.forEach (function (txtCmd) {
@@ -1182,7 +1185,7 @@
 
 
 	if (typeof process !== "undefined") {
-		var gp = new gEDAParser ({matrixForRot: function () {}});
+		var gp = new gEDAParser ({matrixForRot: function () {}, calcBBox: function () {}});
 		var fs = require ("fs");
 		gp.parse (fs.readFileSync (process.argv[2]));
 	}
