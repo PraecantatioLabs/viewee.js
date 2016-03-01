@@ -702,6 +702,24 @@ ViewEE.prototype.calculateBounds = function() {
 		}
 	}
 
+	for (var netName in this.signalItems) {
+		for (var layerKey in this.signalItems[netName]) {
+			var lines = this.signalItems[netName][layerKey].wires;
+			for (var lineKey in lines) {
+				var line = lines[lineKey],
+					x1 = line.x1,
+					x2 = line.x2,
+					y1 = line.y1,
+					y2 = line.y2,
+					width = line.width;
+				if (x1-width < minX) { minX = x1-width; } if (x1+width > maxX) { maxX = x1+width; }
+				if (x2-width < minX) { minX = x2-width; } if (x2+width > maxX) { maxX = x2+width; }
+				if (y1-width < minY) { minY = y1-width; } if (y1+width > maxY) { maxY = y1+width; }
+				if (y2-width < minY) { minY = y2-width; } if (y2+width > maxY) { maxY = y2+width; }
+			}
+		}
+	}
+
 	//Elements
 	for (var elemKey in this.elements) {
 		var elem = this.elements[elemKey];
