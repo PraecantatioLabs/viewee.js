@@ -1,49 +1,95 @@
 <!DOCTYPE html>
 <html>
-<head>
-<title>PCB layout viewer</title>
-<meta charset="utf-8"/>
-<link rel="stylesheet" type="text/css" href="styles/font.css" />
-<link rel="stylesheet" type="text/css" href="styles/style.css" />
-<link rel="stylesheet" type="text/css" href="styles/custom.css" />
+	<head>
+		<title>PCB layout viewer</title>
+		<meta charset="utf-8"/>
+		<link rel="stylesheet" type="text/css" href="styles/font.css" />
+		<link rel="stylesheet" type="text/css" href="styles/style.css" />
 
-<script type="text/javascript" src="lib/FontLoader.js"></script>
+		<script type="text/javascript" src="lib/object-assign.js"></script>
+		<script type="text/javascript" src="lib/minivents.js"></script>
+		<script type="text/javascript" src="lib/htmlel.js"></script>
 
-<script type="text/javascript" src="kicad_pcb_parser.js"></script>
-<script type="text/javascript" src="eaglecanvas.js"></script>
+		<script type="text/javascript" src="lib/FontLoader.js"></script>
 
-<script type="text/javascript" src="interface.js"></script>
+		<script type="text/javascript" src="src/eagle_xml_parser.js"></script>
+		<script type="text/javascript" src="src/kicad_pcb_parser.js"></script>
+		<script type="text/javascript" src="src/geda_parser.js"></script>
 
-</head>
+		<script type="text/javascript" src="src/renderer.js"></script>
+		<script type="text/javascript" src="src/canvas_renderer.js"></script>
+		<script type="text/javascript" src="src/svg_renderer.js"></script>
 
-<body>
-	<div style="font-family: vector; visibility: hidden; position: absolute; opacity: .01"> </div>
-	<div id="outer" onclick="ViewEE.deselect()">
-		<div id="hintsbox">
-			<p><span id="hintstitle"></span> <span id="hintstext"></span></p>
+		<script type="text/javascript" src="src/viewee.js"></script>
+
+		<script type="text/javascript" src="src/interface.js"></script>
+		<!--script type="text/javascript">
+			var errors = [];
+			window.onerror = function (err) {
+				if ('body' in document) {
+					document.body.appendChild (HtmlEl ("div", {}, err));
+				} else {
+					errors.push (err);
+				}
+			}
+
+			document.addEventListener ('DOMContentLoaded', function () {
+				errors.forEach (function (err) {
+					document.body.appendChild (HtmlEl ("div", {}, err));
+				})
+
+			});
+		</script-->
+
+	</head>
+
+
+	<body onload="ViewEE.init()">
+		<div style="font-family: vector; visibility: hidden; position: absolute; opacity: .01"> </div>
+		<div id="outer">
+			<div id="hintsbox">
+
+				<p><span id="hintstitle"></span> <span id="hintstext"></span></p>
+			</div>
+			<form id="controls">
+				<a href="http://cuwire.io/viewee/" style="top: 0; left: 0; position: absolute; padding: 2px;">
+					<img src="logo.svg" style="width: 32px;"/>
+				</a>
+				<div class="split">
+					<input type="radio" id="side-front" value="front" name="side" checked="true"/>
+					<label for="side-front">Front</label>
+					<input type="radio" id="side-back" value="back" name="side"/>
+					<label for="side-back">Back</label>
+				</div>
+				<div class="button zoomIn" id="zoominbutton">+</div>
+				<div class="button zoomOut" id="zoomoutbutton">-</div>
+				<div class="button dropdown" id="showlayerbutton">
+					Layers...
+					<ul class="layers">
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_5" onclick="toggleLayer(5);"/>Top Copper</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_6" onclick="toggleLayer(6);"/>Top silkscreen</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_7" onclick="toggleLayer(7);"/>Top documentation</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_1" onclick="toggleLayer(1);"/>Bottom copper</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_2" onclick="toggleLayer(2);"/>Bottom silkscreen</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_3" onclick="toggleLayer(3);"/>Bottom documentation</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_9" onclick="toggleLayer(9);"/>Outline</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_8" onclick="toggleLayer(8);"/>Vias</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_4" onclick="toggleLayer(4);"/>Dim backside</li>
+					</ul>
+				</div>
+			</form>
+			<div id="hcenter">
+				<div id="vcenter">
+
+
+<canvas id="canvas" width="800" height="600"></canvas>
+<!--
+<svg id="canvas"></svg>
+-->
+
+				</div>
+			</div>
 		</div>
-		<form id="controls">
-			<div class="split">
-				<input type="radio" id="side-front" value="front" name="side" checked="true"/>
-				<label for="side-front">Front</label>
-				<input type="radio" id="side-back" value="back" name="side"/>
-				<label for="side-back">Back</label>
-			</div>
-			<div class="button zoomIn">+</div>
-			<div class="button zoomOut">-</div>
-			<div class="button dropdown">
-				Layers...
-				<ul class="layers">
-				</ul>
-			</div>
-		</form>
-		<div id="hcenter">
-			<div id="vcenter">
-				<canvas width="800" height="600">
-				</canvas>
-			</div>
-		</div>
-	</div>
 	<script type="text/javascript" src="data.js"></script>
 
 </body>

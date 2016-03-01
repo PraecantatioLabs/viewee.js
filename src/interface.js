@@ -125,7 +125,7 @@ function ViewEE (options, EagleCanvasClass) {
 	});
 
 	var boardsSelect = this.node.querySelector (this.boardsSel);
-	boardsSelect.addEventListener ("change", function () {
+	if (boardsSelect) boardsSelect.addEventListener ("change", function () {
 		var value = this.options[this.selectedIndex].value;
 		if (value === 'file') {
 			// var evObj = document.createEvent('MouseEvents');
@@ -140,7 +140,8 @@ function ViewEE (options, EagleCanvasClass) {
 
 	var self = this;
 
-	node.querySelector ('input[type=file]').addEventListener ('change', function (evt) {
+	var localFileInput = node.querySelector ('input[type=file]');
+	if (localFileInput) localFileInput.addEventListener ('change', function (evt) {
 		var files = evt.target.files; // FileList object
 
 		// files is a FileList of File objects. List some properties.
