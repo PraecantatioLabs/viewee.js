@@ -24,9 +24,9 @@ html, body {
 
 #hcenter {
 	display:			inline-table;
-	height:				100%;
+	height:				calc (100% - 80px);
 	border:				0px none;
-	margin-top:         40px;
+	margin:             40px 0;
 }
 
 #vcenter {
