@@ -474,8 +474,8 @@
 			var thickness = parseNumeric (cmd.args.shift (), !cmd.square);
 		}
 
-		var deltaAngle = parseNumeric (cmd.args.pop (), !cmd.square);
-		var startAngle = parseNumeric (cmd.args.pop (), !cmd.square);
+		var deltaAngle = cmd.args.pop ();
+		var startAngle = cmd.args.pop ();
 
 		if (cmd.name === 'Arc' && cmd.args.length) {
 			var clearance = parseNumeric (cmd.args.shift (), !cmd.square);
