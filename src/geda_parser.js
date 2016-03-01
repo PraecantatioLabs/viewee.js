@@ -563,32 +563,6 @@
 		return via;
 	}
 
-	gEDAParser.prototype.parseCircle = function (cmd) {
-		cmd.attrs = this.extractAttrs (cmd.args);
-		cmd.args  = this.spliceArgs   (cmd.args);
-
-		var x   = parseFloat (cmd.attrs.center[0]);
-		var y   = parseFloat (cmd.attrs.center[1]);
-		var x1  = parseFloat (cmd.attrs.end[0]);
-		var y1  = parseFloat (cmd.attrs.end[1]);
-
-		var dx = x1 - x,
-			dy = y1 - y,
-			radius = Math.sqrt (dx * dx + dy * dy);
-
-		var circle = {
-			x: x,
-			y: y,
-			radius: radius,
-			start: 0,
-			angle: 2*Math.PI,
-			curve: 2*Math.PI,
-			width: cmd.attrs.width[0],
-			layer: cmd.attrs.layer[0]
-		};
-		return circle;
-	}
-
 	// http://pcb.geda-project.org/pcb-cvs/pcb.html#Pin-syntax
 	gEDAParser.prototype.parsePad = function (cmd) {
 
@@ -723,13 +697,6 @@
 			x: parseNumeric (cmd.args.pop (), !cmd.square)
 		};
 
-		// Disign fault:
-		// Note that element definitions that have the mark coordinates in the element line,
-		// only support pins and pads which use relative coordinates. The pin and pad coordinates
-		// are relative to the mark. Element definitions which do not include the mark coordinates
-		// in the element line, may have a Mark definition in their contents,
-		// and only use pin and pad definitions which use absolute coordinates.
-
 		if (cmd.args.length > 2) {
 			var flags = parseFlags (cmd.args.shift());
 		}
@@ -813,7 +780,7 @@
 				arc.layer = this.eagleLayer ('silk').number;
 				pkg.wires.push (arc);
 			} else {
-				console.warn ('!!!!!!!!!!!!!!!! UNPROCESSED !!!!!!!!!!!!!!', child);
+				console.warn ("Element's child %s not supported yet", child.name, child);
 			}
 		}, this);
 
@@ -823,6 +790,8 @@
 		pkg.bbox = bbox;
 
 		return el;
+
+		// TODO: add name and value and render it
 
 		cmd.attrs.fp_text.forEach (function (txtCmd) {
 			var txt = this.parseText ({name: "fp_text", args: txtCmd}, rotate);
@@ -843,60 +812,6 @@
 			}
 		}, this);
 
-		if (cmd.attrs.fp_line) cmd.attrs.fp_line.forEach (function (lineCmd) {
-			var line = this.parseLine ({name: "fp_line", args: lineCmd});
-			line.layer = this.eagleLayer (line.layer).number;
-			pkg.wires.push (line);
-		}, this);
-
-		var bbox = this.board.calcBBox (pkg.wires);
-		pkg.bbox = bbox;
-
-		if (cmd.attrs.fp_circle) cmd.attrs.fp_circle.forEach (function (arcCmd) {
-			var line = this.parseCircle ({name: "fp_circle", args: arcCmd});
-			line.layer = this.eagleLayer (line.layer).number;
-			pkg.wires.push (line);
-		}, this);
-
-		if (cmd.attrs.pad) cmd.attrs.pad.forEach (function (padCmd) {
-			var pad = this.parsePad ({name: "pad", args: padCmd}, rotate);
-
-			pad.layer = this.eagleLayer (pad.layers ? pad.layers[0] : cmd.attrs.layer[0]).number;
-
-			if (pad.type === "smd") {
-				pkg.smds.push (pad);
-			} else if (pad.type === "thru_hole") {
-				// TODO: support shapes
-				pkg.pads.push (pad);
-			} else if (pad.type === "np_thru_hole") {
-				// TODO: support shapes
-				pkg.pads.push (pad);
-			} else {
-				console.warn ("pad not processed:", pad);
-			}
-		}, this);
-
-
-		// TODO: recheck
-		if (cmd.attrs.layer[0] === "Back" || cmd.attrs.layer[0] === "B.Cu") {
-			el.rot = "M"+el.rot;
-		}
-
-		el.matrix = this.board.matrixForRot (el.rot);
-
-		return el;
-
-		var net = cmd.attrs.net[0];
-		var viaDrill = this.netClass[this.netByNumber[net].className].via_drill;
-		var via = {
-			x: parseFloat (cmd.attrs.at[0]),
-			y: parseFloat (cmd.attrs.at[1]),
-			drill: viaDrill,
-			//drill: parseFloat (cmd.attrs.size[0]),
-			layers: cmd.attrs.layers
-			// shape?
-		};
-		return via;
 	}
 
 
