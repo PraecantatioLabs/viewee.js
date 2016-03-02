@@ -634,6 +634,7 @@ ViewEE.prototype.viaPadColor = function () {
 }
 
 ViewEE.prototype.angleForRot = function (rot) {
+	if (!rot) return {degrees: 0};
 	var spin    = (rot.indexOf('S') >= 0), // TODO: spin rotate
 		flipped = (rot.indexOf('M') >= 0),
 		degrees = parseFloat (rot.split ('R')[1]);

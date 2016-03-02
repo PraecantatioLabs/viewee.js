@@ -272,12 +272,16 @@
 			return circle;
 
 		} else {
-			var rotate = (wire.rot ? parseFloat(wire.rot.substr (wire.rot.indexOf ("R") + 1)) : 0)/180*Math.PI;
+
+			var angle = this.board.angleForRot (wire.rot);
+
+			var rotate = angle.degrees / 180 * Math.PI;
+
+			var mirror = angle.flipped;
 
 			var startAngle = rotate + wire.start;
 			var endAngle   = rotate + wire.start + wire.angle;
 
-			var mirror = wire.rot.indexOf ("M") > -1;
 			if (mirror) {
 				// startAngle = rotate - wire.start;
 				// endAngle   = rotate - wire.start - wire.angle;

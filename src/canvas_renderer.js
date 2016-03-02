@@ -154,9 +154,11 @@ CanvasRenderer.prototype._drawWire = function (wire, ctx) {
 
 	if (wire.curve) {
 
-		var rotate = (wire.rot ? parseFloat(wire.rot.substr (wire.rot.indexOf ("R") + 1)) : 0)/180*Math.PI;
+		var angle = this.board.angleForRot (wire.rot);
 
-		var mirror = wire.rot.indexOf ("M") > -1;
+		var rotate = angle.degrees / 180 * Math.PI;
+
+		var mirror = angle.flipped;
 
 		var radiusX, radiusY;
 		radiusX = radiusY = wire.radius;
