@@ -96,15 +96,15 @@ function ViewEE (options, EagleCanvasClass) {
 
 	var node = this.node = options.node || document;
 
-	this.canvasSelector = options.canvasSelector || '#canvas';
-	this.scaleSelector  = options.scaleSelector  || '#outer';
-	this.formSelector   = options.formSelector   || "form";
+	this.canvasSelector = options.canvasSelector || '.canvas';
+	this.scaleSelector  = options.scaleSelector  || '.vcenter';
+	this.formSelector   = options.formSelector   || ".controls";
 	this.hintsBoxSel    = options.hintsBoxSel    || '#hintsbox';
 	this.hintsTitleSel  = options.hintsTitleSel  || '#hintstitle';
 	this.hintsTextSel   = options.hintsTextSel   || '#hintstext';
 	this.boardsSel      = options.boardsSel      || '.board';
 
-	this.progressBarSel   = options.progressBarSel   || '#controls';
+	this.progressBarSel   = options.progressBarSel   || '.controls';
 
 	this.canvas = new EagleCanvas (this.node.querySelector (this.canvasSelector));
 
@@ -125,18 +125,22 @@ function ViewEE (options, EagleCanvasClass) {
 	});
 
 	var boardsSelect = this.node.querySelector (this.boardsSel);
+
 	if (boardsSelect) boardsSelect.addEventListener ("change", function () {
 		var value = this.options[this.selectedIndex].value;
-		if (value === 'file') {
-			// var evObj = document.createEvent('MouseEvents');
-			// evObj.initMouseEvent('click', true, true, window);
-			// node.querySelector ('input[type=file]').dispatchEvent(evObj);
-			// console.log (value, node.querySelector ('input[type=file]'));
-			node.querySelector ('input[type=file]').click();
-		} else {
-			ViewEE.init (value);
-		}
+		if (value !== 'file') ViewEE.init (value);
 	});
+
+	var localFileInput = this.node.querySelector ('input[type=file]');
+	var maskedFileInput = this.node.querySelector ('option[value=file]');
+	if (localFileInput && boardsSelect && maskedFileInput)
+		boardsSelect.addEventListener ('click', function () {
+			var value = this.options[this.selectedIndex].value;
+			if (value === 'file') {
+				localFileInput.click();
+			}
+		});
+
 
 	var self = this;
 
@@ -152,6 +156,9 @@ function ViewEE (options, EagleCanvasClass) {
 			fr.addEventListener ('loadend', function () {
 				self.loadText (fr.result);
 			});
+
+			if (maskedFileInput)
+				maskedFileInput.textContent = f.name;
 
 			fr.readAsText (f);
 			//output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
@@ -206,22 +213,22 @@ function ViewEE (options, EagleCanvasClass) {
 		resizeHandler ();
 	});
 
-	var changeProgressGen = function (className) {
+	var changeProgressGen = function (method, className) {
 		var progressBarSel = this.progressBarSel;
 		var node = this.node;
 		return function () {
 			var progressBar = node.querySelector (progressBarSel);
-			progressBar.className = className;
+			progressBar.classList[method] (className);
 		}
 	}.bind (this);
 
-	this.canvas.on ('draw-start', changeProgressGen ('pending'));
-	this.canvas.on ('redraw-start', changeProgressGen ('pending'));
-	this.canvas.on ('parse-start', changeProgressGen ('pending'));
+	this.canvas.on ('draw-start', changeProgressGen ('add', 'pending'));
+	this.canvas.on ('redraw-start', changeProgressGen ('add', 'pending'));
+	this.canvas.on ('parse-start', changeProgressGen ('add', 'pending'));
 
-	this.canvas.on ('draw-end', changeProgressGen (''));
-	this.canvas.on ('redraw-end', changeProgressGen (''));
-	this.canvas.on ('parse-end', changeProgressGen (''));
+	this.canvas.on ('draw-end', changeProgressGen ('remove', 'pending'));
+	this.canvas.on ('redraw-end', changeProgressGen ('remove', 'pending'));
+	this.canvas.on ('parse-end', changeProgressGen ('remove', 'pending'));
 
 	this.beforeRender = options.beforeRender;
 	this.afterRender  = options.afterRender;

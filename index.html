@@ -29,32 +29,33 @@
 
 <body onload="ViewEE.init()">
 	<div style="font-family: vector; visibility: hidden; position: absolute; opacity: .01"> </div>
-	<div id="outer">
+	<div class="viewee">
 		<div id="hintsbox">
-
 			<p><span id="hintstitle"></span> <span id="hintstext"></span></p>
 		</div>
-		<form id="controls">
 				<option value="problems/wlan_radar.kicad_pcb">wlan radar</option>
 				<option value="problems/panelone.kicad_pcb">panelone</option>
 				<option value="problems/circles - microsd.brd">microsd</option>
+		<form class="controls">
 			<a href="http://cuwire.io/viewee/" style="top: 0; left: 0; position: absolute; padding: 2px;">
 				<img src="logo.svg" style="width: 32px;"/>
 			</a>
 				<option value="lpcprog.kicad_pcb">kicad_pcb</option>
 				<option value="hm-11.brd">hm-11</option>
 				<option value="board.brd">board</option>
+			<input type="file" id="files" name="files" />
 			<select class="board">
 			</select>
-			<input type="file" id="files" name="files" />
 			<div class="split">
 				<input type="radio" id="side-front" value="front" name="side" checked="true"/>
 				<label for="side-front">Front</label>
 				<input type="radio" id="side-back" value="back" name="side"/>
 				<label for="side-back">Back</label>
 			</div>
-			<div class="button zoomIn" id="zoominbutton">+</div>
-			<div class="button zoomOut" id="zoomoutbutton">-</div>
+			<div class="split">
+				<button type="button" class="button zoomIn" id="zoominbutton">+</button>
+				<button type="button" class="button zoomOut" id="zoomoutbutton">-</button>
+			</div>
 			<div class="button dropdown" id="showlayerbutton">
 				Layers...
 				<ul class="layers">
@@ -70,10 +71,15 @@
 				</ul>
 			</div>
 		</form>
-		<div id="hcenter">
-			<div id="vcenter">
-				<!--canvas id="canvas" width="800" height="600"></canvas-->
-				<svg id="canvas"></svg>
+		<div class="hcenter">
+			<div class="vcenter">
+
+
+<canvas class="canvas" width="800" height="600"></canvas>
+				<!--
+<svg class="canvas"></svg>
+-->
+
 			</div>
 		</div>
 	</div>
