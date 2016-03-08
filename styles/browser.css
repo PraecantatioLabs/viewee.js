@@ -14,7 +14,6 @@
 }
 
 div.search {
-/*	background: hotpink;*/
 	width: 25%;
 	-ms-flex: 0 25%;
 	-webkit-box-flex:  0;
@@ -26,12 +25,12 @@ div.search {
 }
 
 div.viewee {
-	/*	background: aliceblue;*/
 	-ms-flex: 1;
 	-webkit-box-flex: 1;
 	-moz-box-flex: 1;
 	-ms-box-flex: 1;
 	box-flex: 1;
+	overflow-x: hidden;
 }
 
 form.search input[type=text] {
