@@ -65,6 +65,10 @@ var layerMaps = {
 	"F.SilkS": "tNames",
 	"B.Mask": "bStop",
 	"F.Mask": "tStop",
+	"F.CrtYd": "tKeepout",
+	"B.CrtYd": "bKeepout",
+	"F.Fab": "tPlace",
+	"B.Fab": "bPlace",
 	"Dwgs.User": "tValues",
 	//(41 Cmts.User user)
 	//(42 Eco1.User user)
@@ -175,7 +179,10 @@ KicadNewParser.prototype.eagleLayer = function (layerName) {
 	// eagle draw will replace layer info accordingly
 	if (layerName === "*.Cu") layerName = "Front";
 	if (layerName === "*.Mask") layerName = "F.Mask";
-	if (!layerMaps[layerName]) return;
+	if (!layerMaps[layerName]) {
+		console.warn ('Unknown layer %s, skipping', layerName);
+		return {};
+	}
 	return eagleLayers [layerMaps[layerName]];
 }
 
