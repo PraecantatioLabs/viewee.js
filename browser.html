@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>PCB layout viewer</title>
+		<meta charset="utf-8"/>
+		<link rel="stylesheet" type="text/css" href="styles/font.css" />
+		<link rel="stylesheet" type="text/css" href="styles/style.css" />
+		<link rel="stylesheet" type="text/css" href="styles/browser.css" />
+
+		<script type="text/javascript" src="lib/object-assign.js"></script>
+		<script type="text/javascript" src="lib/minivents.js"></script>
+		<script type="text/javascript" src="lib/htmlel.js"></script>
+
+		<script type="text/javascript" src="lib/FontLoader.js"></script>
+
+		<script type="text/javascript" src="src/eagle_xml_parser.js"></script>
+		<script type="text/javascript" src="src/kicad_pcb_parser.js"></script>
+		<script type="text/javascript" src="src/geda_parser.js"></script>
+
+		<script type="text/javascript" src="src/renderer.js"></script>
+		<script type="text/javascript" src="src/canvas_renderer.js"></script>
+		<script type="text/javascript" src="src/svg_renderer.js"></script>
+
+		<script type="text/javascript" src="src/viewee.js"></script>
+
+		<script type="text/javascript" src="src/interface.js"></script>
+
+		<script type="text/javascript" src="src/browser.js"></script>
+
+	</head>
+
+
+	<body onload="ViewEE.init()">
+		<div style="font-family: vector; visibility: hidden; position: absolute; opacity: .01"> </div>
+		<div class="viewee-wrapper">
+		<div class="search">
+			<form class="search">
+				<input type="text">
+			</form>
+			<ul class="results">
+			</ul>
+		</div>
+		<div class="viewee">
+			<div id="hintsbox">
+				<p><span id="hintstitle"></span> <span id="hintstext"></span></p>
+			</div>
+			<form class="controls">
+				<a href="http://cuwire.io/viewee/" style="top: 0; left: 0; position: absolute; padding: 2px;">
+					<img src="logo.svg" style="width: 32px;"/>
+				</a>
+				<input type="file" id="files" name="files" />
+				<select class="board">
+					<option value="problems/bldc.pcb">bldc (geda pcb)</option>
+					<option value="problems/Exp_Board_Printrboard_v0.1.brd">Exp_Board_Printrboard (eagle)</option>
+					<option value="problems/circles - microsd.brd">microsd (eagle)</option>
+					<option value="problems/Stream.kicad_pcb">stream (kicad)</option>
+					<option value="problems/HDMI2USB.kicad_pcb">hdmi2usb (kicad)</option>
+					<option value="problems/hm-11.brd">hm-11 (eagle)</option>
+					<option value="problems/wlan_radar.kicad_pcb">wlan radar (kicad)</option>
+					<option value="problems/panelone.kicad_pcb">panelone (kicad)</option>
+					<option value="problems/lpcprog.kicad_pcb">kicad_pcb</option>
+					<option value="problems/board.brd">board (eagle)</option>
+					<option value="problems/Arduino-DUE-V03.PcbDoc">arduino due (altium)</option>
+					<option value="file">Select from disk…</option>
+				</select>
+				<div class="split">
+					<input type="radio" id="side-front" value="front" name="side" checked="true"/>
+					<label for="side-front">Front</label>
+					<input type="radio" id="side-back" value="back" name="side"/>
+					<label for="side-back">Back</label>
+				</div>
+				<div class="split">
+					<button type="button" class="button zoomIn" id="zoominbutton">+</button>
+					<button type="button" class="button zoomOut" id="zoomoutbutton">-</button>
+				</div>
+				<div class="button dropdown" id="showlayerbutton">
+					Layers...
+					<ul class="layers">
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_5" onclick="toggleLayer(5);"/>Top Copper</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_6" onclick="toggleLayer(6);"/>Top silkscreen</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_7" onclick="toggleLayer(7);"/>Top documentation</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_1" onclick="toggleLayer(1);"/>Bottom copper</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_2" onclick="toggleLayer(2);"/>Bottom silkscreen</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_3" onclick="toggleLayer(3);"/>Bottom documentation</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_9" onclick="toggleLayer(9);"/>Outline</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_8" onclick="toggleLayer(8);"/>Vias</li>
+						<li><input type="checkbox" checked="checked" id="SHOW_LAYER_CB_4" onclick="toggleLayer(4);"/>Dim backside</li>
+					</ul>
+				</div>
+			</form>
+			<div class="hcenter">
+				<div class="vcenter">
+
+
+					<canvas class="canvas" width="800" height="600"></canvas>
+					<!--
+<svg class="canvas"></svg>
+-->
+
+				</div>
+			</div>
+		</div>
+		</div>
+	</body>
+
+</html>
