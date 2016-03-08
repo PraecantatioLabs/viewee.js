@@ -94,7 +94,7 @@ function ViewEE (options, EagleCanvasClass) {
 
 	EagleCanvas = EagleCanvas || EagleCanvasClass || window.ViewEEPCB;
 
-	var node = this.node = options.node || document;
+	this.node = options.node || document;
 
 	this.canvasSelector = options.canvasSelector || '.canvas';
 	this.scaleSelector  = options.scaleSelector  || '.vcenter';
@@ -108,6 +108,8 @@ function ViewEE (options, EagleCanvasClass) {
 
 	this.canvas = new EagleCanvas (this.node.querySelector (this.canvasSelector));
 
+	// flip side switch
+
 	var form = this.node.querySelector (this.formSelector);
 	var sideFlip = [].slice.apply (form.querySelectorAll ('input[name=side]'));
 	sideFlip.forEach (function (radio) {
@@ -119,54 +121,12 @@ function ViewEE (options, EagleCanvasClass) {
 		}.bind (this));
 	}, this);
 
-	var outer = node.querySelector (this.scaleSelector);
+	var outer = this.node.querySelector (this.scaleSelector);
 	outer.addEventListener ('click', function () {
 		ViewEE.deselect();
 	});
 
-	var boardsSelect = this.node.querySelector (this.boardsSel);
-
-	if (boardsSelect) boardsSelect.addEventListener ("change", function () {
-		var value = this.options[this.selectedIndex].value;
-		if (value !== 'file') ViewEE.init (value);
-	});
-
-	var localFileInput = this.node.querySelector ('input[type=file]');
-	var maskedFileInput = this.node.querySelector ('option[value=file]');
-	if (localFileInput && boardsSelect && maskedFileInput)
-		boardsSelect.addEventListener ('click', function () {
-			var value = this.options[this.selectedIndex].value;
-			if (value === 'file') {
-				localFileInput.click();
-			}
-		});
-
-
-	var self = this;
-
-	var localFileInput = node.querySelector ('input[type=file]');
-	if (localFileInput) localFileInput.addEventListener ('change', function (evt) {
-		var files = evt.target.files; // FileList object
-
-		// files is a FileList of File objects. List some properties.
-		var output = [];
-		for (var i = 0, f; f = files[i]; i++) {
-			console.log (f);
-			var fr = new FileReader ();
-			fr.addEventListener ('loadend', function () {
-				self.loadText (fr.result);
-			});
-
-			if (maskedFileInput)
-				maskedFileInput.textContent = f.name;
-
-			fr.readAsText (f);
-			//output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
-			//			f.size, ' bytes, last modified: ',
-			//			f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
-			//			'</li>');
-		}
-	});
+	this.initFileSelector ();
 
 	var layerList = form.querySelector ('div.dropdown ul.layers');
 	layerList.innerHTML = '';
@@ -197,21 +157,6 @@ function ViewEE (options, EagleCanvasClass) {
 	canvas.addEventListener ("click", this.canvasClick.bind (this), false);
 
 	ViewEE.initialized = this;
-
-	var resizeHandler = function () {
-		this.canvas.scaleToFit ();
-		// this.canvas.draw ();
-	}.bind (this);
-
-	var resizeTimer;
-	window.addEventListener ('resize', function() {
-		clearTimeout (resizeTimer);
-		resizeTimer = setTimeout (resizeHandler, 100);
-	});
-
-	window.addEventListener ('orientationchange', function(){
-		resizeHandler ();
-	});
 
 	var changeProgressGen = function (method, className) {
 		var progressBarSel = this.progressBarSel;
@@ -265,13 +210,61 @@ ViewEE.deselect = function () {
 	viewee.selectItem (null);
 }
 
+ViewEE.prototype.initFileSelector = function () {
+	var boardsSelect = this.node.querySelector (this.boardsSel);
+	var node = this.node;
+
+	if (boardsSelect) boardsSelect.addEventListener ("change", function () {
+		var value = this.options[this.selectedIndex].value;
+		if (value !== 'file') ViewEE.init (value);
+	});
+
+	var localFileInput = this.node.querySelector ('input[type=file]');
+	var maskedFileInput = this.node.querySelector ('option[value=file]');
+	if (localFileInput && boardsSelect && maskedFileInput)
+		boardsSelect.addEventListener ('click', function () {
+			var value = this.options[this.selectedIndex].value;
+			if (value === 'file') {
+				localFileInput.click();
+			}
+		});
+
+
+	var self = this;
+
+	var localFileInput = node.querySelector ('input[type=file]');
+	if (localFileInput) localFileInput.addEventListener ('change', function (evt) {
+		var files = evt.target.files; // FileList object
+
+		// files is a FileList of File objects. List some properties.
+		var output = [];
+		for (var i = 0, f; f = files[i]; i++) {
+			console.log (f);
+			var fr = new FileReader ();
+			fr.addEventListener ('loadend', function () {
+				self.loadText (fr.result);
+			});
+
+			if (maskedFileInput)
+				maskedFileInput.textContent = f.name;
+
+			fr.readAsText (f);
+			//output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
+			//			f.size, ' bytes, last modified: ',
+			//			f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
+			//			'</li>');
+		}
+	});
+
+}
+
 ViewEE.prototype.addEventListeners = function () {
 
 }
 
 ViewEE.prototype.loadUrl = function (url) {
 
-	var defaultUrl; // = 'problems/no holes - lpc1114-valdez-mut-v.04.brd';
+	var defaultUrl;
 
 	var form = this.node.querySelector (this.formSelector);
 	if (form) {

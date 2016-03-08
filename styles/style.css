@@ -68,9 +68,9 @@ html, body {
 	top:                0;
 */
 	text-align:         left;
-	width:              calc(100% - 80px);
+	width:              calc(100% - 40px);
 	background-color:   rgba(64, 96, 128, .4);
-	padding:            3px 40px;
+	padding:            3px 0 0 40px;
 	min-height:             35px;
 }
 
@@ -107,7 +107,7 @@ html, body {
 }
 
 .viewee>.controls>select, .viewee>.controls button {
-	line-height: 20px;
+	line-height: 18px;
 	font-size: 1.0em;
 }
 
@@ -214,8 +214,9 @@ html, body {
 }
 
 .viewee>.controls select.board {
-	min-width: 100px;
-	margin: 10px;
+	min-width: 80px;
+	max-width: 200px;
+	margin: 6px 10px 0 0;
 }
 
 /* animated controls bar */

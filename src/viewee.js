@@ -33,6 +33,21 @@ function ViewEE (targetSelector) {
 		return;
 	}
 
+	var resizeHandler = function () {
+		this.scaleToFit ();
+		// this.canvas.draw ();
+	}.bind (this);
+
+	var resizeTimer;
+	window.addEventListener ('resize', function() {
+		clearTimeout (resizeTimer);
+		resizeTimer = setTimeout (resizeHandler, 100);
+	});
+
+	window.addEventListener ('orientationchange', function(){
+		resizeHandler ();
+	});
+
 	// using minivents library
 	new Minivents (this);
 
