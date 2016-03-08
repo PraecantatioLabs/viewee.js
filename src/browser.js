@@ -11,7 +11,7 @@ document.addEventListener ('DOMContentLoaded', function () {
 
 	var submit = searchForm.querySelector ('button');
 
-	submit.addEventListener ('click', function (e) {
+	submit && submit.addEventListener ('click', function (e) {
 		loadGithubRepositories (input.value);
 		e.preventDefault();
 	});
