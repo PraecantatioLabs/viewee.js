@@ -206,7 +206,7 @@ html, body {
 /*
 This is the actual bar with stripes
 */
-.viewee>.controls.pending {
+.pending {
 /*
 	display:inline-block;
 	height:100%;
