@@ -1,13 +1,27 @@
 document.addEventListener ('DOMContentLoaded', function () {
 	var searchForm = document.querySelector ('form.search');
-	var input = searchForm.querySelector ('input[type=text]');
+	var searchInput = searchForm.searchInput;
 
-	input.addEventListener("keypress", function(e) {
+	var targetInputs = searchForm.targetInput || [];
+
+	searchInput.addEventListener("keypress", function(e) {
 		if (e.keyCode === 13) {
-			loadGithubRepositories (input.value);
+
+			var targetInput = [].filter.call (targetInputs, function (inp) {
+				return inp.checked;
+			})[0];
+
+			// github requires to have at least user, org or repo in search query for code
+			if (targetInput && targetInput.value === 'file') {
+				loadGithubRepoFiles (searchInput.value);
+			} else {
+				loadGithubRepositories (searchInput.value);
+			}
 			e.preventDefault();
 		}
 	}, false);
+
+
 
 	var submit = searchForm.querySelector ('button');
 
@@ -47,7 +61,7 @@ function loadGithubRepoFiles (repo, li) {
 	var site = "https://api.github.com";
 	var apiPath = "/search/code";
 	var query = {
-		q: ["extension:brd", "extension:kicad_pcb", "extension:pcb", "repo:" + repo.full_name],
+		q: ["extension:brd", "extension:kicad_pcb", "extension:pcb", li ? "repo:" + repo.full_name : repo],
 		sort: "stars",
 		order: "desc"
 	}
@@ -95,7 +109,12 @@ function renderRepoList (res) {
 }
 
 function renderFileList (res, parent) {
-	var results = parent.querySelector ('ul.files');
+	if (!parent) {
+		var results = parent.querySelector ('ul.results');
+	} else {
+		var results = parent.querySelector ('ul.files');
+	}
+
 	if (!results) {
 		results = HtmlEl ('ul', {class: 'files'});
 		parent.appendChild (results);

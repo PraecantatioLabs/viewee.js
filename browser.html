@@ -35,7 +35,13 @@
 		<div class="viewee-wrapper">
 		<div class="search">
 			<form class="search">
-				<input type="text" placeholder="Search Github for Eagle and Kicad" />
+				<input type="text" name="searchInput" placeholder="Search for Eagle/Kicad/gEDA" />
+				<!--div class="split">
+					<input type="radio" id="target-repo" value="repo" name="targetInput" checked="true"/>
+					<label for="target-repo">Repositories</label>
+					<input type="radio" id="target-file" value="file" name="targetInput"/>
+					<label for="target-file">Files</label>
+				</div-->
 			</form>
 			<ul class="results">
 			</ul>
@@ -91,11 +97,11 @@
 			<div class="hcenter">
 				<div class="vcenter">
 
+					<!--
 
 					<canvas class="canvas" width="800" height="600"></canvas>
-					<!--
-<svg class="canvas"></svg>
 -->
+					<svg class="canvas"></svg>
 
 				</div>
 			</div>

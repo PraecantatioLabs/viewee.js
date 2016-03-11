@@ -1,5 +1,6 @@
 .viewee-wrapper {
 	height: 100%;
+	width: 100%;
 	display: -ms-flexbox;
 	display: -webkit-box;
 	display: -moz-box;
@@ -35,8 +36,10 @@ div.viewee {
 
 form.search input[type=text] {
 	font-size: larger;
-	width: calc(100% - 2em);
-	margin: .5em 1em;
+	width: calc(100% - 2em - 25px);
+	margin: .25em 1em;
+	background: url(../github.svg) 0 0 no-repeat;
+	padding-left: 25px;
 }
 
 div.search ul {
@@ -68,8 +71,10 @@ div.search ul.results li:hover, div.search ul.results li.active {
 
 div.search ul.results>li .name {
 	font-size: larger;
+/*
 	color: #588bfd;
 	border-bottom: 1px solid #588bfd;
+*/
 	margin-bottom: .2em;
 }
 
@@ -90,4 +95,65 @@ div.search ul.results>li .name, div.search ul.results>li .description, div.searc
 
 div.search ul.results>li .stars {
 	margin-right: 1em;
+}
+
+div.search .split label {
+	/*	display:			block;*/
+	border-radius: 		.25em;
+	background-color: 	rgba(255,255,255,0.5);
+	font-family:		sans-serif;
+	/*	font-weight:		500;*/
+	color:				black;
+	border:				1px solid black;
+	cursor:				pointer;
+	text-align:			center;
+	vertical-align:     top;
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: 	none;
+	-ms-user-select: 	none;
+	user-select: 		none;
+}
+
+div.search .split label {
+	margin:				5px 10px 0 calc(50% - 7em);
+	padding:            .2em 1em;
+}
+
+div.search .split {
+	margin: 0;
+}
+
+div.search .split input {
+	display: none;
+}
+
+div.search .split label {
+	display: inline-block;
+	font-family: sans-serif;
+	border: 1px solid rgba(64, 96, 128, 1);
+}
+
+
+div.search .split input#target-file:checked ~ label[for=target-file],
+div.search .split input#target-repo:checked ~ label[for=target-repo] {
+	background-color: rgba(64, 96, 128, 0.7);
+	color: white;
+}
+
+div.search .split label:first-of-type {
+	border-radius: 0;
+	border-right: 0;
+	border-bottom-left-radius: .25em;
+	border-top-left-radius: .25em;
+	margin-right: 0;
+}
+
+div.search .split label:last-of-type {
+	border-radius: 0;
+	border-left: 0;
+	border-bottom-right-radius: .25em;
+	border-top-right-radius: .25em;
+	margin-left: -4px;
 }
