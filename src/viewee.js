@@ -696,6 +696,20 @@ ViewEE.prototype.mirrorLayer = function(layerIdx) {
 	return layerIdx;
 }
 
+function max() {
+	var args = [].slice.call(arguments);
+	return Math.max.apply(Math, args.filter(function(val) {
+		return !isNaN(val);
+	}));
+}
+
+function min() {
+	var args = [].slice.call(arguments);
+	return Math.min.apply(Math, args.filter(function(val) {
+		return !isNaN(val);
+	}));
+}
+
 ViewEE.prototype.calculateBounds = function() {
 	var minX = ViewEE.LARGE_NUMBER,
 		minY = ViewEE.LARGE_NUMBER,
@@ -710,11 +724,11 @@ ViewEE.prototype.calculateBounds = function() {
 				x2 = line.x2,
 				y1 = line.y1,
 				y2 = line.y2,
-				width = line.width;
-			if (x1-width < minX) { minX = x1-width; } if (x1+width > maxX) { maxX = x1+width; }
-			if (x2-width < minX) { minX = x2-width; } if (x2+width > maxX) { maxX = x2+width; }
-			if (y1-width < minY) { minY = y1-width; } if (y1+width > maxY) { maxY = y1+width; }
-			if (y2-width < minY) { minY = y2-width; } if (y2+width > maxY) { maxY = y2+width; }
+				width = line.width || this.minLineWidth;
+			minX = min (minX, x1-width, x1+width, x2-width, x2+width);
+			maxX = max (maxX, x1-width, x1+width, x2-width, x2+width);
+			minY = min (minY, y1-width, y1+width, y2-width, y2+width);
+			maxY = max (maxY, y1-width, y1+width, y2-width, y2+width);
 		}
 	}
 
@@ -727,11 +741,11 @@ ViewEE.prototype.calculateBounds = function() {
 					x2 = line.x2,
 					y1 = line.y1,
 					y2 = line.y2,
-					width = line.width;
-				if (x1-width < minX) { minX = x1-width; } if (x1+width > maxX) { maxX = x1+width; }
-				if (x2-width < minX) { minX = x2-width; } if (x2+width > maxX) { maxX = x2+width; }
-				if (y1-width < minY) { minY = y1-width; } if (y1+width > maxY) { maxY = y1+width; }
-				if (y2-width < minY) { minY = y2-width; } if (y2+width > maxY) { maxY = y2+width; }
+					width = line.width || this.minLineWidth;
+				minX = min (minX, x1-width, x1+width, x2-width, x2+width);
+				maxX = max (maxX, x1-width, x1+width, x2-width, x2+width);
+				minY = min (minY, y1-width, y1+width, y2-width, y2+width);
+				maxY = max (maxY, y1-width, y1+width, y2-width, y2+width);
 			}
 		}
 	}
@@ -747,10 +761,10 @@ ViewEE.prototype.calculateBounds = function() {
 				y1 = elem.y + rotMat[2]*smd.x1 + rotMat[3]*smd.y1,
 				x2 = elem.x + rotMat[0]*smd.x2 + rotMat[1]*smd.y2,
 				y2 = elem.y + rotMat[2]*smd.x2 + rotMat[3]*smd.y2;
-			if (x1 < minX) { minX = x1; } if (x1 > maxX) { maxX = x1; }
-			if (x2 < minX) { minX = x2; } if (x2 > maxX) { maxX = x2; }
-			if (y1 < minY) { minY = y1; } if (y1 > maxY) { maxY = y1; }
-			if (y2 < minY) { minY = y2; } if (y2 > maxY) { maxY = y2; }
+			minX = min (minX, x1, x2);
+			maxX = max (maxX, x1, x2);
+			minY = min (minY, y1, y2);
+			maxY = max (maxY, y1, y2);
 		}
 		for (var wireIdx in pkg.wires) {
 			var wire = pkg.wires[wireIdx],
@@ -758,17 +772,16 @@ ViewEE.prototype.calculateBounds = function() {
 				y1 = elem.y + rotMat[2]*wire.x1 + rotMat[3]*wire.y1,
 				x2 = elem.x + rotMat[0]*wire.x2 + rotMat[1]*wire.y2,
 				y2 = elem.y + rotMat[2]*wire.x2 + rotMat[3]*wire.y2,
-				width = wire.width;
-			if (x1-width < minX) { minX = x1-width; } if (x1+width > maxX) { maxX = x1+width; }
-			if (x2-width < minX) { minX = x2-width; } if (x2+width > maxX) { maxX = x2+width; }
-			if (y1-width < minY) { minY = y1-width; } if (y1+width > maxY) { maxY = y1+width; }
-			if (y2-width < minY) { minY = y2-width; } if (y2+width > maxY) { maxY = y2+width; }
-			if (x1 < minX) { minX = x1; } if (x1 > maxX) { maxX = x1; }
-			if (x2 < minX) { minX = x2; } if (x2 > maxX) { maxX = x2; }
-			if (y1 < minY) { minY = y1; } if (y1 > maxY) { maxY = y1; }
-			if (y2 < minY) { minY = y2; } if (y2 > maxY) { maxY = y2; }
+				width = wire.width || this.minLineWidth;
+			minX = min (minX, x1-width, x1+width, x2-width, x2+width);
+			maxX = max (maxX, x1-width, x1+width, x2-width, x2+width);
+			minY = min (minY, y1-width, y1+width, y2-width, y2+width);
+			maxY = max (maxY, y1-width, y1+width, y2-width, y2+width);
 		}
 	}
+
+	// console.log ("board size:", [minX, minY, maxX, maxY]);
+
 	return [minX, minY, maxX, maxY];
 }
 
