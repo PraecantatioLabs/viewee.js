@@ -267,7 +267,7 @@ ViewEE.prototype.loadUrl = function (url) {
 	var defaultUrl;
 
 	var form = this.node.querySelector (this.formSelector);
-	if (form) {
+	if (form && !url) {
 		var option = form.querySelector ("select.board option");
 		defaultUrl = option.value;
 	}

@@ -40,6 +40,9 @@ function loadGithubRepositories (searchString) {
 		order: "desc"
 	}
 
+	var searchForm = document.querySelector ('form.search');
+	searchForm.classList.add ('pending');
+
 	var queryString = '?' + Object.keys (query).map (function (k) {
 		return k + '=' + encodeURIComponent (query[k].constructor === Array ? query[k].join (' ') : query[k]);
 	}).join ('&');
@@ -48,6 +51,8 @@ function loadGithubRepositories (searchString) {
 
 	getPage ([site, apiPath, queryString].join (''), function (req) {
 		console.log (req);
+
+		searchForm.classList.remove ('pending');
 
 		var res = checkResponse (req);
 
@@ -66,6 +71,9 @@ function loadGithubRepoFiles (repo, li) {
 		order: "desc"
 	}
 
+	var infoBlock = li.querySelector ('.info');
+	infoBlock.classList.add ('pending');
+
 	var queryString = '?' + Object.keys (query).map (function (k) {
 		return k + '=' + encodeURIComponent (query[k].constructor === Array ? query[k].join (' ') : query[k]);
 	}).join ('&');
@@ -73,6 +81,9 @@ function loadGithubRepoFiles (repo, li) {
 	console.log (site, apiPath, queryString);
 
 	getPage ([site, apiPath, queryString].join (''), function (req) {
+
+		infoBlock.classList.remove ('pending');
+
 		console.log (req);
 
 		var res = checkResponse (req);

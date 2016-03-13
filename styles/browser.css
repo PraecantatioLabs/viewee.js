@@ -36,8 +36,8 @@ div.viewee {
 
 form.search input[type=text] {
 	font-size: larger;
-	width: calc(100% - 2em - 25px);
-	margin: .25em 1em;
+	width: calc(100% - .5em - 25px);
+	margin: .25em;
 	background: url(../github.svg) 0 0 no-repeat;
 	padding-left: 25px;
 }
