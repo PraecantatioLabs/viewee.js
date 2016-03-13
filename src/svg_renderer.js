@@ -157,7 +157,7 @@
 
 		var scaleX = (scale * baseScale * board.ratio * (board.boardFlipped ? -1.0 : 1.0)).toFixed (significantDigits);
 		var scaleY = ((board.coordYFlip ? 1 : -1) * scale  * baseScale * board.ratio).toFixed (significantDigits);
-		var scaleTransY = board.coordYFlip ? 0 : board.nativeBounds[3].toFixed (significantDigits);
+		var scaleTransY = board.coordYFlip ? 0 : (board.nativeBounds[3] - board.nativeBounds[1]).toFixed (significantDigits);
 
 		var transX = (board.boardFlipped ? -board.nativeBounds[2] : -board.nativeBounds[0]).toFixed (significantDigits);
 		var transY = (-board.nativeBounds[1]).toFixed (significantDigits); //board.coordYFlip ? 0 : board.nativeBounds[1]; //-board.nativeBounds[1];
