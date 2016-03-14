@@ -585,7 +585,7 @@ KicadNewParser.prototype.parseModule = function (cmd) {
 
 	// TODO: recheck
 	if (cmd.attrs.layer[0] === "Back" || cmd.attrs.layer[0] === "B.Cu") {
-		el.rot = "M"+el.rot;
+		// el.rot = "M"+el.rot;
 	}
 
 	el.matrix = this.board.matrixForRot (el.rot);
