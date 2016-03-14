@@ -151,6 +151,10 @@ function renderFileList (res, parent) {
 				.replace (/\/blob/, "")
 			);
 
+			var vieweeControls = document.querySelector ('.viewee .controls');
+			
+			vieweeControls.classList.add ('pending');
+
 		});
 		results.appendChild (li);
 	});
