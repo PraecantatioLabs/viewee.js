@@ -46,12 +46,12 @@
 
 	<body onload="ViewEE.init()">
 		<div style="font-family: vector; visibility: hidden; position: absolute; opacity: .01"> </div>
-		<div id="outer">
+		<div class="viewee">
 			<div id="hintsbox">
 
 				<p><span id="hintstitle"></span> <span id="hintstext"></span></p>
 			</div>
-			<form id="controls">
+			<form class="controls">
 				<a href="http://cuwire.io/viewee/" style="top: 0; left: 0; position: absolute; padding: 2px;">
 					<img src="logo.svg" style="width: 32px;"/>
 				</a>
@@ -61,8 +61,10 @@
 					<input type="radio" id="side-back" value="back" name="side"/>
 					<label for="side-back">Back</label>
 				</div>
-				<div class="button zoomIn" id="zoominbutton">+</div>
-				<div class="button zoomOut" id="zoomoutbutton">-</div>
+				<div class="split">
+					<button type="button" class="button zoomIn" id="zoominbutton">+</button>
+					<button type="button" class="button zoomOut" id="zoomoutbutton">-</button>
+				</div>
 				<div class="button dropdown" id="showlayerbutton">
 					Layers...
 					<ul class="layers">
@@ -78,20 +80,19 @@
 					</ul>
 				</div>
 			</form>
-			<div id="hcenter">
-				<div id="vcenter">
+			<div class="hcenter">
+				<div class="vcenter">
 
+					<canvas class="canvas" width="800" height="600"></canvas>
+					<!--
 
-<canvas id="canvas" width="800" height="600"></canvas>
-<!--
-<svg id="canvas"></svg>
+<svg class="canvas"></svg>
 -->
 
 				</div>
 			</div>
 		</div>
-	<script type="text/javascript" src="data.js"></script>
-
-</body>
+		<script type="text/javascript" src="data.js"></script>
+	</body>
 
 </html>
