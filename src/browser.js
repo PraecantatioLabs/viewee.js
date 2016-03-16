@@ -16,16 +16,28 @@ document.addEventListener ('DOMContentLoaded', function () {
 			})[0];
 
 			var tokens = searchInput.value.split(' ').map (function (token) {
-				if (token.indexOf ('repo:') !== 0 && token.match (/.+\//)) return 'repo:' + token;
+				if (token.indexOf ('repo:') !== 0 && token.match (/^[\w-\._]+\/[\w-\._]+$/)) return 'repo:' + token;
 				return token;
 			});
 
-			var containsRepo = tokens.some (function (token) {
-				if (token.match (/(?:repo\:)?.+\//)) return true;
+			var urls = [];
+			tokens.some (function (token) {
+				var m = token.match (/https?:\/\/((?:\w+\.)?github\.com)?/);
+				if (m && m[1].match (/github\.com$/)) {
+					console.log ("this is a github url");
+					urls.push (githubCORSUrl (token));
+					return true;
+				}
 			});
 
-			// github requires to have at least user, org or repo in search query for code
-			if ((targetInput && targetInput.value === 'file') || containsRepo) {
+			var containsRepo = tokens.some (function (token) {
+				if (token.match (/repo\:[\w-\._]+\/[\w-\._]+/)) return true;
+			});
+
+			if (urls.length) {
+				ViewEE.init (urls[0]);
+			} else if ((targetInput && targetInput.value === 'file') || containsRepo) {
+				// github requires to have at least user, org or repo in search query for code
 				loadGithubRepoFiles (tokens);
 			} else {
 				loadGithubRepositories (searchInput.value);
@@ -88,7 +100,7 @@ function loadGithubRepoFiles (repo, li) {
 		var infoBlock = li.querySelector ('.info');
 		infoBlock.classList.add ('pending');
 	} else {
-		query.q.push ("fork:true");
+		// query.q.push ("fork:true");
 	}
 
 	var queryString = '?' + Object.keys (query).map (function (k) {
@@ -164,10 +176,7 @@ function renderFileList (res, parent) {
 
 			li.classList.add ('active');
 
-			ViewEE.init (repoFile.html_url
-				.replace (/^https\:\/\/github\.com/, "https://cdn.rawgit.com")
-				.replace (/\/blob/, "")
-			);
+			ViewEE.init (githubCORSUrl (repoFile.html_url));
 
 			var vieweeControls = document.querySelector ('.viewee .controls');
 
@@ -177,6 +186,12 @@ function renderFileList (res, parent) {
 		results.appendChild (li);
 	});
 
+}
+
+function githubCORSUrl (githubUrl) {
+	return githubUrl
+		.replace (/^https\:\/\/github\.com/, "https://cdn.rawgit.com")
+		.replace (/\/blob/, "")
 }
 
 function checkResponse (req) {
