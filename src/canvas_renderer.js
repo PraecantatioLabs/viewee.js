@@ -88,6 +88,7 @@ CanvasRenderer.prototype.draw = function() {
 		this._currentLayerDrawRoutines = [];
 	}
 
+	ctx.restore ();
 }
 
 CanvasRenderer.prototype.redraw = function () {

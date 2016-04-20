@@ -23,37 +23,59 @@
 		<script type="text/javascript" src="src/viewee.js"></script>
 
 		<script type="text/javascript" src="src/interface.js"></script>
-		<!--script type="text/javascript">
-			var errors = [];
-			window.onerror = function (err) {
-				if ('body' in document) {
-					document.body.appendChild (HtmlEl ("div", {}, err));
-				} else {
-					errors.push (err);
-				}
-			}
-
-			document.addEventListener ('DOMContentLoaded', function () {
-				errors.forEach (function (err) {
-					document.body.appendChild (HtmlEl ("div", {}, err));
-				})
-
-			});
-		</script-->
 
 	</head>
 
 
-	<body onload="ViewEE.init()">
+	<body>
 		<div style="font-family: vector; visibility: hidden; position: absolute; opacity: .01"> </div>
-		<div id="outer">
+		<div class="log" style="position: absolute;"></div>
+		<div class="viewee">
 			<div id="hintsbox">
 
 				<p><span id="hintstitle"></span> <span id="hintstext"></span></p>
 			</div>
-			<form id="controls">
+			<form class="controls">
 				<a href="http://cuwire.io/viewee/" style="top: 0; left: 0; position: absolute; padding: 2px;">
-					<img src="logo.svg" style="width: 32px;"/>
+					<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+						 width="32px" height="32px" viewBox="0 0 16 16" enable-background="new 0 0 16 16" xml:space="preserve">
+						<style type="text/css">
+							<![CDATA[
+							.thick {fill: none; stroke: #663300; stroke-width: 1.1454; stroke-miterlimit: 10;}
+							.thin  {fill: none; stroke: #663300; stroke-width: 0.5727; stroke-miterlimit: 10;}
+							]]>
+						</style>
+
+						<g>
+							<line class="thick" x1="5.946" y1="3.259" x2="5.884" y2="0.91"/>
+
+							<line class="thick" x1="10.848" y1="15.091" x2="10.785" y2="12.742"/>
+							<line class="thick" x1="3.624" y1="10.42" x2="1.275" y2="10.482"/>
+							<line class="thick" x1="3.303" y1="6.357" x2="1.598" y2="4.741"/>
+
+							<line class="thick" x1="15.134" y1="11.259" x2="13.429" y2="9.643"/>
+							<line class="thick" x1="6.724" y1="13.063" x2="5.107" y2="14.769"/>
+							<line class="thick" x1="11.624" y1="1.232" x2="10.008" y2="2.937"/>
+							<line class="thick" x1="7.945" y1="2.693" x2="8.786" y2="0.5"/>
+							<line class="thick" x1="7.945" y1="15.5" x2="8.786" y2="13.307"/>
+							<line class="thick" x1="3.06" y1="8.421" x2="0.866" y2="7.58"/>
+							<line class="thick" x1="4.316" y1="4.545" x2="3.359" y2="2.399"/>
+
+							<line class="thick" x1="13.372" y1="13.602" x2="12.415" y2="11.455"/>
+							<line class="thick" x1="4.911" y1="12.05" x2="2.766" y2="13.007"/>
+						</g>
+						<g>
+							<g>
+								<line   class="thin" x1="13.877" y1="5.919" x2="11.871" y2="8.92"/>
+								<circle class="thin" cx="11.438" cy="9.637" r="0.845"/>
+								<circle class="thin" cx="14.325" cy="5.275" r="0.846"/>
+							</g>
+							<g>
+								<line   class="thin" x1="13.363" y1="5.234" x2="9.762" y2="4.998"/>
+								<circle class="thin" cx="8.924" cy="4.982" r="0.846"/>
+							</g>
+						</g>
+					</svg>
 				</a>
 				<div class="split">
 					<input type="radio" id="side-front" value="front" name="side" checked="true"/>
@@ -61,8 +83,10 @@
 					<input type="radio" id="side-back" value="back" name="side"/>
 					<label for="side-back">Back</label>
 				</div>
-				<div class="button zoomIn" id="zoominbutton">+</div>
-				<div class="button zoomOut" id="zoomoutbutton">-</div>
+				<div class="split">
+					<button type="button" class="button zoomIn" id="zoominbutton">+</button>
+					<button type="button" class="button zoomOut" id="zoomoutbutton">-</button>
+				</div>
 				<div class="button dropdown" id="showlayerbutton">
 					Layers...
 					<ul class="layers">
@@ -78,20 +102,19 @@
 					</ul>
 				</div>
 			</form>
-			<div id="hcenter">
-				<div id="vcenter">
+			<div class="hcenter">
+				<div class="vcenter">
 
-
-<canvas id="canvas" width="800" height="600"></canvas>
-<!--
-<svg id="canvas"></svg>
+					<!--
+<canvas class="canvas" width="800" height="600"></canvas>
 -->
+
+<svg class="canvas" width="800" height="600"></svg>
 
 				</div>
 			</div>
 		</div>
-	<script type="text/javascript" src="data.js"></script>
-
-</body>
+		<script type="text/javascript" src="data.js"></script>
+	</body>
 
 </html>
