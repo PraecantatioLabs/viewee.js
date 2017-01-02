@@ -10,6 +10,10 @@
 	}
 }(this, function () {
 
+	if (typeof DOMParser === "undefined" && typeof process !== undefined) {
+		DOMParser = require ('xmldom').DOMParser;
+	}
+
 	function EagleXMLParser (board) {
 		this.context = [];
 		this.chunk = ""; // TODO: use a node compatible Buffers
@@ -574,7 +578,7 @@
 		} else if (-0.0000001 < dAngle2 && dAngle2 < 0.0000001) {
 			return [cx2, cy2, rad21, r];
 		} else {
-			console.log ("something wrong: angle:", angle, "angle1:", angle1, "dangle1", (-0.0000001 < dAngle1 || dAngle1 < 0.0000001), "angle2:", angle2, "dangle2:", (-0.0000001 < dAngle2 || dAngle2 < 0.0000001));
+			console.log ("something wrong: angle:", angle, "angle1:", angle1, "dangle1", (-0.0000001 < dAngle1 && dAngle1 < 0.0000001), "angle2:", angle2, "dangle2:", (-0.0000001 < dAngle2 && dAngle2 < 0.0000001));
 			return [cx2, cy2, rad21, r];
 		}
 
@@ -755,11 +759,11 @@
 	}
 
 
-	if (typeof process !== "undefined") {
-		var ex = new EagleXMLParser ();
-		var fs = require ("fs");
-		ex.parse (fs.readFileSync (process.argv[2]));
-	}
+//	if (typeof process !== "undefined") {
+//		var ex = new EagleXMLParser ();
+//		var fs = require ("fs");
+//		ex.parse (fs.readFileSync (process.argv[2]));
+//	}
 
 	return EagleXMLParser;
 

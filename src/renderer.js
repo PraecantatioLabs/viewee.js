@@ -15,10 +15,10 @@
 	// ---------------
 
 	function ViewEERenderer (board) {
-		var canvas = board.canvas,
-			ctx    = canvas.getContext('2d');
-
-		this.canvas = canvas;
+//		var canvas = board.canvas,
+//			ctx    = canvas.getContext('2d');
+//
+//		this.canvas = canvas;
 		this.board  = board;
 
 		this.warnings = [];

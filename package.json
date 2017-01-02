@@ -1,0 +1,31 @@
+{
+  "name": "viewee",
+  "version": "1.3.0",
+  "description": "Library to view various EE formats",
+  "main": "index.js",
+  "module": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "browserify src/index.js -o dist/viewee.js",
+    "watch": "watchify src/index.js -o dist/viewee.js --debug --verbose",
+    "start": "php -S 127.0.0.1:50301"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cuwire/viewee.js.git"
+  },
+  "keywords": [
+    "eagle",
+    "kicad",
+    "gerber",
+    "geda",
+    "pcb",
+    "schematic"
+  ],
+  "author": "Ivan Baktsheev <dot.and.thing@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cuwire/viewee.js/issues"
+  },
+  "homepage": "https://github.com/cuwire/viewee.js#readme"
+}

@@ -10,6 +10,18 @@
 	}
 }(this, function () {
 
+	if (typeof ViewEERenderer === "undefined" && typeof process !== undefined) {
+		ViewEERenderer = require (__dirname + '/renderer.js');
+	}
+
+	if (typeof SvgEl === "undefined" && typeof process !== undefined) {
+		var el = require (__dirname + '/../lib/htmlel.js');
+		var HtmlEl = el.HtmlEl;
+		var SvgEl  = el.SvgEl;
+		var document;
+		var window;
+	}
+
 	// ---------------
 	// --- HELPERS ---
 	// ---------------
@@ -70,6 +82,16 @@
 
 	function SVGRenderer (board) {
 		var svg = board.svg;
+
+		if (document === void 0) {
+			document = svg.ownerDocument;
+			SvgEl = function (name, attrs) {
+				attrs = Object.create (attrs || {});
+				attrs.xmlns = "http://www.w3.org/2000/svg";
+				var args = [].slice.call (arguments, 2);
+				return HtmlEl.apply ({document: document}, [].concat ([name, attrs], args));
+			}
+		}
 
 		this.el    = svg;
 		this.board = board;
