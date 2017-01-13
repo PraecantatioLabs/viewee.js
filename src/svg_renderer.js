@@ -1,14 +1,5 @@
-(function (root, factory) {
-	if(typeof define === "function" && define.amd) {
-		define(function(){
-			return factory();
-		});
-	} else if(typeof module === "object" && module.exports) {
-		module.exports = factory();
-	} else {
-		root.ViewEESVGRenderer = factory();
-	}
-}(this, function () {
+
+import {DOMParser, XMLSerializer} from '../lib/xmldom';
 
 	if (typeof ViewEERenderer === "undefined" && typeof process !== undefined) {
 		ViewEERenderer = require (__dirname + '/renderer.js');
@@ -80,7 +71,12 @@
 	// --- DRAWING ---
 	// ---------------
 
-	function SVGRenderer (board) {
+	export default function SVGRenderer (board) {
+		if (!board.svg) {
+			var doc = new DOMParser ().parseFromString ('<html><body></body></html>', 'text/html');
+			board.svg = doc.createElementNS ('http://www.w3.org/2000/svg', 'svg');
+		}
+
 		var svg = board.svg;
 
 		if (document === void 0) {
@@ -621,7 +617,3 @@
 //		ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 //		ctx.restore();
 	};
-
-	return SVGRenderer;
-
-}));

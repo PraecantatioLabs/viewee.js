@@ -2,29 +2,23 @@ var assert = require ('assert');
 var crypto = require ('crypto');
 var fs     = require ("fs");
 
-var DOMParser     = require ('xmldom').DOMParser;
-var XMLSerializer = require ('xmldom').XMLSerializer;
+var xmldom        = require ('xmldom');
+var DOMParser     = xmldom.DOMParser;
+var XMLSerializer = xmldom.XMLSerializer;
 
 var testCommon = require ('./common.js');
 
 var baseName = testCommon.baseName (__filename);
 
-// var ViewEE = require ('../');
-var Util = require ('../src/util');
+import ViewEEBoard from '../src/board';
 
-var ViewEEBoard = require ('../src/board');
+import EagleXMLParser from '../src/eagle_xml_parser';
 
-var EagleXMLParser = require ('../src/eagle_xml_parser');
-
-var SVGRenderer = require ('../src/svg_renderer');
+import SVGRenderer from '../src/svg_renderer';
 
 describe (baseName + " running", () => {
 
-	var doc = new DOMParser ().parseFromString ('<html><body></body></html>', 'text/html');
-
 	var board = new ViewEEBoard ();
-	// TODO: remove hacks
-	board.svg = doc.createElementNS ('http://www.w3.org/2000/svg', 'svg');
 
 	it ("should parse eagle file", function (done) {
 
@@ -44,7 +38,7 @@ describe (baseName + " running", () => {
 			board.nativeBounds[3] - board.nativeBounds[1]
 		];
 
-		console.log (board);
+		// console.log (board);
 
 		done ();
 
@@ -56,7 +50,12 @@ describe (baseName + " running", () => {
 
 		svgRenderer.draw ();
 
-		// console.log (new XMLSerializer ().serializeToString (board.svg));
+		console.log (new XMLSerializer ().serializeToString (board.svg));
+
+		var gNodes = board.svg.getElementsByTagNameNS ('http://www.w3.org/2000/svg', 'g');
+
+		// console.log (gNodes.length);
+		// console.log (gNodes);
 
 		done ();
 	});
