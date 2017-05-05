@@ -3,6 +3,8 @@
 ViewEE is a software to view PCB layouts in various formats. Currently supported are Cadsoft Eagle `.brd`
 , Kicad `.kicad_pcb` and gEDA `.pcb` formats.
 
+![BrowserStack](https://www.browserstack.com/automate/badge.svg?badge_key=UFVzZlZaQkI4ZmwxYVBGTVNxcnpLd0NJU1EwNkoxbld6eVJlbXY4TW1PRT0tLWZZS1pUdVR4VG92aHRzcmJieHlCaWc9PQ==--c1c9b90dfe3a738f88e42f912f255e8f0f9e3511)
+
 [More information](http://cuwire.io/viewee/)
 
 ### Issues
@@ -46,4 +48,4 @@ Huge thanks to people who created the original version
 for [Eagle board viewer](https://github.com/presseverykey/everywhere-eagle-viewer)
 and inspired me to [fix some bugs](https://github.com/presseverykey/everywhere-eagle-viewer/issues/3) and create derived software.
 
-
+Rendering test with [BrowserStack](https://browserstack.com)
