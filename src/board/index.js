@@ -15,6 +15,8 @@ export default class ViewEEBoard {
 
 	constructor () {
 
+		this.minLineWidth = 0.05;
+
 		// layers initialized after board data arrival from parser
 
 	}

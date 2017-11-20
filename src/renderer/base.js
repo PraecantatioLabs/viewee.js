@@ -1,4 +1,4 @@
-import {matrixForRot} from './util';
+import {matrixForRot} from '../util';
 
 // ---------------
 // --- DRAWING ---
@@ -219,6 +219,7 @@ export default class PCBRenderer {
 
 				this.drawHole (Object.assign ({}, via, {
 					strokeStyle: color || this.viaPadColor(),
+					strokeWidth: board.minLineWidth, // TODO: bad width
 					diameter: via.diameter || 1.5 * via.drill, // TODO: bad width
 				}), layerCtx);
 
@@ -290,10 +291,12 @@ export default class PCBRenderer {
 				var borderRadius = Math.min (Math.abs (smdDX), Math.abs (smdDY)) / 2;
 				if (smd.roundness) {
 					borderRadius *= smd.roundness / 100;
-					smdDx1 += 1 * smdXDir * borderRadius,
-						smdDx2 -= 1 * smdXDir * borderRadius,
-						smdDy1 += 1 * smdYDir * borderRadius,
-						smdDy2 -= 1 * smdYDir * borderRadius;
+
+					smdDx1 += 1 * smdXDir * borderRadius;
+					smdDx2 -= 1 * smdXDir * borderRadius;
+					smdDy1 += 1 * smdYDir * borderRadius;
+					smdDy2 -= 1 * smdYDir * borderRadius;
+
 					var drawSmdCircle = (smd.roundness === 100 && Math.abs (smdDX) === Math.abs (smdDY));
 				}
 

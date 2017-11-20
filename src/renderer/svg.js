@@ -1,11 +1,10 @@
+import {DOMParser, XMLSerializer} from '../../lib/xmldom';
 
-import {DOMParser, XMLSerializer} from '../lib/xmldom';
+import PCBRenderer from './base';
 
-import PCBRenderer from './renderer';
+import {SvgEl as SVGEl, HtmlEl} from '../../lib/htmlel.js';
 
-import {SvgEl as SVGEl, HtmlEl} from '../lib/htmlel.js';
-
-import {angleForRot, matrixForRot} from './util';
+import {angleForRot, matrixForRot} from '../util';
 
 // ---------------
 // --- HELPERS ---
@@ -57,6 +56,9 @@ function describeArcRadians (x, y, radius, startAngle, endAngle){
 		"M", start.x.toFixed (significantDigits), start.y.toFixed (significantDigits),
 		"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (significantDigits), end.y.toFixed (significantDigits)
 	].join(" ");
+
+	if (d.match (/NaN/))
+		console.warn ("Arc conversion error");
 
 	return d;
 }
@@ -160,8 +162,12 @@ export default class SVGRenderer extends PCBRenderer {
 
 	getScope (ctx, attrs) {
 
-		var groups = [].concat (ctx.childNodes).filter (
-			g => g.localName === 'g' && g.getAttribute ('name') === attrs.name
+		var groups = [].slice.apply (ctx.childNodes).filter (
+			g => {
+				// console.log ('=====', Object.keys(g));
+				// console.log ('type %s localName %s @name %s', g.nodeType, g.localName)//, g.getAttribute ('name'))
+				return g.nodeType === 1 && g.localName === 'g' && g.getAttribute ('name') === attrs.name
+			}
 		);
 		var g;
 		// var g = ctx.querySelector ('g[name="'+attrs.name+'"]');
@@ -170,6 +176,7 @@ export default class SVGRenderer extends PCBRenderer {
 		} else {
 			g = this.SVGEl ('g', {name: attrs.name});
 			ctx.appendChild (g);
+			ctx.appendChild ((ctx.ownerSVGElement || ctx.ownerDocument).createTextNode ("\n"));
 		}
 
 		for (var a in attrs) {
@@ -530,7 +537,7 @@ export default class SVGRenderer extends PCBRenderer {
 			drillRadius = (hole.drill + restring)/2 || hole.drill/2 + hole.strokeWidth/2;
 
 			if (isNaN (restring))
-				console.log (hole.diameter, hole.drill, hole.strokeWidth, drillRadius);
+				console.log ('RESTRING is NaN', hole.diameter, hole.drill, hole.strokeWidth, drillRadius);
 		}
 
 		// two arcs
@@ -670,8 +677,10 @@ export default class SVGRenderer extends PCBRenderer {
 			className: 'package-rect',
 			d: dAttr,
 			fill: poly.fillStyle,
-			//"stroke-width": board.minLineWidth,
-			"stroke-linecap": "round"
+			"stroke-width": poly.strokeWidth,
+			"stroke": poly.strokeStyle,
+			"stroke-linecap": "round",
+			"stroke-linejoin": "round"
 		}));
 	}
 
