@@ -1,39 +1,53 @@
-(function (root, factory) {
-	if(typeof define === "function" && define.amd) {
-		define(function(){
-			return factory();
-		});
-	} else if(typeof module === "object" && module.exports) {
-		module.exports = factory();
-	} else {
-		root.ViewEECanvasRenderer = factory();
-	}
-}(this, function () {
+import PCBRenderer from './renderer/base';
+
+import { createCanvas, loadImage } from 'canvas';
+
+import {angleForRot, matrixForRot} from './util';
 
 // ---------------
 // --- DRAWING ---
 // ---------------
 
-function CanvasRenderer (board) {
-	var canvas = board.canvas,
-		ctx    = canvas.getContext('2d');
+export default class CanvasRenderer extends PCBRenderer {
+
+	constructor (board, canvas) {
+
+	super();
+
+	var bounds = board.calculateBounds (),
+		width  = Math.abs(bounds[2] - bounds[0]),
+		height = Math.abs(bounds[3] - bounds[1]);
+
+	if (!canvas) {
+
+		// console.log ('DOCUMENT', Object.keys (document));
+		if (typeof window === 'undefined') {
+			canvas = createCanvas (width, height);
+
+		} else {
+			canvas = document.createElement ('canvas');
+			canvas.width = width + 'px';
+			canvas.height = height + 'px';
+		}
+
+	}
+
+	var ctx    = canvas.getContext('2d');
 
 	this.canvas = canvas;
 	this.board  = board;
 
 	this.warnings = [];
-
-	this.cacheDrawingOperations = true;
 }
 
-CanvasRenderer.prototype = Object.create (ViewEERenderer.prototype);
+// CanvasRenderer.prototype = Object.create (PCBRenderer.prototype);
 
-CanvasRenderer.prototype.getScope = function (ctx, attrs) {
+	getScope (ctx, attrs) {
 	// canvas have no usable rendering context, like svg grouping
 	return ctx;
 }
 
-CanvasRenderer.prototype.scaleCanvas = function () {
+	scaleCanvas () {
 	var canvas = this.canvas,
 		ctx    = canvas.getContext('2d'),
 		board  = this.board;
@@ -55,7 +69,7 @@ CanvasRenderer.prototype.scaleCanvas = function () {
 	);
 }
 
-CanvasRenderer.prototype.draw = function() {
+	draw () {
 
 	var canvas = this.canvas,
 		ctx    = canvas.getContext('2d'),
@@ -65,6 +79,10 @@ CanvasRenderer.prototype.draw = function() {
 		return;
 
 	this.scaleCanvas();
+
+	this.drawLayers (ctx);
+
+	return;
 
 	this._currentLayerDrawRoutines = [];
 	this.layerDrawRoutines = {};
@@ -91,7 +109,7 @@ CanvasRenderer.prototype.draw = function() {
 	ctx.restore ();
 }
 
-CanvasRenderer.prototype.redraw = function () {
+	redraw () {
 	var canvas = this.canvas,
 		ctx    = canvas.getContext('2d'),
 		board  = this.board;
@@ -120,7 +138,7 @@ CanvasRenderer.prototype.redraw = function () {
 
 // primitives drawings is cached, actual drawing functions called on redraw
 
-CanvasRenderer.prototype._drawSingleWire = function (wire, ctx) {
+	drawSingleWire (wire, ctx) {
 	ctx.save();
 	ctx.beginPath();
 
@@ -141,7 +159,7 @@ CanvasRenderer.prototype._drawSingleWire = function (wire, ctx) {
 
 	if (lineDash) ctx.setLineDash (lineDash);
 
-	this._drawWire (wire, ctx);
+	this.drawWire (wire, ctx);
 
 	ctx.lineWidth = wire.width;
 	ctx.strokeStyle = wire.strokeStyle;
@@ -149,13 +167,13 @@ CanvasRenderer.prototype._drawSingleWire = function (wire, ctx) {
 	ctx.restore();
 }
 
-CanvasRenderer.prototype._drawWire = function (wire, ctx) {
+drawWire (wire, ctx) {
 
 	ctx.save();
 
 	if (wire.curve) {
 
-		var angle = this.board.angleForRot (wire.rot);
+		var angle = angleForRot (wire.rot);
 
 		var rotate = angle.degrees / 180 * Math.PI;
 
@@ -170,7 +188,7 @@ CanvasRenderer.prototype._drawWire = function (wire, ctx) {
 
 		ctx.translate(wire.x, wire.y);
 		// ctx.rotate(rotation);
-		ctx.scale(radiusX, radiusY);
+		ctx.scale(mirror ? -radiusX : radiusX, radiusY);
 		ctx.arc(0, 0, 1, rotate + wire.start, rotate + wire.start + wire.angle); //, antiClockwise
 
 		if (wire.filled) {
@@ -183,10 +201,9 @@ CanvasRenderer.prototype._drawWire = function (wire, ctx) {
 	}
 
 	ctx.restore();
-
 }
 
-CanvasRenderer.prototype._drawHole = function (hole, ctx) {
+drawHole (hole, ctx) {
 
 	var board = this.board;
 
@@ -209,7 +226,7 @@ CanvasRenderer.prototype._drawHole = function (hole, ctx) {
 		]};
 
 		ctx.fillStyle = hole.strokeStyle;
-		this._drawRawPoly (poly, ctx);
+		this.drawRawPoly (poly, ctx);
 
 	} else if (hole.shape === 'octagon') {
 		// TODO: support rotation
@@ -226,7 +243,7 @@ CanvasRenderer.prototype._drawHole = function (hole, ctx) {
 		]};
 
 		ctx.fillStyle = hole.strokeStyle;
-		this._drawRawPoly (poly, ctx);
+		this.drawRawPoly (poly, ctx);
 
 	} else {
 		if (hole.shape !== 'circle') {
@@ -257,7 +274,7 @@ CanvasRenderer.prototype._drawHole = function (hole, ctx) {
 	}
 }
 
-CanvasRenderer.prototype._drawRawPoly = function (poly, ctx) {
+drawRawPoly (poly, ctx) {
 
 	ctx.lineJoin = 'round';
 	ctx.lineCap  = 'round';
@@ -272,11 +289,11 @@ CanvasRenderer.prototype._drawRawPoly = function (poly, ctx) {
 	ctx.closePath();
 }
 
-CanvasRenderer.prototype._drawFilledPoly = function (poly, ctx) {
+drawFilledPoly (poly, ctx) {
 	ctx.beginPath();
 	ctx.lineWidth = poly.strokeWidth;
 
-	this._drawRawPoly (poly, ctx);
+	this.drawRawPoly (poly, ctx);
 
 	ctx.strokeStyle = poly.strokeStyle;
 	if (poly.strokeStyle) ctx.stroke();
@@ -285,7 +302,7 @@ CanvasRenderer.prototype._drawFilledPoly = function (poly, ctx) {
 
 }
 
-CanvasRenderer.prototype._drawFilledCircle = function (circle, ctx) {
+drawFilledCircle (circle, ctx) {
 
 	ctx.fillStyle = circle.fillStyle;
 	ctx.lineJoin  = "round";
@@ -299,7 +316,7 @@ CanvasRenderer.prototype._drawFilledCircle = function (circle, ctx) {
 
 }
 
-CanvasRenderer.prototype._drawText = function (attrs, text, ctx) {
+drawText (attrs, text, ctx) {
 	var x = attrs.x || text.x,
 		y = attrs.y || text.y,
 		rot = attrs.rot || text.rot || "R0",
@@ -311,11 +328,11 @@ CanvasRenderer.prototype._drawText = function (attrs, text, ctx) {
 	var content = attrs.content || text.content;
 	var color   = attrs.color;
 
-	var textAngle = board.angleForRot (rot);
+	var textAngle = angleForRot (rot);
 
 	//rotation from 90.1 to 270 causes Eagle to draw labels 180 degrees rotated with top right anchor point
 	var degrees  = textAngle.degrees,
-		textRot  = board.matrixForRot(rot),
+		textRot  = matrixForRot(rot),
 		fontSize = 10;
 
 	var font = ''+fontSize+'pt vector';	//Use a regular font size - very small sizes seem to mess up spacing / kerning
@@ -386,15 +403,18 @@ CanvasRenderer.prototype._drawText = function (attrs, text, ctx) {
 }
 
 
-CanvasRenderer.prototype._dimCanvas = function (alpha, ctx) {
+	dimCanvas (alpha, ctx) {
 	ctx.save();
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
 	ctx.globalCompositeOperation = 'destination-out';
-	ctx.fillStyle = 'rgba(0,0,0,'+alpha+')'
+	ctx.fillStyle = 'rgba(0,0,0,0.5)'
 	ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 	ctx.restore();
-};
+}
 
+}
+
+/*
 	Object.keys (CanvasRenderer.prototype).forEach (function (method) {
 		if (method.charAt (0) === '_' && CanvasRenderer.prototype.hasOwnProperty (method)) {
 			CanvasRenderer.prototype[method.substring (1)] = function () {
@@ -408,7 +428,4 @@ CanvasRenderer.prototype._dimCanvas = function (alpha, ctx) {
 			};
 		}
 	});
-
-	return CanvasRenderer;
-
-}));
+*/

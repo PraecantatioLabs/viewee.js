@@ -14,6 +14,7 @@ import ViewEEBoard from '../src/board';
 import EagleXMLParser from '../src/board/format-eagle-xml';
 
 import SVGRenderer from '../src/renderer/svg';
+import CanvasRenderer from '../src/canvas_renderer';
 
 describe (baseName + " running", () => {
 
@@ -113,7 +114,7 @@ describe (baseName + " running", () => {
 	it ("should generate svg from board", function (done) {
 		var svgRenderer = new SVGRenderer (board);
 
-		var svgNode = svgRenderer.render ();
+		var svgNode = svgRenderer.draw ();
 
 		var gNodes = svgNode.getElementsByTagNameNS ('http://www.w3.org/2000/svg', 'g');
 
@@ -127,5 +128,34 @@ describe (baseName + " running", () => {
 		// done ();
 	});
 
+	it ("should generate png from board", function (done) {
+		var pngRenderer = new CanvasRenderer (board);
+
+		pngRenderer.draw ();
+
+		var fileStream = fs.createWriteStream ('./test/Arduino-DUE-03.png');
+		var pngStream = pngRenderer.canvas.pngStream ();
+
+		pngStream.on ('data', (chunk) => fileStream.write (chunk));
+		pngStream.on ('end', () => {
+			fileStream.close();
+			done();
+		});
+
+		// pngStream.pipe (fileStream);
+
+		return;
+
+		var gNodes = pngNode.getElementsByTagNameNS ('http://www.w3.org/2000/png', 'g');
+
+		// console.log ([...gNodes].map (node => node.localName));
+
+		fs.writeFile ('./test/Arduino-DUE-03.png', pngRenderer.toString (), done);
+
+		// console.log (gNodes.length);
+		// console.log (gNodes);
+
+		// done ();
+	});
 
 });

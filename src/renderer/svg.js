@@ -333,6 +333,8 @@ export default class SVGRenderer extends PCBRenderer {
 
 		this.drawLayers (g);
 
+		return this.el;
+
 	}
 
 	drawSingleWire (wire, ctx) {
