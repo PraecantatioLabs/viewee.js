@@ -10,7 +10,7 @@ var newLayerMapping = {
 	"outline": "Dimension", // board outline
 	"front-glue": "tGlue", // glue placement
 	"front-finish": "tFinish", // gold finish
-	"front-silk-place": "tPlace",  // silkscreen outline for components
+	"front-silk-places": "tPlace",  // silkscreen outline for components
 	"front-silk-values": "tValues", // silkscreen values for components
 	"front-silk-names": "tNames",  // silkscreen names for components
 	"front-mask-paste": "tCream", // cutout for paste stencil
@@ -28,7 +28,7 @@ var newLayerMapping = {
 	"back-mask-paste": "bCream", // cutout for paste stencil
 	"back-silk-names": "bNames",  // silkscreen names for components
 	"back-silk-values": "bValues", // silkscreen values for components
-	"back-silk-place": "bPlace",  // silkscreen outline for components
+	"back-silk-places": "bPlace",  // silkscreen outline for components
 	"back-finish": "bFinish", // gold finish
 	"back-glue": "bGlue", // glue placement
 };
@@ -54,8 +54,8 @@ var LAYER_MAP = {
 	"18":  { "color":  2, "name": "vias", },
 	// "Unrouted":  { "color":  6, "name": "Unrouted", },
 	"20":  { "color": 15, "name": "outline", },
-	"21":  { "color":  7, "name": "front-silk-place", },
-	"22":  { "color":  7, "name": "back-silk-place", },
+	"21":  { "color":  7, "name": "front-silk-places", },
+	"22":  { "color":  7, "name": "back-silk-places", },
 	"23":  { "color": 15, "name": "front-origins", },
 	"24":  { "color": 15, "name": "back-origins", },
 	"25":  { "color":  7, "name": "front-silk-names", },

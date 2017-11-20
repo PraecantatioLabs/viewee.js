@@ -172,14 +172,26 @@ const MAKE_LAYERS = {
 }
 
 const VIEW_LAYERS = {
+	"outline": {
+		flipOrder: 1000,
+		order: 1000,
+		design: {
+			layers: 'outline milling'.split (' '),
+			draw: 'plain.holes plain.wires'.split (' ')
+		}
+	},
 	"front-docs": {
 		design: {
-			layers: 'front-docs',
+			layers: 'front-docs front-keepout'.split (' '),
 			draw: 'elements plain.wires plain.texts'.split (' ')
 		},
 		order: 600
 	},
 	"front-silk": {
+		design: {
+			layers: 'front-silk-names front-silk-values front-silk-places'.split (' '),
+			draw: 'elements plain.wires plain.texts'.split (' ')
+		},
 		order: 500
 	},
 	"front-mask": {
@@ -225,9 +237,17 @@ const VIEW_LAYERS = {
 		order: -400
 	},
 	"back-silk": {
+		design: {
+			layers: 'back-silk-names back-silk-values back-silk-places'.split (' '),
+			draw: 'elements plain.wires plain.texts'.split (' ')
+		},
 		order: -500
 	},
 	"back-docs": {
+		design: {
+			layers: 'back-docs back-keepout'.split (' '),
+			draw: 'elements plain.wires plain.texts'.split (' ')
+		},
 		order: -600
 	}
 

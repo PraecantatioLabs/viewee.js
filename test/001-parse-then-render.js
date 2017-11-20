@@ -13,7 +13,7 @@ import ViewEEBoard from '../src/board';
 
 import EagleXMLParser from '../src/board/format-eagle-xml';
 
-import SVGRenderer from '../src/svg_renderer';
+import SVGRenderer from '../src/renderer/svg';
 
 describe (baseName + " running", () => {
 
@@ -44,7 +44,7 @@ describe (baseName + " running", () => {
 
 		console.log ('Plain wires:', Object.keys (board.plain.wires).join (', '));
 
-		console.log (board.calculateBounds ());
+		console.log ('Board bounds:', board.calculateBounds ());
 
 		assert.ok (board.nativeSize[0] > 0); // width
 		assert.ok (board.nativeSize[1] > 0); // height
