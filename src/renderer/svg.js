@@ -339,7 +339,8 @@ export default class SVGRenderer extends PCBRenderer {
 		var path = this.drawWire (wire, ctx);
 		path.setAttributeNS (null, 'stroke', wire.strokeStyle);
 		path.setAttributeNS (null, 'stroke-width', wire.width);
-		path.setAttributeNS (null, 'fill', "none");
+		if (!path.getAttributeNS (null, 'fill'))
+			path.setAttributeNS (null, 'fill', "none");
 	}
 
 	drawWire (wire, ctx) {
@@ -377,6 +378,10 @@ export default class SVGRenderer extends PCBRenderer {
 
 			attrs.cx = wire.x;
 			attrs.cy = wire.y;
+
+			if (wire.filled) {
+				attrs.fill = wire.strokeStyle;
+			}
 
 			attrs.r  = wire.radius.constructor === Array ? wire.radius[0] : wire.radius;
 

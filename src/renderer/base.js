@@ -413,7 +413,8 @@ export default class PCBRenderer {
 					curve: wire.curve, rot: elem.rot,
 					x1: x1, y1: y1, x2: x2, y2: y2,
 					x: x, y: y, radius: wire.radius, angle: wire.angle, start: wire.start,
-					strokeStyle: color
+					strokeStyle: color,
+					filled: wire.filled // filled circle
 				}, elemCtx);
 			}, this)
 

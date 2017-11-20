@@ -680,7 +680,8 @@ export default class EagleXML {
 
 	parseCircle (wire) {
 		var width = parseFloat(wire.getAttribute('width'));
-		if (width <= 0.0) width = this.minLineWidth;
+		// if (width <= 0.0)
+		// 	width = this.board.minLineWidth;
 
 		var layer = layerNameByNumber (wire.getAttribute('layer'));
 
@@ -694,6 +695,7 @@ export default class EagleXML {
 			angle: Math.PI * 2,
 			curve: 360,
 			width: width,
+			filled: width ? false : true,
 			layer: layer
 		}
 	}
