@@ -173,6 +173,10 @@ CanvasRenderer.prototype._drawWire = function (wire, ctx) {
 		ctx.scale(radiusX, radiusY);
 		ctx.arc(0, 0, 1, rotate + wire.start, rotate + wire.start + wire.angle); //, antiClockwise
 
+		if (wire.filled) {
+			ctx.fill();
+		}
+
 	} else {
 		ctx.moveTo(wire.x1, wire.y1);
 		ctx.lineTo(wire.x2, wire.y2);
@@ -254,14 +258,16 @@ CanvasRenderer.prototype._drawHole = function (hole, ctx) {
 }
 
 CanvasRenderer.prototype._drawRawPoly = function (poly, ctx) {
+
+	ctx.lineJoin = 'round';
+	ctx.lineCap  = 'round';
+
 	poly.points.forEach (function (point, idx) {
 		if (idx === 0)
 			ctx.moveTo(point.x, point.y);
 		else
 			ctx.lineTo(point.x, point.y);
 	}, this);
-
-	ctx.lineJoin  = "round";
 
 	ctx.closePath();
 }
