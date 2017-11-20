@@ -1,2 +1,4 @@
 *.swp
 .DS_Store
+altium-test
+node_modules

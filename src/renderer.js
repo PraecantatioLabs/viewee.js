@@ -1,20 +1,12 @@
-(function (root, factory) {
-	if(typeof define === "function" && define.amd) {
-		define(function(){
-			return factory();
-		});
-	} else if(typeof module === "object" && module.exports) {
-		module.exports = factory();
-	} else {
-		root.ViewEERenderer = factory();
-	}
-}(this, function () {
+import {matrixForRot} from './util';
 
-	// ---------------
-	// --- DRAWING ---
-	// ---------------
+// ---------------
+// --- DRAWING ---
+// ---------------
 
-	function ViewEERenderer (board) {
+export default class PCBRenderer {
+
+	constructor (board) {
 //		var canvas = board.canvas,
 //			ctx    = canvas.getContext('2d');
 //
@@ -24,52 +16,162 @@
 		this.warnings = [];
 	}
 
+	static get colorPalette () {
+
+		return {
+			"default": [127,127,127],
+			"back-copper": [ 35, 35,141],
+			"via-restict": [ 35,141, 35],
+			"milling": [ 35,141,141],
+			"front-copper": [141, 35, 35],
+			// [141, 35,141],
+			"gold-finish": [141,141, 35],
+			"front-silk": [141,141,141],
+			// [ 39, 39, 39],
+			// [  0,  0,180],
+			// [  0,180,  0],
+			// [  0,180,180],
+			// [180,  0,  0],
+			// [180,  0,180],
+			// [180,180,  0],
+			outline: [ 63, 63, 63],
+			//[  0,  0,  0]
+		};
+
+	}
+
+	highlightColor (layer) {
+		var palette = this.constructor.colorPalette;
+		var rgb = palette[layer] || palette.default;
+		return 'rgb('+(rgb[0]+50)+','+(rgb[1]+50)+','+(rgb[2]+50)+')';
+	}
+
+	layerColor (layer) {
+		var palette = this.constructor.colorPalette;
+		var rgb = palette[layer] || palette.default;
+		return 'rgb('+(rgb[0])+','+(rgb[1])+','+(rgb[2])+')';
+	}
+
+	viaPadColor () {
+		return "#0b0";
+	}
+
 	/**
 	 * Returns scope of current rendering — layer, element/package
 	 * @param {object} ctx   Rendering context
 	 * @param {object} attrs Attributes attached to the rendering context
 	 */
-	ViewEERenderer.prototype.getScope = function (ctx, attrs) {
+	getScope (ctx, attrs) {
 		throw "not implemented";
 	}
 
-	ViewEERenderer.prototype.drawPlainWires = function(layer, ctx) {
+	/**
+	 * convert notation signal.wires => drawSignalWires
+	 * @param   {string} thing dotted notation
+	 * @returns {string} camel notation
+	 */
+	drawingMethod (thing, ...args) {
+		var methodName = thing.split ('.').map(
+			chunk => chunk.charAt(0).toUpperCase() + chunk.slice(1)
+		).join('');
+
+		// console.log (methodName, this[methodName], this['draw' + methodName]);
+
+		if (this[thing])
+			return this[thing].bind (this, ...args);
+		return this['draw' + methodName].bind (this, ...args);
+	}
+
+	drawLayers (ctx) {
+		var board = this.board;
+		// should be design (EDA, Kicad), make (gerber) or image (fritzing part)
+		var sourceType = board.sourceType;
+
+		var viewOrder = board.layers.viewOrder (board.boardFlipped);
+		var drawingOps = [];
+
+		viewOrder.forEach (viewLayer => {
+			var layerSources = board.layers.item ('view', viewLayer)[sourceType];
+			[].concat (layerSources.layers).forEach (sourceLayer => {
+				[].concat (layerSources.draw).forEach (drawScope => {
+					drawingOps.push (this.drawingMethod (drawScope, sourceLayer, ctx));
+				})
+			});
+
+			// board.layers.item (sourceType, layerName);
+		});
+
+		if (typeof requestAnimationFrame === 'function') {
+			function op () {
+				requestAnimationFrame (() => {
+					if (!op.current) return;
+					drawingOps[op.current-1]();
+					op.current --;
+					setTimeout (op, 0);
+				});
+			}
+
+			op.current = drawingOps.length;
+
+			op();
+
+		} else {
+			drawingOps.forEach (op => op());
+		}
+
+		// TODO: interactive
+
+		return;
+
+		var layerOrder = board.boardFlipped ? board.reverseRenderLayerOrder : board.renderLayerOrder;
+		console.log (layerOrder);
+		for (var layerKey in layerOrder) {
+			var layerId = layerOrder[layerKey];
+			if (!board.visibleLayers[layerId]) {
+				continue;
+			}
+			board.layerRenderFunctions[layerId](this, board, g);
+		}
+
+		if (board.initInteractive)
+			board.initInteractive ();
+	}
+
+	drawPlainWires (layer, ctx) {
 		if (!layer) { return; }
 
 		var board = this.board;
 
-		var layerCtx = this.getScope (ctx, {name: layer.name});
+		var layerCtx = this.getScope (ctx, {name: layer});
 
-		var layerWires = board.plainWires[layer.number] || [];
+		var layerWires = board.plain.wires[layer] || [];
 		layerWires.forEach (function (wire) {
 			this.drawSingleWire (Object.assign (
 				{}, wire,
 				{
 					cap: 'round',
-					strokeStyle: board.layerColor (layer.color),
+					strokeStyle: this.layerColor (layer),
 					width: wire.width || board.minLineWidth,
 				}
 			), layerCtx);
 		}, this);
 	}
 
-	ViewEERenderer.prototype.drawSignalWires = function(layer, ctx) {
+	drawSignalWires (layer, ctx) {
 		if (!layer) { return; }
-		var layerNumber = layer.number;
-
-		var layerCtx = this.getScope (ctx, {name: layer.name});
+		var layerCtx = this.getScope (ctx, {name: layer});
 
 		var board = this.board;
 
-		for (var signalKey in board.signalItems) {
+		for (var signalKey in board.signals) {
 
 			var signalCtx = this.getScope (layerCtx, {name: signalKey});
 
 			var highlight = (board.highlightedItem && (board.highlightedItem.type=='signal') && (board.highlightedItem.name==signalKey));
-			var color = highlight ? board.highlightColor(layer.color) : board.layerColor(layer.color);
+			var color = highlight ? this.highlightColor(layer) : this.layerColor(layer);
 
-			var signalLayers = board.signalItems[signalKey],
-				layerItems = signalLayers[layer.number];
+			var signalLayers = board.signals[signalKey],
+				layerItems = signalLayers[layer];
 			if (!layerItems) { continue; }
 			var layerWires = layerItems['wires'] || [];
 
@@ -84,38 +186,39 @@
 		}
 	}
 
-	ViewEERenderer.prototype.drawPlainHoles = function(layer, ctx) {
+	drawPlainHoles (layer, ctx) {
 		if (!layer) { return; }
 
-		var layerCtx = this.getScope (ctx, {name: layer.name});
+		var layerCtx = this.getScope (ctx, {name: layer});
 
 		var board = this.board;
 
-		var layerHoles = board.plainHoles || [];
+		var layerHoles = board.plain.holes || [];
 		layerHoles.forEach(function(hole){
 			this.drawHole (Object.assign ({}, hole, {
-				strokeStyle: board.layerColor (layer.color),
+				strokeStyle: this.layerColor (layer),
 				strokeWidth: board.minLineWidth, // TODO: bad width
 			}), layerCtx);
 		}, this);
 	}
 
-	ViewEERenderer.prototype.drawSignalVias = function(layersName, ctx, color) {
+	drawSignalVias (layersName, ctx, color) {
 		if (!layersName) return;
 
 		var layerCtx = this.getScope (ctx, {name: 'via'});
 
 		var board = this.board;
 
-		for (var signalKey in board.signalItems) {
-			var signalLayers = board.signalItems[signalKey],
+		for (var signalKey in board.signals) {
+			var signalLayers = board.signals[signalKey],
 				layerItems = signalLayers[layersName];
+
 			if (!layerItems) {continue;}
 			var layerVias = layerItems['vias'] || [];
 			layerVias.forEach (function (via) {
 
 				this.drawHole (Object.assign ({}, via, {
-					strokeStyle: color,
+					strokeStyle: color || this.viaPadColor(),
 					diameter: via.diameter || 1.5 * via.drill, // TODO: bad width
 				}), layerCtx);
 
@@ -123,17 +226,17 @@
 		}
 	}
 
-	ViewEERenderer.prototype.drawPlainTexts = function (layer, ctx) {
+	drawPlainTexts (layer, ctx) {
 
 		if (!layer) return;
 
-		var layerCtx = this.getScope (ctx, {name: layer.name});
+		var layerCtx = this.getScope (ctx, {name: layer});
 
 		var board = this.board;
 
-		var layerTexts = board.plainTexts[layer.number] || [];
+		var layerTexts = board.plain.texts[layer] || [];
 
-		var color = board.layerColor(layer.color);
+		var color = this.layerColor(layer);
 
 		layerTexts.forEach (function (text) {
 
@@ -149,10 +252,10 @@
 		}, this)
 	}
 
-	ViewEERenderer.prototype.drawElements = function(layer, ctx) {
+	drawElements (layer, ctx) {
 		if (!layer) return;
 
-		var layerCtx = this.getScope (ctx, {name: layer.name});
+		var layerCtx = this.getScope (ctx, {name: layer});
 
 		var board = this.board;
 
@@ -162,14 +265,15 @@
 			var elemCtx = this.getScope (layerCtx, {name: elemKey});
 
 			var highlight = (board.highlightedItem && (board.highlightedItem.type=='element') && (board.highlightedItem.name==elem.name));
-			var color     = highlight ? board.highlightColor(layer.color) : board.layerColor(layer.color);
+			var color     = highlight ? this.highlightColor(layer) : this.layerColor(layer);
 
 			var pkg    = typeof elem.pkg === "string" ? board.packagesByName[elem.pkg] : elem.pkg;
 			var rotMat = elem.matrix;
 			pkg.smds.forEach(function(smd) {
-				var layerNum = smd.layer;
-				if (elem.mirror) { layerNum = board.mirrorLayer(layerNum); }
-				if (layer.number != layerNum) { return; }
+				var smdLayer = elem.mirror ? board.layers.mirrorFor (smd.layer) : smd.layer;
+				if (layer !== smdLayer) {
+					return;
+				}
 
 				var smdDX = smd.x2-smd.x1,
 					smdDY = smd.y2-smd.y1,
@@ -193,7 +297,7 @@
 					var drawSmdCircle = (smd.roundness === 100 && Math.abs (smdDX) === Math.abs (smdDY));
 				}
 
-				var smdRotMat = board.matrixForRot (smd.rot);
+				var smdRotMat = matrixForRot (smd.rot);
 				var smdX1 = smdX + smdRotMat[0] * (smdX - smdDx1) + smdRotMat[1] * (smdY - smdDy1),	//top left
 					smdY1 = smdY + smdRotMat[2] * (smdX - smdDx1) + smdRotMat[3] * (smdY - smdDy1),
 					smdX2 = smdX + smdRotMat[0] * (smdX - smdDx2) + smdRotMat[1] * (smdY - smdDy2),	//top right
@@ -237,9 +341,10 @@
 			}, this)
 
 			if (pkg.rects) pkg.rects.forEach(function(rect) {
-				var layerNum = rect.layer;
-				if (elem.mirror) { layerNum = board.mirrorLayer(layerNum); }
-				if (layer.number != layerNum) { return; }
+				var rectLayer = elem.mirror ? board.layers.mirrorFor (rect.layer) : rect.layer;
+				if (layer !== rectLayer) {
+					return;
+				}
 
 				//Note that rotation might be not axis aligned, so we have do transform all corners
 				var x1 = elem.x + rotMat[0]*rect.x1 + rotMat[1]*rect.y1,	//top left
@@ -258,16 +363,17 @@
 
 				this.drawFilledPoly (Object.assign ({}, rect, {
 					points: points,
-					fillStyle: highlightPad ? board.highlightColor(layer.color) : color,
+					fillStyle: highlightPad ? this.highlightColor(layer) : color,
 					// strokeStyle: color,
 				}), elemCtx);
 
 			}, this)
 
 			pkg.polys.forEach(function(poly) {
-				var layerNum = poly.layer;
-				if (elem.mirror) { layerNum = board.mirrorLayer(layerNum); }
-				if (layer.number != layerNum) { return ; }
+				var polyLayer = elem.mirror ? board.layers.mirrorFor (poly.layer) : poly.layer;
+				if (layer !== polyLayer) {
+					return;
+				}
 
 				var points = [];
 
@@ -287,9 +393,11 @@
 			}, this)
 
 			pkg.wires.forEach(function(wire) {
-				var layerNum = wire.layer;
-				if (elem.mirror) { layerNum = board.mirrorLayer(layerNum); }
-				if (layer.number != layerNum) { return ; }
+				var wireLayer = elem.mirror ? board.layers.mirrorFor (wire.layer) : wire.layer;
+				if (layer !== wireLayer) {
+					return;
+				}
+
 				var x  = elem.x + rotMat[0]*wire.x  + rotMat[1]*wire.y,
 					y  = elem.y + rotMat[2]*wire.x  + rotMat[3]*wire.y,
 					x1 = elem.x + rotMat[0]*wire.x1 + rotMat[1]*wire.y1,
@@ -308,7 +416,6 @@
 
 			// TODO: pads can be rotated too
 			pkg.pads.forEach(function(pad) {
-				var layerNum = pad.layer;
 				// We don't need to check layers, pads is pass through all layers
 				var x = elem.x + rotMat[0]*pad.x + rotMat[1]*pad.y,
 					y = elem.y + rotMat[2]*pad.x + rotMat[3]*pad.y;
@@ -321,12 +428,11 @@
 					x: x,
 					y: y,
 					strokeWidth: lineWidth,
-					strokeStyle: board.viaPadColor(), // ouline/dimension color
+					strokeStyle: this.viaPadColor(), // ouline/dimension color
 				}), elemCtx);
 			}, this)
 
 			pkg.holes.forEach(function(hole) {
-				var layerNum = hole.layer;
 				// We don't need to check layers, holes is pass through all layers
 				var x = elem.x + rotMat[0]*hole.x + rotMat[1]*hole.y,
 					y = elem.y + rotMat[2]*hole.x + rotMat[3]*hole.y;
@@ -335,7 +441,7 @@
 					x: x,
 					y: y,
 					strokeWidth: board.minLineWidth,
-					strokeStyle: board.layerColor(15), // ouline/dimension color
+					strokeStyle: this.layerColor('outline'), // ouline/dimension color
 				}), elemCtx);
 
 			}, this)
@@ -347,11 +453,11 @@
 				if (!textCollection.hasOwnProperty (textIdx)) continue;
 				var text = textCollection[textIdx];
 				if (smashed && (text.display === "off" || !text.font)) continue;
-				var layerNum = text.layer;
-				if ((!elem.smashed) && (elem.mirror)) {
-					layerNum = board.mirrorLayer(layerNum);
+
+				var textLayer = ((!elem.smashed) && elem.mirror) ? board.layers.mirrorFor (text.layer) : text.layer;
+				if (layer !== textLayer) {
+					continue;
 				}
-				if (layer.number != layerNum) { continue; }
 
 				var content = smashed ? null : text.content,
 					attribName = smashed ? text.name : ((text.content.indexOf('>') == 0) ? text.content.substring(1) : null);
@@ -374,15 +480,13 @@
 		}
 	}
 
-	ViewEERenderer.prototype.dimCanvas = function(ctx, alpha) {
+	dimCanvas (ctx, alpha) {
 		ctx.save();
 		ctx.setTransform(1, 0, 0, 1, 0, 0);
 		ctx.globalCompositeOperation = 'destination-out';
 		ctx.fillStyle = 'rgba(0,0,0,'+alpha+')'
 		ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 		ctx.restore();
-	};
+	}
+}
 
-	return ViewEERenderer;
-
-}));

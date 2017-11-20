@@ -1,107 +1,174 @@
 
 import {DOMParser, XMLSerializer} from '../lib/xmldom';
 
-	if (typeof ViewEERenderer === "undefined" && typeof process !== undefined) {
-		ViewEERenderer = require (__dirname + '/renderer.js');
-	}
+import PCBRenderer from './renderer';
 
-	if (typeof SvgEl === "undefined" && typeof process !== undefined) {
-		var el = require (__dirname + '/../lib/htmlel.js');
-		var HtmlEl = el.HtmlEl;
-		var SvgEl  = el.SvgEl;
-		var document;
-		var window;
-	}
+import {SvgEl as SVGEl, HtmlEl} from '../lib/htmlel.js';
 
-	// ---------------
-	// --- HELPERS ---
-	// ---------------
+import {angleForRot, matrixForRot} from './util';
 
-	var significantDigits = 4;
+// ---------------
+// --- HELPERS ---
+// ---------------
 
-	function polarToCartesian(centerX, centerY, radius, angleInDegrees, angleInRadians) {
-		if (!angleInRadians)
-			angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
+const significantDigits = 4;
 
-		return {
-			x: centerX + (radius * Math.cos(angleInRadians)),
-			y: centerY + (radius * Math.sin(angleInRadians))
-		};
-	}
+function polarToCartesian(centerX, centerY, radius, angleInDegrees, angleInRadians) {
+	if (!angleInRadians)
+		angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
 
-	function describeArc(x, y, radius, startAngle, endAngle){
+	return {
+		x: centerX + (radius * Math.cos(angleInRadians)),
+		y: centerY + (radius * Math.sin(angleInRadians))
+	};
+}
 
-		console.log (startAngle, endAngle);
+function describeArc(x, y, radius, startAngle, endAngle){
 
-		var start = polarToCartesian(x, y, radius, startAngle);
-		var end   = polarToCartesian(x, y, radius, endAngle);
+	console.log (startAngle, endAngle);
+
+	var start = polarToCartesian(x, y, radius, startAngle);
+	var end   = polarToCartesian(x, y, radius, endAngle);
 
 //		var start = polarToCartesian(x, y, radius, endAngle);
 //		var end   = polarToCartesian(x, y, radius, startAngle);
 
-		var arcSweep = endAngle - startAngle <= 180 ? "1" : "0";
+	var arcSweep = endAngle - startAngle <= 180 ? "1" : "0";
 
-		var d = [
-			"M", start.x.toFixed (significantDigits), start.y.toFixed (significantDigits),
-			"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (significantDigits), end.y.toFixed (significantDigits)
-		].join(" ");
+	var d = [
+		"M", start.x.toFixed (significantDigits), start.y.toFixed (significantDigits),
+		"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (significantDigits), end.y.toFixed (significantDigits)
+	].join(" ");
 
-		return d;
-	}
+	return d;
+}
 
-	function describeArcRadians (x, y, radius, startAngle, endAngle){
+function describeArcRadians (x, y, radius, startAngle, endAngle){
 
 //		var start = polarToCartesian(x, y, radius, null, startAngle);
 //		var end   = polarToCartesian(x, y, radius, null, endAngle);
 
-		var start = polarToCartesian(x, y, radius, null, endAngle + 2*Math.PI);
-		var end   = polarToCartesian(x, y, radius, null, startAngle + 2*Math.PI);
+	var start = polarToCartesian(x, y, radius, null, endAngle + 2*Math.PI);
+	var end   = polarToCartesian(x, y, radius, null, startAngle + 2*Math.PI);
 
-		var arcSweep = endAngle - startAngle <= Math.PI ? "0" : "1";
+	var arcSweep = endAngle - startAngle <= Math.PI ? "0" : "1";
 
-		var d = [
-			"M", start.x.toFixed (significantDigits), start.y.toFixed (significantDigits),
-			"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (significantDigits), end.y.toFixed (significantDigits)
-		].join(" ");
+	var d = [
+		"M", start.x.toFixed (significantDigits), start.y.toFixed (significantDigits),
+		"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (significantDigits), end.y.toFixed (significantDigits)
+	].join(" ");
 
-		return d;
+	return d;
+}
+
+function svg2canvas () {
+	var canvas = document.getElementById("canvas"),
+		ctx = canvas.getContext("2d"),
+		image = document.getElementById("art"),
+		svgImage = document.getElementById("svg-art"),
+		s = new XMLSerializer().serializeToString(svgImage);
+
+	image.src = 'data:image/svg+xml;utf8,' + s;
+
+	ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+	function step() {
+		ctx.drawImage(image,0,0,80,80);
+		window.requestAnimationFrame(step);
 	}
 
-	// ---------------
-	// --- DRAWING ---
-	// ---------------
+	window.requestAnimationFrame(step);
 
-	export default function SVGRenderer (board) {
+	/*  OR https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Drawing_DOM_objects_into_a_canvas  */
+
+	/*
+		var canvas = document.getElementById('canvas');
+var ctx = canvas.getContext('2d');
+
+var data = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">' +
+		   '<foreignObject width="100%" height="100%">' +
+		   '<div xmlns="http://www.w3.org/1999/xhtml" style="font-size:40px">' +
+			 '<em>I</em> like ' +
+			 '<span style="color:white; text-shadow:0 0 2px blue;">' +
+			 'cheese</span>' +
+		   '</div>' +
+		   '</foreignObject>' +
+		   '</svg>';
+
+var DOMURL = window.URL || window.webkitURL || window;
+
+var img = new Image();
+var svg = new Blob([data], {type: 'image/svg+xml;charset=utf-8'});
+var url = DOMURL.createObjectURL(svg);
+
+img.onload = function () {
+  ctx.drawImage(img, 0, 0);
+  DOMURL.revokeObjectURL(url);
+}
+
+img.src = url;
+		*/
+}
+
+
+// ---------------
+// --- DRAWING ---
+// ---------------
+
+export default class SVGRenderer extends PCBRenderer {
+	constructor (board, svg) {
+		/*
 		if (!board.svg) {
 			var doc = new DOMParser ().parseFromString ('<html><body></body></html>', 'text/html');
 			board.svg = doc.createElementNS ('http://www.w3.org/2000/svg', 'svg');
 		}
+		*/
 
-		var svg = board.svg;
+		super ();
 
+		if (typeof document === 'undefined') {
+			this.document = new DOMParser ().parseFromString ('<html><body></body></html>', 'text/html');
+		} else {
+			this.document = document;
+		}
+
+		this.SVGEl = SVGEl;
+
+		if (!svg) {
+			svg = this.document.createElementNS ('http://www.w3.org/2000/svg', 'svg');
+		}
+
+		this.el = svg;
+
+		/*
 		if (document === void 0) {
 			document = svg.ownerDocument;
-			SvgEl = function (name, attrs) {
+			this.SVGEl = function (name, attrs) {
 				attrs = Object.create (attrs || {});
 				attrs.xmlns = "http://www.w3.org/2000/svg";
 				var args = [].slice.call (arguments, 2);
 				return HtmlEl.apply ({document: document}, [].concat ([name, attrs], args));
 			}
 		}
+		*/
 
-		this.el    = svg;
 		this.board = board;
 
 		this.warnings = [];
 	}
 
-	SVGRenderer.prototype = Object.create (ViewEERenderer.prototype);
 
-	SVGRenderer.prototype.getScope = function (ctx, attrs) {
+	getScope (ctx, attrs) {
 
-		var g = ctx.querySelector ('g[name="'+attrs.name+'"]');
-		if (!g) {
-			g = SvgEl ('g', {name: attrs.name});
+		var groups = [].concat (ctx.childNodes).filter (
+			g => g.localName === 'g' && g.getAttribute ('name') === attrs.name
+		);
+		var g;
+		// var g = ctx.querySelector ('g[name="'+attrs.name+'"]');
+		if (groups.length) {
+			g = groups[0];
+		} else {
+			g = this.SVGEl ('g', {name: attrs.name});
 			ctx.appendChild (g);
 		}
 
@@ -112,7 +179,7 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 		return g;
 	}
 
-	SVGRenderer.prototype.redraw = function () {
+	redraw () {
 		// TODO: layer visibility
 
 		// flip board
@@ -123,10 +190,10 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 			layerNodes.some (function (layerNode) {
 				var layerName = layerNode.getAttribute ('name');
 				// console.log (layerName);
-				if (layerName === 'Bottom') {
+				if (layerName === 'back-copper') {
 					isFlipped = false;
 					return true;
-				} else if (layerName === 'Top') {
+				} else if (layerName === 'front-copper') {
 					isFlipped = true;
 					return true;
 				}
@@ -146,9 +213,9 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 						this.svgCtx.appendChild (n);
 					}
 
-					if (layerName === 'Top' && isFlipped === true) {
+					if (layerName === 'front-copper' && isFlipped === true) {
 						this.svgCtx.appendChild (viaLayer);
-					} else if (layerName === 'Bottom' && isFlipped === false) {
+					} else if (layerName === 'back-copper' && isFlipped === false) {
 						this.svgCtx.appendChild (viaLayer);
 					}
 				}
@@ -161,7 +228,32 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 		this.rescale ();
 	}
 
-	SVGRenderer.prototype.rescale = function () {
+	render () {
+		this.draw ();
+
+		// create layers for that renderer
+
+		// iterate over existing board things
+
+		// renderer.drawElements
+		// renderer.drawPlainTexts
+		// renderer.drawPlainWires
+		// renderer.drawPlainHoles
+
+		// renderer.dimCanvas(board.dimBoardAlpha, ctx);
+		// renderer.drawSignalVias('1-16',ctx, board.viaPadColor());
+		// renderer.drawPlainHoles(board.eagleLayersByName['Dimension'],ctx);
+
+		// render thing
+
+		return this.el;
+	}
+
+	toString () {
+		return new XMLSerializer ().serializeToString (this.el);
+	}
+
+	rescale () {
 
 		if (!this.svgCtx) return;
 
@@ -194,7 +286,7 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 
 	}
 
-	SVGRenderer.prototype.draw = function () {
+	draw () {
 		var svg = this.el;
 
 		var board = this.board;
@@ -217,37 +309,33 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 
 		var g;
 
-		svg.appendChild (SvgEl ('g', {
-			className: 'viewport'
-		}, SvgEl ('g', {
-		}, g = SvgEl ('g', {
-			className: 'container',
-		}))));
+		svg.appendChild (this.SVGEl (
+			'g', {
+				className: 'viewport'
+			}, this.SVGEl (
+				'g', {}, g = this.SVGEl (
+					'g', {
+						className: 'container',
+					})
+			)
+		));
 
 		this.svgCtx = g;
 
 		this.rescale ();
 
-		var layerOrder = board.boardFlipped ? board.reverseRenderLayerOrder : board.renderLayerOrder;
-		for (var layerKey in layerOrder) {
-			var layerId = layerOrder[layerKey];
-			if (!board.visibleLayers[layerId]) { continue };
-			board.layerRenderFunctions[layerId](this, board, g);
-		}
-
-		if (board.initInteractive)
-			board.initInteractive ();
+		this.drawLayers (g);
 
 	}
 
-	SVGRenderer.prototype.drawSingleWire = function (wire, ctx) {
+	drawSingleWire (wire, ctx) {
 		var path = this.drawWire (wire, ctx);
 		path.setAttributeNS (null, 'stroke', wire.strokeStyle);
 		path.setAttributeNS (null, 'stroke-width', wire.width);
 		path.setAttributeNS (null, 'fill', "none");
 	}
 
-	SVGRenderer.prototype.drawWire = function (wire, ctx) {
+	drawWire (wire, ctx) {
 
 		var attrs = {};
 
@@ -285,13 +373,13 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 
 			attrs.r  = wire.radius.constructor === Array ? wire.radius[0] : wire.radius;
 
-			var circle = SvgEl ('circle', attrs);
+			var circle = this.SVGEl ('circle', attrs);
 			ctx.appendChild (circle);
 			return circle;
 
 		} else {
 
-			var angle = this.board.angleForRot (wire.rot);
+			var angle = angleForRot (wire.rot);
 
 			var rotate = angle.degrees / 180 * Math.PI;
 
@@ -316,13 +404,13 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 			// attrs.transform = 'scale('+radiusX+','+radiusY+') translate('+wire.x+', '+wire.y+')';
 		}
 
-		var path = SvgEl ('path', attrs);
+		var path = this.SVGEl ('path', attrs);
 		ctx.appendChild (path);
 		return path;
 
 	}
 
-	SVGRenderer.prototype.drawHole = function (hole, ctx) {
+	drawHole (hole, ctx) {
 
 		var board = this.board;
 
@@ -385,7 +473,7 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 //
 //			attrs.d = dShapeAttr// + ' ' + dAttr;
 //
-//			ctx.appendChild (SvgEl ('path', attrs));
+//			ctx.appendChild (this.SVGEl ('path', attrs));
 //			return;
 
 //		} else if (hole.shape === 'oval') {
@@ -422,7 +510,7 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 //
 //			attrs.d = dShapeAttr// + ' ' + dAttr;
 //
-//			ctx.appendChild (SvgEl ('path', attrs));
+//			ctx.appendChild (this.SVGEl ('path', attrs));
 //			return;
 
 
@@ -456,11 +544,11 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 
 		attrs.d = dShapeAttr + ' ' + dAttr;
 
-		ctx.appendChild (SvgEl ('path', attrs));
+		ctx.appendChild (this.SVGEl ('path', attrs));
 	}
 
 
-	SVGRenderer.prototype.drawText = function (attrs, text, ctx) {
+	drawText (attrs, text, ctx) {
 		var x = attrs.x || text.x,
 			y = attrs.y || text.y,
 			rot = attrs.rot || text.rot || "R0",
@@ -472,11 +560,11 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 		var content = attrs.content || text.content;
 		var color   = attrs.color;
 
-		var textAngle = board.angleForRot (rot);
+		var textAngle = angleForRot (rot);
 
 		//rotation from 90.1 to 270 causes Eagle to draw labels 180 degrees rotated with top right anchor point
 		var degrees  = textAngle.degrees,
-			textRot  = board.matrixForRot(rot),
+			textRot  = matrixForRot(rot),
 			fontSize = 10;
 
 		var font = ''+fontSize+'pt vector';	//Use a regular font size - very small sizes seem to mess up spacing / kerning
@@ -486,15 +574,15 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 
 		var textCtx;
 
-		ctx.appendChild (SvgEl ('g', {
+		ctx.appendChild (this.SVGEl ('g', {
 			className: 'text',
 			transform: 'matrix('+[textRot[0],textRot[2],textRot[1],textRot[3], x, y].join(', ')+')'
-		}, textCtx = SvgEl ('g', {
+		}, textCtx = this.SVGEl ('g', {
 
 		})));
 
 		if (0) { // enable to draw zero points for text origin
-			textCtx.appendChild (SvgEl ('circle', {cx: 0, cy: 0, r: 0.2, fill: textAngle.spin ? "grey" : flipText ? "blue" : "red"}));
+			textCtx.appendChild (this.SVGEl ('circle', {cx: 0, cy: 0, r: 0.2, fill: textAngle.spin ? "grey" : flipText ? "blue" : "red"}));
 		}
 
 		var textEl;
@@ -515,7 +603,7 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 		//if (text.valign) textAttrs['dominant-baseline'] = text.valign;
 		if (text.valign) textAttrs['alignment-baseline'] = text.valign;
 
-		textCtx.appendChild (textEl = SvgEl ('text', textAttrs));
+		textCtx.appendChild (textEl = this.SVGEl ('text', textAttrs));
 
 		var xOffset = 0;
 
@@ -526,9 +614,10 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 			} else if (text.valign === "bottom") {
 				yOffset -= textBlockHeight;
 			}
-			var tspan = SvgEl ('tspan', {x: xOffset, y: yOffset}, string);
+			var tspan = this.SVGEl ('tspan', {x: xOffset, y: yOffset}, string);
 			textEl.appendChild (tspan);
-			textBlockWidth = Math.max (textBlockWidth, tspan.getComputedTextLength());
+			// TODO: getComputedTextLength
+			textBlockWidth = Math.max (textBlockWidth, tspan.getComputedTextLength ? tspan.getComputedTextLength() : 0);
 			// ctx.fillText(string, xOffset, yOffset);
 		}, this);
 
@@ -559,7 +648,7 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 
 	}
 
-	SVGRenderer.prototype.polyToD = function (poly) {
+	polyToD (poly) {
 		var dAttr = [];
 		poly.points.forEach (function (point, idx) {
 			if (idx === 0)
@@ -574,10 +663,10 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 		return dAttr.join (' ');
 	}
 
-	SVGRenderer.prototype.drawFilledPoly = function (poly, ctx) {
+	drawFilledPoly (poly, ctx) {
 		var dAttr = this.polyToD (poly);
 
-		ctx.appendChild (SvgEl ('path', {
+		ctx.appendChild (this.SVGEl ('path', {
 			className: 'package-rect',
 			d: dAttr,
 			fill: poly.fillStyle,
@@ -586,29 +675,29 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 		}));
 	}
 
-	SVGRenderer.prototype.drawFilledCircle = function (poly, ctx) {
+	drawFilledCircle (circle, ctx) {
 
-		ctx.appendChild (SvgEl ('circle', {
+		ctx.appendChild (this.SVGEl ('circle', {
 			className: 'package-circle',
-			cx: poly.x,
-			cy: poly.y,
-			r: poly.radius,
-			fill: poly.fillStyle,
+			cx: circle.x,
+			cy: circle.y,
+			r: circle.radius,
+			fill: circle.fillStyle,
 			//"stroke-width": board.minLineWidth,
 			"stroke-linecap": "round"
 		}));
 	}
 
-	SVGRenderer.prototype.dimCanvas = function(alpha, ctx) {
+	dimCanvas (alpha, ctx) {
 
 		var board = this.board;
 
-		ctx.appendChild (SvgEl ('rect', {
+		ctx.appendChild (this.SVGEl ('rect', {
 			x: board.boardFlipped ? board.nativeBounds[2] : board.nativeBounds[0],
 			y: board.nativeBounds[1],
 			width: board.nativeSize[0],
 			height: board.nativeSize[1],
-			fill: 'rgba(255,255,255,'+alpha+')'
+			fill: 'rgba(255,255,255,0.5)'
 		}));
 //		ctx.save();
 //		ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -616,4 +705,5 @@ import {DOMParser, XMLSerializer} from '../lib/xmldom';
 //		ctx.fillStyle =
 //		ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 //		ctx.restore();
-	};
+	}
+}

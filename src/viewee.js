@@ -1,16 +1,10 @@
-(function (root, factory) {
-	if(typeof define === "function" && define.amd) {
-		define(function(){
-			return factory();
-		});
-	} else if(typeof module === "object" && module.exports) {
-		module.exports = factory();
-	} else {
-		root.ViewEEPCB = factory();
-	}
-}(this, function () {
-
 var p = function(o){ console.log(o) }
+
+import * as Util from './util';
+
+import EagleXMLParser from './eagle_xml_parser';
+
+import SVGRenderer from './svg_renderer';
 
 // -------------------
 // --- CONSTRUCTOR ---
@@ -50,6 +44,17 @@ function ViewEE (targetSelector) {
 
 	// using minivents library
 	new Minivents (this);
+
+	// [CAD](https://en.wikipedia.org/wiki/Computer-aided_design)
+	// and [CAM](https://en.wikipedia.org/wiki/Computer-aided_manufacturing)
+	//
+	// Boards usually contains D-Layers, which helps to separate design things
+	// like top names and top values. When exporting design to the manufacturing,
+	// some layers merges (copper and via for that copper layer or
+	// silkscreen parts). I'll name that entity as M(anufacturing)-Layer
+
+	// Board format or CAD software usually specify how to assign D-Layers to the
+	// M-Layers; code below belongs to board format, not the base board class
 
 	this.visibleLayers = {};
 	this.visibleLayers[ViewEE.LayerId.BOTTOM_COPPER]        = true;
@@ -381,6 +386,11 @@ if ("GEDAParser" in window) {
 	ViewEE.parsers.push (window.GEDAParser);
 }
 
+if ("GerberParser" in window) {
+	ViewEE.parsers.push (window.GerberParser);
+}
+
+
 ViewEE.prototype.findParser = function (text) {
 	var parserFound = ViewEE.parsers.some (function (parser) {
 		if (!parser) return;
@@ -395,7 +405,10 @@ ViewEE.prototype.findParser = function (text) {
 			this.emit ('parse-end');
 
 			this.nativeBounds = this.calculateBounds();
-			this.nativeSize   = [this.nativeBounds[2]-this.nativeBounds[0],this.nativeBounds[3]-this.nativeBounds[1]];
+			this.nativeSize   = [
+				this.nativeBounds[2] - this.nativeBounds[0],
+				this.nativeBounds[3] - this.nativeBounds[1]
+			];
 			this.scaleToFit();
 			this.draw();
 			return true;
@@ -524,8 +537,8 @@ ViewEE.prototype.hitTestElements = function(layer, x, y) {
 }
 
 ViewEE.prototype.hitTestSignals = function(layer, x, y) {
-	for (var signalName in this.signalItems) {
-		var signalLayers = this.signalItems[signalName];
+	for (var signalName in this.signals) {
+		var signalLayers = this.signals[signalName];
 		if (!signalLayers) { continue; }
 		var layerItems = signalLayers[layer.number];
 		if (!layerItems) { continue; }
@@ -550,18 +563,18 @@ ViewEE.prototype.hitTestSignals = function(layer, x, y) {
 ViewEE.prototype.pointInLine = function(x, y, x1, y1, x2, y2, width) {
 	var width2 = width * width;
 
-	if (((x-x1)*(x-x1)+(y-y1)*(y-y1)) < width2) { return true; }	//end 1
-	if (((x-x2)*(x-x2)+(y-y2)*(y-y2)) < width2) { return true; }	//end 2
+	if (((x-x1)*(x-x1)+(y-y1)*(y-y1)) < width2) { return true; }  //end 1
+	if (((x-x2)*(x-x2)+(y-y2)*(y-y2)) < width2) { return true; }  //end 2
 
 	var length2 = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
 	if (length2 <= 0) { return false; }
 
-	var s = ((y - y1) * (y2-y1) - (x - x1) * (x1-x2)) / length2;				// s = param of line p1..p2 (0..1)
-	if ((s >= 0) && (s <= 1)) {													//between p1 and p2
+	var s = ((y - y1) * (y2-y1) - (x - x1) * (x1-x2)) / length2;  // s = param of line p1..p2 (0..1)
+	if ((s >= 0) && (s <= 1)) {                                   //between p1 and p2
 		var px = x1 + s * (x2-x1),
 			py = y1 + s * (y2-y1);
 		if (((x-px)*(x-px)+(y-py)*(y-py)) < width2) {
-			return true;	//end 2
+			return true;  //end 2
 		}
 	}
 	return false;
@@ -580,30 +593,6 @@ ViewEE.prototype.pointInRect = function(x, y, x1, y1, x2, y2, x3, y3, x4, y4) {
 // --------------------
 // --- COMMON UTILS ---
 // --------------------
-
-ViewEE.prototype.calcBBox = function (wires) {
-	var bbox = [
-		ViewEE.LARGE_NUMBER,
-		ViewEE.LARGE_NUMBER,
-		-ViewEE.LARGE_NUMBER,
-		-ViewEE.LARGE_NUMBER
-	];
-	wires.forEach (function (wireDict) {
-		if (wireDict.x1 < bbox[0]) { bbox[0] = wireDict.x1; }
-		if (wireDict.x1 > bbox[2]) { bbox[2] = wireDict.x1; }
-		if (wireDict.y1 < bbox[1]) { bbox[1] = wireDict.y1; }
-		if (wireDict.y1 > bbox[3]) { bbox[3] = wireDict.y1; }
-		if (wireDict.x2 < bbox[0]) { bbox[0] = wireDict.x2; }
-		if (wireDict.x2 > bbox[2]) { bbox[2] = wireDict.x2; }
-		if (wireDict.y2 < bbox[1]) { bbox[1] = wireDict.y2; }
-		if (wireDict.y2 > bbox[3]) { bbox[3] = wireDict.y2; }
-	});
-	if ((bbox[0] >= bbox[2]) || (bbox[1] >= bbox[3])) {
-		bbox = null;
-	}
-
-	return bbox;
-}
 
 
 ViewEE.prototype.colorPalette = [
@@ -648,29 +637,6 @@ ViewEE.prototype.viaPadColor = function () {
 	return "#0b0";
 }
 
-ViewEE.prototype.angleForRot = function (rot) {
-	if (!rot) return {degrees: 0};
-	var spin    = (rot.indexOf('S') >= 0), // TODO: spin rotate
-		flipped = (rot.indexOf('M') >= 0),
-		degrees = parseFloat (rot.split ('R')[1]);
-	return {spin: spin, flipped: flipped, degrees: degrees};
-}
-
-ViewEE.prototype.matrixForRot = function(rot) {
-	var angle = this.angleForRot (rot);
-	var spin         = angle.spin, // TODO: spin rotate
-		flipped      = angle.flipped,
-		degrees      = angle.degrees,
-		rad          = degrees * Math.PI / 180.0,
-		flipSign     = flipped ? -1 : 1,
-		matrix       = [
-			flipSign * Math.cos(rad),
-			flipSign * -Math.sin(rad),
-			Math.sin(rad),
-			Math.cos(rad)
-		];
-	return matrix;
-}
 
 ViewEE.prototype.mirrorLayer = function(layerIdx) {
 	if (layerIdx == 1) {
@@ -696,20 +662,6 @@ ViewEE.prototype.mirrorLayer = function(layerIdx) {
 	return layerIdx;
 }
 
-function max() {
-	var args = [].slice.call(arguments);
-	return Math.max.apply(Math, args.filter(function(val) {
-		return !isNaN(val);
-	}));
-}
-
-function min() {
-	var args = [].slice.call(arguments);
-	return Math.min.apply(Math, args.filter(function(val) {
-		return !isNaN(val);
-	}));
-}
-
 ViewEE.prototype.calculateBounds = function() {
 	var minX = ViewEE.LARGE_NUMBER,
 		minY = ViewEE.LARGE_NUMBER,
@@ -725,16 +677,16 @@ ViewEE.prototype.calculateBounds = function() {
 				y1 = line.y1,
 				y2 = line.y2,
 				width = line.width || this.minLineWidth;
-			minX = min (minX, x1-width, x1+width, x2-width, x2+width);
-			maxX = max (maxX, x1-width, x1+width, x2-width, x2+width);
-			minY = min (minY, y1-width, y1+width, y2-width, y2+width);
-			maxY = max (maxY, y1-width, y1+width, y2-width, y2+width);
+			minX = Util.min (minX, x1-width, x1+width, x2-width, x2+width);
+			maxX = Util.max (maxX, x1-width, x1+width, x2-width, x2+width);
+			minY = Util.min (minY, y1-width, y1+width, y2-width, y2+width);
+			maxY = Util.max (maxY, y1-width, y1+width, y2-width, y2+width);
 		}
 	}
 
-	for (var netName in this.signalItems) {
-		for (var layerKey in this.signalItems[netName]) {
-			var lines = this.signalItems[netName][layerKey].wires;
+	for (var netName in this.signals) {
+		for (var layerKey in this.signals[netName]) {
+			var lines = this.signals[netName][layerKey].wires;
 			for (var lineKey in lines) {
 				var line = lines[lineKey],
 					x1 = line.x1,
@@ -742,10 +694,10 @@ ViewEE.prototype.calculateBounds = function() {
 					y1 = line.y1,
 					y2 = line.y2,
 					width = line.width || this.minLineWidth;
-				minX = min (minX, x1-width, x1+width, x2-width, x2+width);
-				maxX = max (maxX, x1-width, x1+width, x2-width, x2+width);
-				minY = min (minY, y1-width, y1+width, y2-width, y2+width);
-				maxY = max (maxY, y1-width, y1+width, y2-width, y2+width);
+				minX = Util.min (minX, x1-width, x1+width, x2-width, x2+width);
+				maxX = Util.max (maxX, x1-width, x1+width, x2-width, x2+width);
+				minY = Util.min (minY, y1-width, y1+width, y2-width, y2+width);
+				maxY = Util.max (maxY, y1-width, y1+width, y2-width, y2+width);
 			}
 		}
 	}
@@ -761,10 +713,10 @@ ViewEE.prototype.calculateBounds = function() {
 				y1 = elem.y + rotMat[2]*smd.x1 + rotMat[3]*smd.y1,
 				x2 = elem.x + rotMat[0]*smd.x2 + rotMat[1]*smd.y2,
 				y2 = elem.y + rotMat[2]*smd.x2 + rotMat[3]*smd.y2;
-			minX = min (minX, x1, x2);
-			maxX = max (maxX, x1, x2);
-			minY = min (minY, y1, y2);
-			maxY = max (maxY, y1, y2);
+			minX = Util.min (minX, x1, x2);
+			maxX = Util.max (maxX, x1, x2);
+			minY = Util.min (minY, y1, y2);
+			maxY = Util.max (maxY, y1, y2);
 		}
 		for (var wireIdx in pkg.wires) {
 			var wire = pkg.wires[wireIdx],
@@ -773,10 +725,10 @@ ViewEE.prototype.calculateBounds = function() {
 				x2 = elem.x + rotMat[0]*wire.x2 + rotMat[1]*wire.y2,
 				y2 = elem.y + rotMat[2]*wire.x2 + rotMat[3]*wire.y2,
 				width = wire.width || this.minLineWidth;
-			minX = min (minX, x1-width, x1+width, x2-width, x2+width);
-			maxX = max (maxX, x1-width, x1+width, x2-width, x2+width);
-			minY = min (minY, y1-width, y1+width, y2-width, y2+width);
-			maxY = max (maxY, y1-width, y1+width, y2-width, y2+width);
+			minX = Util.min (minX, x1-width, x1+width, x2-width, x2+width);
+			maxX = Util.max (maxX, x1-width, x1+width, x2-width, x2+width);
+			minY = Util.min (minY, y1-width, y1+width, y2-width, y2+width);
+			maxY = Util.max (maxY, y1-width, y1+width, y2-width, y2+width);
 		}
 	}
 
@@ -785,6 +737,4 @@ ViewEE.prototype.calculateBounds = function() {
 	return [minX, minY, maxX, maxY];
 }
 
-	return ViewEE;
-
-}));
+export default ViewEE;

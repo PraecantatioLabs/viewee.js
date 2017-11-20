@@ -1,8 +1,254 @@
-import * as xmldom from '../lib/xmldom';
+import * as xmldom from '../../lib/xmldom';
+
+import {calcBBox, matrixForRot, angleForRot} from '../util';
 
 var DOMParser = xmldom.DOMParser;
 
-	function EagleXMLParser (board) {
+var newLayerMapping = {
+	"drills": "Drills", // thru board drills
+	"milling": "Milling", // thru board milling
+	"outline": "Dimension", // board outline
+	"front-glue": "tGlue", // glue placement
+	"front-finish": "tFinish", // gold finish
+	"front-silk-place": "tPlace",  // silkscreen outline for components
+	"front-silk-values": "tValues", // silkscreen values for components
+	"front-silk-names": "tNames",  // silkscreen names for components
+	"front-mask-paste": "tCream", // cutout for paste stencil
+	"front-mask-stop": "tStop",  // component placement open for mask
+	"front-restrict": "tRestrict", // copper restrict
+	"front-copper": "Top", // top copper layer
+	"inner": "Route", // inner copper layers
+	"back-copper": "Bottom", // bottom copper layer
+	"vias": "Vias", // vias "virtual" layer
+	"vias-restrict": "vRestrict", // copper restrict
+	"pads": "Pads", // pads "virtual" layer
+	"back-restrict": "bRestrict", // copper restrict
+	"back-keepout": "bKeepout", // component keepout
+	"back-mask-stop": "bStop",  // component placement open for mask
+	"back-mask-paste": "bCream", // cutout for paste stencil
+	"back-silk-names": "bNames",  // silkscreen names for components
+	"back-silk-values": "bValues", // silkscreen values for components
+	"back-silk-place": "bPlace",  // silkscreen outline for components
+	"back-finish": "bFinish", // gold finish
+	"back-glue": "bGlue", // glue placement
+};
+
+var LAYER_MAP = {
+	"1":   { "color":  4, "name": "front-copper", },
+	"2":   { "color": 16, "name": "inner-2", },
+	"3":   { "color": 16, "name": "inner-3", },
+	"4":   { "color": 16, "name": "inner-4", },
+	"5":   { "color": 16, "name": "inner-5", },
+	"6":   { "color": 16, "name": "inner-6", },
+	"7":   { "color": 16, "name": "inner-7", },
+	"8":   { "color": 16, "name": "inner-8", },
+	"9":   { "color": 16, "name": "inner-9", },
+	"10":  { "color": 16, "name": "inner-10", },
+	"11":  { "color": 16, "name": "inner-11", },
+	"12":  { "color": 16, "name": "inner-12", },
+	"13":  { "color": 16, "name": "inner-13", },
+	"14":  { "color": 16, "name": "inner-14", },
+	"15":  { "color": 16, "name": "inner-15", },
+	"16":  { "color":  1, "name": "back-copper", },
+	"17":  { "color":  2, "name": "pads", },
+	"18":  { "color":  2, "name": "vias", },
+	// "Unrouted":  { "color":  6, "name": "Unrouted", },
+	"20":  { "color": 15, "name": "outline", },
+	"21":  { "color":  7, "name": "front-silk-place", },
+	"22":  { "color":  7, "name": "back-silk-place", },
+	"23":  { "color": 15, "name": "front-origins", },
+	"24":  { "color": 15, "name": "back-origins", },
+	"25":  { "color":  7, "name": "front-silk-names", },
+	"26":  { "color":  7, "name": "back-silk-names", },
+	"27":  { "color":  7, "name": "front-silk-values", },
+	"28":  { "color":  7, "name": "back-silk-values", },
+	"29":  { "color":  7, "name": "front-mask-stop", },
+	"30":  { "color":  7, "name": "back-mask-stop", },
+	"31":  { "color":  7, "name": "front-paste-stencil", },
+	"32":  { "color":  7, "name": "back-paste-stencil", },
+	"33":  { "color":  6, "name": "front-finish", },
+	"34":  { "color":  6, "name": "back-finish", },
+	"35":  { "color":  7, "name": "front-glue",  },
+	"36":  { "color":  7, "name": "back-glue",  },
+	"37":  { "color":  7, "name": "front-test",  },
+	"38":  { "color":  7, "name": "back-test",  },
+	"39":  { "color":  4, "name": "front-keepout",  },
+	"40":  { "color":  1, "name": "back-keepout",  },
+	"41":  { "color":  4, "name": "front-restrict",  },
+	"42":  { "color":  1, "name": "back-restrict",  },
+	"43":  { "color":  2, "name": "via-restrict",  },
+	"44":  { "color":  7, "name": "drills",  },
+	"45":  { "color":  7, "name": "holes",  },
+	"46":  { "color":  3, "name": "milling",  },
+	"47":  { "color":  7, "name": "measures",  },
+	"48":  { "color":  7, "name": "docs",  },
+	"49":  { "color":  7, "name": "reference",  },
+	"50":  { "color":  7, "name": "vector",  },
+	"51":  { "color":  7, "name": "front-docs",  },
+	"52":  { "color":  7, "name": "back-docs", }
+};
+
+var eagleLayers = {
+	"Top":       { "number":  1, "color":  4, "name": "Top", },
+	"Inner1":    { "number":  2, "color": 16, "name": "Inner1", },
+	"Inner2":    { "number":  3, "color": 16, "name": "Inner2", },
+	"Inner3":    { "number":  4, "color": 16, "name": "Inner3", },
+	"Inner4":    { "number":  5, "color": 16, "name": "Inner4", },
+	"Inner5":    { "number":  6, "color": 16, "name": "Inner5", },
+	"Inner6":    { "number":  7, "color": 16, "name": "Inner6", },
+	"Inner7":    { "number":  8, "color": 16, "name": "Inner7", },
+	"Inner8":    { "number":  9, "color": 16, "name": "Inner8", },
+	"Inner9":    { "number": 10, "color": 16, "name": "Inner9", },
+	"Inner10":   { "number": 11, "color": 16, "name": "Inner10", },
+	"Inner11":   { "number": 12, "color": 16, "name": "Inner11", },
+	"Inner12":   { "number": 13, "color": 16, "name": "Inner12", },
+	"Inner13":   { "number": 14, "color": 16, "name": "Inner13", },
+	"Inner14":   { "number": 15, "color": 16, "name": "Inner14", },
+	"Bottom":    { "number": 16, "color":  1, "name": "Bottom", },
+	"Pads":      { "number": 17, "color":  2, "name": "Pads", },
+	"Vias":      { "number": 18, "color":  2, "name": "Vias", },
+	"Unrouted":  { "number": 19, "color":  6, "name": "Unrouted", },
+	"Dimension": { "number": 20, "color": 15, "name": "Dimension", },
+	"tPlace":    { "number": 21, "color":  7, "name": "tPlace", },
+	"bPlace":    { "number": 22, "color":  7, "name": "bPlace", },
+	"tOrigins":  { "number": 23, "color": 15, "name": "tOrigins", },
+	"bOrigins":  { "number": 24, "color": 15, "name": "bOrigins", },
+	"tNames":    { "number": 25, "color":  7, "name": "tNames", },
+	"bNames":    { "number": 26, "color":  7, "name": "bNames", },
+	"tValues":   { "number": 27, "color":  7, "name": "tValues", },
+	"bValues":   { "number": 28, "color":  7, "name": "bValues", },
+	"tStop":     { "number": 29, "color":  7, "name": "tStop", },
+	"bStop":     { "number": 30, "color":  7, "name": "bStop", },
+	"tCream":    { "number": 31, "color":  7, "name": "tCream", },
+	"bCream":    { "number": 32, "color":  7, "name": "bCream", },
+	"tFinish":   { "number": 33, "color":  6, "name": "tFinish", },
+	"bFinish":   { "number": 34, "color":  6, "name": "bFinish", },
+	"tGlue":     { "number": 35, "color":  7, "name": "tGlue",  },
+	"bGlue":     { "number": 36, "color":  7, "name": "bGlue",  },
+	"tTest":     { "number": 37, "color":  7, "name": "tTest",  },
+	"bTest":     { "number": 38, "color":  7, "name": "bTest",  },
+	"tKeepout":  { "number": 39, "color":  4, "name": "tKeepout",  },
+	"bKeepout":  { "number": 40, "color":  1, "name": "bKeepout",  },
+	"tRestrict": { "number": 41, "color":  4, "name": "tRestrict",  },
+	"bRestrict": { "number": 42, "color":  1, "name": "bRestrict",  },
+	"vRestrict": { "number": 43, "color":  2, "name": "vRestrict",  },
+	"Drills":    { "number": 44, "color":  7, "name": "Drills",  },
+	"Holes":     { "number": 45, "color":  7, "name": "Holes",  },
+	"Milling":   { "number": 46, "color":  3, "name": "Milling",  },
+	"Measures":  { "number": 47, "color":  7, "name": "Measures",  },
+	"Document":  { "number": 48, "color":  7, "name": "Document",  },
+	"Reference": { "number": 49, "color":  7, "name": "Reference",  },
+	"dxf":       { "number": 50, "color":  7, "name": "dxf",  },
+	"tDocu":     { "number": 51, "color":  7, "name": "tDocu",  },
+	"bDocu":     { "number": 52, "color":  7, "name": "bDocu", }
+};
+
+// special thanks to http://paulbourke.net/geometry/circlesphere/
+function circleCenter (x1, y1, x2, y2, angle) {
+
+	/* dx and dy are the vertical and horizontal distances between
+		* the circle centers.
+		*/
+	var dx = x2 - x1;
+	var dy = y2 - y1;
+
+	if (Math.abs(angle) === 180) {
+		var cx = x1 + dx/2,
+			cy = y1 + dy/2,
+			angle1 = Math.atan2 (y1 - cy, cx - x1),
+			angle2 = Math.atan2 (y2 - cy, cx - x2);
+		return [cx, cy, angle1, Math.sqrt (dx*dx/4 + dy*dy/4)];
+	}
+
+	/* Determine the straight-line distance between the centers. */
+	//d = sqrt((dy*dy) + (dx*dx));
+	//d = hypot(dx,dy); // Suggested by Keith Briggs
+	var d = Math.sqrt (dx*dx + dy*dy);
+
+	var r = Math.abs (d / 2 / Math.sin (angle/180/2*Math.PI)),
+		r0 = r,
+		r1 = r;
+
+	/* Check for solvability. */
+	if (d > (r0 + r1)) {
+		/* no solution. circles do not intersect. */
+		console.log ("no solution. circles do not intersect", d, r0, r1);
+		return;
+	}
+
+	if (d < Math.abs (r0 - r1)) {
+		/* no solution. one circle is contained in the other */
+		console.log ("no solution. one circle is contained in the other", d, r0, r1);
+		return;
+	}
+
+	/* 'point 2' is the point where the line through the circle
+		* intersection points crosses the line between the circle
+		* centers.
+		*/
+
+	/* Determine the distance from point 0 to point 2. */
+	var a = ((r0*r0) - (r1*r1) + (d*d)) / (2.0 * d) ;
+
+	/* Determine the coordinates of point 2. */
+	var x3 = x1 + (dx * a/d);
+	var y3 = y1 + (dy * a/d);
+
+	/* Determine the distance from point 2 to either of the
+		* intersection points.
+		*/
+	var h = Math.sqrt((r0*r0) - (a*a));
+
+	/* Now determine the offsets of the intersection points from
+		* point 2.
+		*/
+
+	var rx = -dy * (h/d),
+		ry = dx * (h/d);
+
+	/* Determine the absolute intersection points. */
+	var cx1 = x3 + rx,
+		cy1 = y3 + ry,
+		cx2 = x3 - rx,
+		cy2 = y3 - ry,
+		rad11 = Math.atan2 (y1 - cy1, cx1 - x1),
+		rad12 = Math.atan2 (y2 - cy1, cx1 - x2),
+		rad21 = Math.atan2 (y1 - cy2, cx2 - x1),
+		rad22 = Math.atan2 (y2 - cy2, cx2 - x2),
+		angle1 = (rad11 - rad12)/Math.PI*180,
+		angle2 = (rad21 - rad22)/Math.PI*180,
+		dAngle1 = (angle - angle1) % 360,
+		dAngle2 = (angle - angle2) % 360;
+
+	if (-0.0000001 < dAngle1 && dAngle1 < 0.0000001) {
+		return [cx1, cy1, rad11, r];
+	} else if (-0.0000001 < dAngle2 && dAngle2 < 0.0000001) {
+		return [cx2, cy2, rad21, r];
+	} else {
+		console.log ("something wrong: angle:", angle, "angle1:", angle1, "dangle1", (-0.0000001 < dAngle1 && dAngle1 < 0.0000001), "angle2:", angle2, "dangle2:", (-0.0000001 < dAngle2 && dAngle2 < 0.0000001));
+		return [cx2, cy2, rad21, r];
+	}
+
+	// return [cx1, cy1, cx2, cy2];
+}
+
+function layerNameByNumber (layerNum) {
+	// it is via?
+	var via = layerNum.match (/^(\d+)-(\d+)$/);
+	if (via) {
+		return [
+			LAYER_MAP[via[1]].name,
+			LAYER_MAP[via[2]].name
+		]
+	}
+	if (!LAYER_MAP[layerNum]) {
+		console.trace ('Skipping layer ' + layerNum);
+	}
+	return LAYER_MAP[layerNum].name;
+}
+
+export default class EagleXML {
+	constructor (board) {
 		this.context = [];
 		this.chunk = ""; // TODO: use a node compatible Buffers
 
@@ -27,127 +273,36 @@ var DOMParser = xmldom.DOMParser;
 
 		board.packagesByName = {};
 
-		board.plainWires = {};
-		board.plainTexts = {};
+		board.plain = {
+			wires: {},
+			texts: {},
+		};
 
 		board.coordYFlip = false;
+
+		board.sourceType = 'design';
 
 		this.board = board;
 	}
 
-	EagleXMLParser.supports = function (text) {
+	static canParse (text) {
+		if (typeof Buffer !== 'undefined' && text instanceof Buffer)  {
+			text = text.toString ('utf8');
+		}
 		if (text.match (/\<\?xml/) && text.match (/\<eagle/)) return true;
 	}
 
-	EagleXMLParser.name = "eagle xml brd";
+	static name () {
+		return "eagle xml brd"
+	}
 
-	var newLayerMapping = {
-		"drills": "Drills", // thru board drills
-		"milling": "Milling", // thru board milling
-		"outline": "Dimension", // board outline
-		"front-glue": "tGlue", // glue placement
-		"front-finish": "tFinish", // gold finish
-		"front-silk-place": "tPlace",  // silkscreen outline for components
-		"front-silk-values": "tValues", // silkscreen values for components
-		"front-silk-names": "tNames",  // silkscreen names for components
-		"front-mask-paste": "tCream", // cutout for paste stencil
-		"front-mask-stop": "tStop",  // component placement open for mask
-		"front-restrict": "tRestrict", // copper restrict
-		"front-copper": "Top", // top copper layer
-		"inner": "Route", // inner copper layers
-		"back-copper": "Bottom", // bottom copper layer
-		"vias": "Vias", // vias "virtual" layer
-		"vias-restrict": "vRestrict", // copper restrict
-		"pads": "Pads", // pads "virtual" layer
-		"back-restrict": "bRestrict", // copper restrict
-		"back-keepout": "bKeepout", // component keepout
-		"back-mask-stop": "bStop",  // component placement open for mask
-		"back-mask-paste": "bCream", // cutout for paste stencil
-		"back-silk-names": "bNames",  // silkscreen names for components
-		"back-silk-values": "bValues", // silkscreen values for components
-		"back-silk-place": "bPlace",  // silkscreen outline for components
-		"back-finish": "bFinish", // gold finish
-		"back-glue": "bGlue", // glue placement
-	};
+	get layerMapping () {
 
-	var layerMaps = {
-		"Front": "Top",
-		"Back": "Bottom",
-		//	"F.Cu": "Top",
-		//	"B.Cu": "Bottom",
-		//	"Inner1.Cu": "Inner1",
-		//	"Inner2.Cu": "Inner2",
-		"B.Adhes": "bGlue",
-		"F.Adhes": "tGlue",
-		"B.Paste": "bCream",
-		"F.Paste": "tCream",
-		"B.SilkS": "bNames",
-		"F.SilkS": "tNames",
-		"B.Mask": "bStop",
-		"F.Mask": "tStop",
-		"Dwgs.User": "tValues",
-		//(41 Cmts.User user)
-		//(42 Eco1.User user)
-		//(43 Eco2.User user)
-		"Edge.Cuts": "Dimension"
-	};
+	}
 
-	var eagleLayers = {
-		"Top":       { "number":  1, "color":  4, "name": "Top", },
-		"Inner1":    { "number":  2, "color": 16, "name": "Inner1", },
-		"Inner2":    { "number":  3, "color": 16, "name": "Inner2", },
-		"Inner3":    { "number":  4, "color": 16, "name": "Inner3", },
-		"Inner4":    { "number":  5, "color": 16, "name": "Inner4", },
-		"Inner5":    { "number":  6, "color": 16, "name": "Inner5", },
-		"Inner6":    { "number":  7, "color": 16, "name": "Inner6", },
-		"Inner7":    { "number":  8, "color": 16, "name": "Inner7", },
-		"Inner8":    { "number":  9, "color": 16, "name": "Inner8", },
-		"Inner9":    { "number": 10, "color": 16, "name": "Inner9", },
-		"Inner10":   { "number": 11, "color": 16, "name": "Inner10", },
-		"Inner11":   { "number": 12, "color": 16, "name": "Inner11", },
-		"Inner12":   { "number": 13, "color": 16, "name": "Inner12", },
-		"Inner13":   { "number": 14, "color": 16, "name": "Inner13", },
-		"Inner14":   { "number": 15, "color": 16, "name": "Inner14", },
-		"Bottom":    { "number": 16, "color":  1, "name": "Bottom", },
-		"Pads":      { "number": 17, "color":  2, "name": "Pads", },
-		"Vias":      { "number": 18, "color":  2, "name": "Vias", },
-		"Unrouted":  { "number": 19, "color":  6, "name": "Unrouted", },
-		"Dimension": { "number": 20, "color": 15, "name": "Dimension", },
-		"tPlace":    { "number": 21, "color":  7, "name": "tPlace", },
-		"bPlace":    { "number": 22, "color":  7, "name": "bPlace", },
-		"tOrigins":  { "number": 23, "color": 15, "name": "tOrigins", },
-		"bOrigins":  { "number": 24, "color": 15, "name": "bOrigins", },
-		"tNames":    { "number": 25, "color":  7, "name": "tNames", },
-		"bNames":    { "number": 26, "color":  7, "name": "bNames", },
-		"tValues":   { "number": 27, "color":  7, "name": "tValues", },
-		"bValues":   { "number": 28, "color":  7, "name": "bValues", },
-		"tStop":     { "number": 29, "color":  7, "name": "tStop", },
-		"bStop":     { "number": 30, "color":  7, "name": "bStop", },
-		"tCream":    { "number": 31, "color":  7, "name": "tCream", },
-		"bCream":    { "number": 32, "color":  7, "name": "bCream", },
-		"tFinish":   { "number": 33, "color":  6, "name": "tFinish", },
-		"bFinish":   { "number": 34, "color":  6, "name": "bFinish", },
-		"tGlue":     { "number": 35, "color":  7, "name": "tGlue",  },
-		"bGlue":     { "number": 36, "color":  7, "name": "bGlue",  },
-		"tTest":     { "number": 37, "color":  7, "name": "tTest",  },
-		"bTest":     { "number": 38, "color":  7, "name": "bTest",  },
-		"tKeepout":  { "number": 39, "color":  4, "name": "tKeepout",  },
-		"bKeepout":  { "number": 40, "color":  1, "name": "bKeepout",  },
-		"tRestrict": { "number": 41, "color":  4, "name": "tRestrict",  },
-		"bRestrict": { "number": 42, "color":  1, "name": "bRestrict",  },
-		"vRestrict": { "number": 43, "color":  2, "name": "vRestrict",  },
-		"Drills":    { "number": 44, "color":  7, "name": "Drills",  },
-		"Holes":     { "number": 45, "color":  7, "name": "Holes",  },
-		"Milling":   { "number": 46, "color":  3, "name": "Milling",  },
-		"Measures":  { "number": 47, "color":  7, "name": "Measures",  },
-		"Document":  { "number": 48, "color":  7, "name": "Document",  },
-		"Reference": { "number": 49, "color":  7, "name": "Reference",  },
-		"dxf":       { "number": 50, "color":  7, "name": "dxf",  },
-		"tDocu":     { "number": 51, "color":  7, "name": "tDocu",  },
-		"bDocu":     { "number": 52, "color":  7, "name": "bDocu", }
-	};
 
-	EagleXMLParser.prototype.eagleLayer = function (layerName) {
+
+	eagleLayer (layerName) {
 		// eagle draw will replace layer info accordingly
 		if (layerName === "*.Cu") layerName = "Front";
 		if (layerName === "*.Mask") layerName = "F.Mask";
@@ -155,13 +310,16 @@ var DOMParser = xmldom.DOMParser;
 		return eagleLayers [layerMaps[layerName]];
 	}
 
-	EagleXMLParser.prototype.parse = function (text) {
+	parse (text) {
+		if (typeof Buffer !== 'undefined' && text instanceof Buffer)  {
+			text = text.toString ('utf8');
+		}
 		var parser = new DOMParser ();
 		var boardXML = parser.parseFromString (text, "text/xml");
 		this.parseDOM (boardXML);
 	}
 
-	EagleXMLParser.prototype.parseDOM = function(boardXML) {
+	parseDOM (boardXML) {
 
 		var board = this.board;
 		// store by eagle name
@@ -200,7 +358,6 @@ var DOMParser = xmldom.DOMParser;
 			}
 		}
 
-
 		board.signals = {};
 		//hashmap signal name -> hashmap layer number -> hashmap 'wires'->wires array, 'vias'->vias array
 		var signals = boardXML.getElementsByTagName('signal');
@@ -214,22 +371,21 @@ var DOMParser = xmldom.DOMParser;
 			for (var wireIdx = 0; wireIdx < wires.length; wireIdx++) {
 				var wireDict = this.parseWire( wires[wireIdx] );
 				var layer = wireDict.layer;
-				if (!(signalLayers[layer])) signalLayers[layer] = {};
-				var layerItems = signalLayers[layer];
-				if (!(layerItems['wires'])) layerItems['wires'] = [];
-				var layerWires = layerItems['wires'];
+				var layerItems = signalLayers[layer] = signalLayers[layer] || {};
+				var layerWires = layerItems['wires'] = layerItems['wires'] || [];
 				layerWires.push(wireDict);
+
 			}
 
 			var vias = signal.getElementsByTagName('via');
 			for (var viaIdx = 0; viaIdx < vias.length; viaIdx++) {
 				var viaDict = this.parseVia(vias[viaIdx]);
-				var layers = viaDict.layers;
-				if (!(signalLayers[layers])) signalLayers[layers] = {};
-				var layerItems = signalLayers[layers];
-				if (!(layerItems['vias'])) layerItems['vias'] = [];
-				var layerVias = layerItems['vias'];
-				layerVias.push(viaDict);
+				var layers = layerNameByNumber (viaDict.layers);
+				layers.forEach (layer => {
+					var layerItems = signalLayers[layer] = signalLayers[layer] || {};
+					var layerVias  = layerItems['vias'] = layerItems['vias'] || [];
+					layerVias.push(viaDict);
+				})
 			}
 
 			var contacts = signal.getElementsByTagName('contactref');
@@ -303,7 +459,7 @@ var DOMParser = xmldom.DOMParser;
 				packageHoles.push(holeDict);
 			}
 
-			var bbox = this.board.calcBBox (packageWires);
+			var bbox = calcBBox (packageWires);
 
 			var packageTexts = [],
 				texts        = pkg.getElementsByTagName('text');
@@ -326,9 +482,9 @@ var DOMParser = xmldom.DOMParser;
 			board.packagesByName[packageName] = packageDict;
 		}
 
-		board.plainWires = {};
-		board.plainTexts = {};
-		board.plainHoles = [];
+		board.plain.wires = {};
+		board.plain.texts = {};
+		board.plain.holes = [];
 		var plains = boardXML.getElementsByTagName('plain');    //Usually only one
 		for (var plainIdx = 0; plainIdx < plains.length; plainIdx++) {
 			var plain = plains[plainIdx],
@@ -339,27 +495,27 @@ var DOMParser = xmldom.DOMParser;
 				var wire = wires[wireIdx],
 					wireDict = this.parseWire(wire),
 					layer = wireDict.layer;
-				if (!board.plainWires[layer]) board.plainWires[layer] = [];
-				board.plainWires[layer].push(wireDict);
+				if (!board.plain.wires[layer]) board.plain.wires[layer] = [];
+				board.plain.wires[layer].push(wireDict);
 			}
 
 			for (var textIdx = 0; textIdx < texts.length; textIdx++) {
 				var text = texts[textIdx],
 					textDict = this.parseText(text),
 					layer = textDict.layer;
-				if (!board.plainTexts[layer]) board.plainTexts[layer] = [];
-				board.plainTexts[layer].push(textDict);
+				if (!board.plain.texts[layer]) board.plain.texts[layer] = [];
+				board.plain.texts[layer].push(textDict);
 			}
 
 			for (var holeIdx = 0; holeIdx < holes.length; holeIdx++) {
 				var hole = holes[holeIdx],
 					holeDict = this.parseHole(hole);
-				board.plainHoles.push(holeDict);
+				board.plain.holes.push(holeDict);
 			}
 		}
 	}
 
-	EagleXMLParser.prototype.parseSmd = function(smd) {
+	parseSmd (smd) {
 		var smdX  = parseFloat(smd.getAttribute('x')),
 			smdY  = parseFloat(smd.getAttribute('y')),
 			smdDX = parseFloat(smd.getAttribute('dx')),
@@ -375,21 +531,22 @@ var DOMParser = xmldom.DOMParser;
 			rot:   rot,
 			roundness: roundness,
 			name:  smd.getAttribute('name'),
-			layer: smd.getAttribute('layer')
+			layer: layerNameByNumber (smd.getAttribute('layer'))
 		};
 	}
 
-	EagleXMLParser.prototype.parseRect = function(rect) {
+	parseRect (rect) {
 		return {
 			'x1'   : parseFloat(rect.getAttribute('x1')),
 			'y1'   : parseFloat(rect.getAttribute('y1')),
 			'x2'   : parseFloat(rect.getAttribute('x2')),
 			'y2'   : parseFloat(rect.getAttribute('y2')),
-			'layer': rect.getAttribute('layer')};
+			'layer': layerNameByNumber (rect.getAttribute('layer'))
+		};
 	}
 
 
-	EagleXMLParser.prototype.parsePoly = function(poly) {
+	parsePoly (poly) {
 		var width = parseFloat(poly.getAttribute('width'));
 		var vertexes = [];
 		[].slice.apply (poly.getElementsByTagName ('vertex')).forEach (function (vertexEl) {
@@ -401,13 +558,13 @@ var DOMParser = xmldom.DOMParser;
 
 		return {
 			vertexes: vertexes,
-			layer: poly.getAttribute('layer'),
+			layer: layerNameByNumber (poly.getAttribute('layer')),
 			width: width
 		};
 	}
 
 
-	EagleXMLParser.prototype.parsePad = function(pad) {
+	parsePad (pad) {
 		var drill = parseFloat(pad.getAttribute('drill'));
 		var diameter = parseFloat(pad.getAttribute('diameter'));
 		// TODO: use proper measurements
@@ -429,7 +586,7 @@ var DOMParser = xmldom.DOMParser;
 		};
 	}
 
-	EagleXMLParser.prototype.parseVia = function(via) {
+	parseVia (via) {
 		// TODO: use proper measurements
 		// designrules contains such parameters:
 		// restring in pads and vias are defined in percent of the drill diameter
@@ -460,7 +617,7 @@ var DOMParser = xmldom.DOMParser;
 		};
 	}
 
-	EagleXMLParser.prototype.parseHole = function(hole) {
+	parseHole (hole) {
 		return {
 			'x':parseFloat(hole.getAttribute('x')),
 			'y':parseFloat(hole.getAttribute('y')),
@@ -468,100 +625,11 @@ var DOMParser = xmldom.DOMParser;
 		};
 	}
 
-	// special thanks to http://paulbourke.net/geometry/circlesphere/
-	function circleCenter (x1, y1, x2, y2, angle) {
-
-		/* dx and dy are the vertical and horizontal distances between
-		* the circle centers.
-		*/
-		var dx = x2 - x1;
-		var dy = y2 - y1;
-
-		if (Math.abs(angle) === 180) {
-			var cx = x1 + dx/2,
-				cy = y1 + dy/2,
-				angle1 = Math.atan2 (y1 - cy, cx - x1),
-				angle2 = Math.atan2 (y2 - cy, cx - x2);
-			return [cx, cy, angle1, Math.sqrt (dx*dx/4 + dy*dy/4)];
-		}
-
-		/* Determine the straight-line distance between the centers. */
-		//d = sqrt((dy*dy) + (dx*dx));
-		//d = hypot(dx,dy); // Suggested by Keith Briggs
-		var d = Math.sqrt (dx*dx + dy*dy);
-
-		var r = Math.abs (d / 2 / Math.sin (angle/180/2*Math.PI)),
-			r0 = r,
-			r1 = r;
-
-		/* Check for solvability. */
-		if (d > (r0 + r1)) {
-			/* no solution. circles do not intersect. */
-			console.log ("no solution. circles do not intersect", d, r0, r1);
-			return;
-		}
-
-		if (d < Math.abs (r0 - r1)) {
-			/* no solution. one circle is contained in the other */
-			console.log ("no solution. one circle is contained in the other", d, r0, r1);
-			return;
-		}
-
-		/* 'point 2' is the point where the line through the circle
-		* intersection points crosses the line between the circle
-		* centers.
-		*/
-
-		/* Determine the distance from point 0 to point 2. */
-		var a = ((r0*r0) - (r1*r1) + (d*d)) / (2.0 * d) ;
-
-		/* Determine the coordinates of point 2. */
-		var x3 = x1 + (dx * a/d);
-		var y3 = y1 + (dy * a/d);
-
-		/* Determine the distance from point 2 to either of the
-		* intersection points.
-		*/
-		var h = Math.sqrt((r0*r0) - (a*a));
-
-		/* Now determine the offsets of the intersection points from
-		* point 2.
-		*/
-
-		var rx = -dy * (h/d),
-			ry = dx * (h/d);
-
-		/* Determine the absolute intersection points. */
-		var cx1 = x3 + rx,
-			cy1 = y3 + ry,
-			cx2 = x3 - rx,
-			cy2 = y3 - ry,
-			rad11 = Math.atan2 (y1 - cy1, cx1 - x1),
-			rad12 = Math.atan2 (y2 - cy1, cx1 - x2),
-			rad21 = Math.atan2 (y1 - cy2, cx2 - x1),
-			rad22 = Math.atan2 (y2 - cy2, cx2 - x2),
-			angle1 = (rad11 - rad12)/Math.PI*180,
-			angle2 = (rad21 - rad22)/Math.PI*180,
-			dAngle1 = (angle - angle1) % 360,
-			dAngle2 = (angle - angle2) % 360;
-
-		if (-0.0000001 < dAngle1 && dAngle1 < 0.0000001) {
-			return [cx1, cy1, rad11, r];
-		} else if (-0.0000001 < dAngle2 && dAngle2 < 0.0000001) {
-			return [cx2, cy2, rad21, r];
-		} else {
-			console.log ("something wrong: angle:", angle, "angle1:", angle1, "dangle1", (-0.0000001 < dAngle1 && dAngle1 < 0.0000001), "angle2:", angle2, "dangle2:", (-0.0000001 < dAngle2 && dAngle2 < 0.0000001));
-			return [cx2, cy2, rad21, r];
-		}
-
-		// return [cx1, cy1, cx2, cy2];
-	}
-
-	EagleXMLParser.prototype.parseWire = function(wire) {
+	parseWire (wire) {
 		var width = parseFloat(wire.getAttribute('width'));
 		if (width <= 0.0) width = this.minLineWidth;
 
-		var layer = parseInt(wire.getAttribute('layer'));
+		var layer = layerNameByNumber (wire.getAttribute('layer'));
 
 		var x1 = parseFloat(wire.getAttribute('x1')),
 			y1 = parseFloat(wire.getAttribute('y1')),
@@ -610,11 +678,11 @@ var DOMParser = xmldom.DOMParser;
 
 	}
 
-	EagleXMLParser.prototype.parseCircle = function(wire) {
+	parseCircle (wire) {
 		var width = parseFloat(wire.getAttribute('width'));
 		if (width <= 0.0) width = this.minLineWidth;
 
-		var layer = parseInt(wire.getAttribute('layer'));
+		var layer = layerNameByNumber (wire.getAttribute('layer'));
 
 		var tagName = wire.tagName;
 
@@ -631,14 +699,14 @@ var DOMParser = xmldom.DOMParser;
 	}
 
 
-	EagleXMLParser.prototype.parseText = function(text) {
+	parseText (text) {
 		var content = text.textContent;
 		if (!content) content = "";
 		var textRot = text.getAttribute('rot') || "R0";
 		var textAlign = text.getAttribute('align') || "",
 			align,
 			valign,
-			textAngle = this.board.angleForRot (textRot);
+			textAngle = angleForRot (textRot);
 
 		if (textAlign === "center") {
 			align = "center";
@@ -664,7 +732,7 @@ var DOMParser = xmldom.DOMParser;
 			x:       parseFloat(text.getAttribute('x')),
 			y:       parseFloat(text.getAttribute('y')),
 			size:    parseFloat(text.getAttribute('size')),
-			layer:   parseInt(text.getAttribute('layer')),
+			layer:   layerNameByNumber (text.getAttribute('layer')),
 			ratio:   parseInt(text.getAttribute('ratio')),
 			interlinear: parseInt(text.getAttribute('distance')) || 50,
 			align:   align,
@@ -676,12 +744,12 @@ var DOMParser = xmldom.DOMParser;
 		};
 	}
 
-	EagleXMLParser.prototype.parseElement = function(elem) {
+	parseElement (elem) {
 		var elemRot    = elem.getAttribute('rot') || "R0",
-			elemMatrix = this.board.matrixForRot(elemRot);
+			elemMatrix = matrixForRot (elemRot);
 
 		var attribs = {},
-			elemAngle = this.board.angleForRot (elemRot),
+			elemAngle = angleForRot (elemRot),
 			flipText = (elemAngle.degrees >= 90) && (elemAngle.degrees <= 270),
 			elemAttribs = elem.getElementsByTagName('attribute');
 
@@ -696,12 +764,12 @@ var DOMParser = xmldom.DOMParser;
 				if (elemAttrib.getAttribute('x'))     { attribDict.x = parseFloat(elemAttrib.getAttribute('x')); }
 				if (elemAttrib.getAttribute('y'))     { attribDict.y = parseFloat(elemAttrib.getAttribute('y')); }
 				if (elemAttrib.getAttribute('size'))  { attribDict.size = parseFloat(elemAttrib.getAttribute('size')); }
-				if (elemAttrib.getAttribute('layer')) { attribDict.layer = parseInt(elemAttrib.getAttribute('layer')); }
+				if (elemAttrib.getAttribute('layer')) { attribDict.layer = layerNameByNumber (elemAttrib.getAttribute('layer')); }
 				attribDict.font = elemAttrib.getAttribute('font');
 
 				var rot = elemAttrib.getAttribute('rot');
 				if (!rot) { rot = "R0"; }
-				var attribAngle = this.board.angleForRot (rot);
+				var attribAngle = angleForRot (rot);
 				attribDict.flipText = (attribAngle.degrees >= 90) && (attribAngle.degrees <= 270);
 				attribDict.rot = rot;
 				attribDict.display = elemAttrib.getAttribute('display');
@@ -724,17 +792,12 @@ var DOMParser = xmldom.DOMParser;
 		};
 	};
 
-	EagleXMLParser.prototype.parseLayer = function(layer) {
-		return {'name'  : layer.getAttribute('name'),
-				'number': parseInt(layer.getAttribute('number')),
-				'color' : parseInt(layer.getAttribute('color'))};
+	parseLayer (layer) {
+		return {
+			'name'  : layer.getAttribute('name'),
+			'number': parseInt(layer.getAttribute('number')),
+			'color' : parseInt(layer.getAttribute('color'))
+		};
 	}
 
-
-//	if (typeof process !== "undefined") {
-//		var ex = new EagleXMLParser ();
-//		var fs = require ("fs");
-//		ex.parse (fs.readFileSync (process.argv[2]));
-//	}
-
-export default EagleXMLParser;
+}
