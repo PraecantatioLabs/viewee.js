@@ -1,6 +1,7 @@
 import PCBRenderer from './renderer/base';
 
-import { createCanvas, loadImage } from 'canvas';
+// import { createCanvas, loadImage } from 'canvas'; //canvas@2.x
+import Canvas from 'canvas'; //canvas@1.6.x
 
 import {angleForRot, matrixForRot} from './util';
 
@@ -15,19 +16,20 @@ export default class CanvasRenderer extends PCBRenderer {
 	super();
 
 	var bounds = board.calculateBounds (),
-		width  = Math.abs(bounds[2] - bounds[0]),
-		height = Math.abs(bounds[3] - bounds[1]);
+		width  = Math.abs(bounds[2] - bounds[0]) * board.scale * board.baseScale,
+		height = Math.abs(bounds[3] - bounds[1]) * board.scale * board.baseScale;
 
 	if (!canvas) {
 
 		// console.log ('DOCUMENT', Object.keys (document));
 		if (typeof window === 'undefined') {
-			canvas = createCanvas (width, height);
+			canvas = new Canvas (width, height); // canvas@1.6.x
+			// canvas = createCanvas (width, height); // canvas@2.x
 
 		} else {
 			canvas = document.createElement ('canvas');
-			canvas.width = width + 'px';
-			canvas.height = height + 'px';
+			canvas.width = width;
+			canvas.height = height;
 		}
 
 	}
@@ -75,12 +77,14 @@ export default class CanvasRenderer extends PCBRenderer {
 		ctx    = canvas.getContext('2d'),
 		board  = this.board;
 
-	if (!this.cacheDrawingOperations)
-		return;
+	// if (!this.cacheDrawingOperations)
+	// 	return;
 
 	this.scaleCanvas();
 
 	this.drawLayers (ctx);
+
+//	ctx.restore ();
 
 	return;
 

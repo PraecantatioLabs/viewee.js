@@ -129,33 +129,34 @@ describe (baseName + " running", () => {
 	});
 
 	it ("should generate png from board", function (done) {
+
+		this.timeout (15000);
+
+		var bounds = board.calculateBounds (),
+			width  = Math.abs(bounds[2] - bounds[0]),
+			height = Math.abs(bounds[3] - bounds[1]);
+
+		if (width < 2000 && height < 2000) {
+			if (width > height) {
+				board.scale = Math.round (2000 / width);
+			} else {
+				board.scale = Math.round (2000 / height);
+			}
+		}
+
 		var pngRenderer = new CanvasRenderer (board);
+
+		console.log ('board dimensions: %sx%s, scale: %s', width, height, board.scale);
 
 		pngRenderer.draw ();
 
 		var fileStream = fs.createWriteStream ('./test/Arduino-DUE-03.png');
 		var pngStream = pngRenderer.canvas.pngStream ();
 
-		pngStream.on ('data', (chunk) => fileStream.write (chunk));
-		pngStream.on ('end', () => {
-			fileStream.close();
-			done();
-		});
+		pngStream.pipe (fileStream);
 
-		// pngStream.pipe (fileStream);
+		fileStream.on ('finish', done);
 
-		return;
-
-		var gNodes = pngNode.getElementsByTagNameNS ('http://www.w3.org/2000/png', 'g');
-
-		// console.log ([...gNodes].map (node => node.localName));
-
-		fs.writeFile ('./test/Arduino-DUE-03.png', pngRenderer.toString (), done);
-
-		// console.log (gNodes.length);
-		// console.log (gNodes);
-
-		// done ();
 	});
 
 });
