@@ -26,6 +26,7 @@ var LAYER_NAMES = {
 	Ratlines:          {color: "#33FFFF"}, // unrouted?
 	BoardOutline:      {color: "#FF00FF", name: "outline"},
 	All:               {color: "#C0C0C0", name: "milling"}, // displayed on every layer (title: Multi-Layer)
+	"Multi-Layer":     {color: "#C0C0C0", name: "milling"}, // displayed on every layer (title: Multi-Layer)
 	Document:          {color: "#FFFFFF", name: "docs"},
 	TopAssembly:       {color: "#33CC99", name: "front-docs"},
 	BottomAssembly:    {color: "#5555FF", name: "back-docs"},
@@ -347,8 +348,8 @@ export default class EasyEDAPCB {
 					break;
 				case "LIB":
 					var el = this.parseLib (shapeProps);
-					board.elements[el.name] = el;
-					board.packagesByName[el.name] = el;
+					board.elements[`${el.name}-${el.id}`] = el;
+					board.packagesByName[el.name] = el; // TODO: apply reverse matrix for rotation and move
 					break;
 				default:
 					console.log ("unknown shape", shapeProps.attrs[0]);
@@ -420,7 +421,7 @@ export default class EasyEDAPCB {
 			y: parseFloat (attrs[2]),
 			diameter: parseFloat (attrs[3]),
 			signal: attrs[4],
-			drill: parseFloat (attrs[5]),
+			drill: parseFloat (attrs[5])*2,
 			layers: ['front-copper', 'back-copper']
 		};
 
@@ -508,10 +509,10 @@ export default class EasyEDAPCB {
 
 	parseLib ({attrs, parts}) {
 		var common = {
-			x: attrs[1],
-			y: attrs[2],
+			x: parseFloat (attrs[1]),
+			y: parseFloat (attrs[2]),
 			libAttrs: attrs[3],
-			rotation: attrs[4] || 0,
+			rotation: parseInt (attrs[4] || 0),
 			imported: attrs[5],
 			id: attrs[6],
 			locked: attrs[7],
@@ -531,18 +532,20 @@ export default class EasyEDAPCB {
 		var packageName = common.libAttrs.match (/package`([^`]+)/);
 		if (packageName) packageName = packageName[1];
 
+		// in easyeda package's internals already moved and rotated
 		var el = {
-			'x'         : parseFloat (common.x),
-			'y'         : parseFloat (common.y),
-			'name'      : packageName,
-			'rot'       : "R" + parseInt (common.rotation),
-			'matrix'    : matrixForRot ("R" + parseInt (common.rotation)),
+			x:          0, // common.x,
+			y:          0, // common.y,
+			name:       packageName,
+			id:         common.id,
+			rot:        "R0", // + common.rotation,
+			matrix:     matrixForRot ("R0"), // + common.rotation),
 			//		'mirror'    : elemRot.indexOf('M') == 0,
 			//		'smashed'   : elem.getAttribute('smashed') && (elem.getAttribute('smashed').toUpperCase() == 'YES'),
-			'smashed': true,
-			'absText': false,
-			'attributes': {},
-			'padSignals': {}			//to be filled later
+			smashed:    true,
+			absText:    false,
+			attributes: {},
+			padSignals: {}			//to be filled later
 		};
 
 		parts.forEach (shapeStr => {
