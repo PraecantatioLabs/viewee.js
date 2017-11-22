@@ -11,246 +11,260 @@ this.visibleLayers[ViewEE.LayerId.VIAS]                 = true;
 this.visibleLayers[ViewEE.LayerId.OUTLINE]              = true;
 */
 
-const DESIGN_LAYERS = {
-	"drills": { // thru board drills
-		"3d": {isMilling: true}
+class LayersFactory {
+	static get design () {
+		return {
+			"drills": { // thru board drills
+				"3d": {isMilling: true}
 
-	},
-	"holes": { // thru board drills for mount
-		"3d": {isMilling: true}
-	},
-	"milling": { // thru board milling
-		"3d": {isMilling: true}
-	},
-	"outline": { // board outline
-		manufacturing: {
-			order: 0,
-			draw: 'plain.wires'.split (' ')
-		},
-		"3d": {isOutline: true}
-	},
-	"docs": { // board docs
+			},
+			"holes": { // thru board drills for mount
+				"3d": {isMilling: true}
+			},
+			"milling": { // thru board milling
+				"3d": {isMilling: true}
+			},
+			"outline": { // board outline
+				manufacturing: {
+					order: 0,
+					draw: 'plain.wires'.split (' ')
+				},
+				"3d": {isOutline: true}
+			},
+			"docs": { // board docs
 
-	},
-	"front-test": { // test points
+			},
+			"front-test": { // test points
 
-	},
-	"front-docs": { // documentation
-		manufacturing: {
-			order: 500,
-			draw: 'elements plain.wires plain.texts'.split (' ')
+			},
+			"front-docs": { // documentation
+				manufacturing: {
+					order: 500,
+					draw: 'elements plain.wires plain.texts'.split (' ')
+				}
+			},
+			"front-keepout": { // don't place the components here
+				manufacturing: {order: 500}
+			},
+			"front-glue": { // glue placement
+
+			},
+			"front-finish": { // gold finish
+
+			},
+			"front-origins": { // component origin, used for placement
+				// manufacturing: {order: 300}
+			},
+			"front-silk": {// silkscreen layer for less capable EDA
+				manufacturing: {order: 300}
+			},
+			"front-silk-place": {// silkscreen outline for components
+				manufacturing: {order: 300}
+			},
+			"front-silk-values": { // silkscreen values for components
+				manufacturing: {order: 300}
+			},
+			"front-silk-names": { // silkscreen names for components
+				manufacturing: {order: 300}
+			},
+			"front-paste-stencil": { // cutout for paste stencil
+
+			},
+			"front-mask-stop": { // component placement open for mask
+				// manufacturing: {order: 2, invert: true},
+
+			},
+			"vias": { // vias layer
+				manufacturing: {
+					order: 200,
+					draw: 'signal.vias'.split (' ')
+				}
+			},
+			"vias-restrict": { // copper restrict
+
+			},
+			"pads": { // pads layer
+
+			},
+			"front-restrict": { // copper restrict
+
+			},
+			"front-copper": { // top copper layer
+				manufacturing: {
+					order: 100,
+					draw: 'signal.wires elements plain.wires plain.texts'.split (' ')
+				},
+				isCopper: true,
+			},
+			"inner": { // inner copper layers
+				isCopper: true,
+			},
+			"back-copper": { // bottom copper layer
+				manufacturing: {
+					order: -100,
+					draw: 'signal.wires elements plain.wires plain.texts'.split (' ')
+				},
+				isCopper: true
+			},
+			"back-restrict": { // copper restrict
+
+			},
+			"back-keepout": { // component keepout
+
+			},
+			"back-mask-stop": {  // component placement open for mask
+
+			},
+			"back-paste-stencil": { // cutout for paste stencil
+
+			},
+			"back-silk-names": { // silkscreen names for components
+
+			},
+			"back-silk-values": { // silkscreen values for components
+
+			},
+			"back-silk-place": { // silkscreen outline for components
+
+			},
+			"back-silk": {// silkscreen layer for less capable EDA
+				manufacturing: {order: 300}
+			},
+			"back-origins": {// component origin
+				manufacturing: {order: 300}
+			},
+
+			"back-finish": { // gold finish
+
+			},
+			"back-glue": { // glue placement
+
+			},
+			"back-test": { // test points
+
+			},
+			"back-keepout": { // don't place the components here
+				manufacturing: {
+					order: -500,
+					draw: 'elements plain.wires plain.texts'.split (' ')
+				}
+			},
+			"back-docs": { // documentation
+				manufacturing: {
+					order: -500,
+					draw: 'elements plain.wires plain.texts'.split (' ')
+				}
+			},
 		}
-	},
-	"front-keepout": { // don't place the components here
-		manufacturing: {order: 500}
-	},
-	"front-glue": { // glue placement
-
-	},
-	"front-finish": { // gold finish
-
-	},
-	"front-origins": { // component origin, used for placement
-		// manufacturing: {order: 300}
-	},
-	"front-silk-place": {// silkscreen outline for components
-		manufacturing: {order: 300}
-	},
-	"front-silk-values": { // silkscreen values for components
-		manufacturing: {order: 300}
-	},
-	"front-silk-names": { // silkscreen names for components
-		manufacturing: {order: 300}
-	},
-	"front-paste-stencil": { // cutout for paste stencil
-
-	},
-	"front-mask-stop": { // component placement open for mask
-		// manufacturing: {order: 2, invert: true},
-
-	},
-	"vias": { // vias layer
-		manufacturing: {
-			order: 200,
-			draw: 'signal.vias'.split (' ')
-		}
-	},
-	"vias-restrict": { // copper restrict
-
-	},
-	"pads": { // pads layer
-
-	},
-	"front-restrict": { // copper restrict
-
-	},
-	"front-copper": { // top copper layer
-		manufacturing: {
-			order: 100,
-			draw: 'signal.wires elements plain.wires plain.texts'.split (' ')
-		},
-		isCopper: true,
-	},
-	"inner": { // inner copper layers
-		isCopper: true,
-	},
-	"back-copper": { // bottom copper layer
-		manufacturing: {
-			order: -100,
-			draw: 'signal.wires elements plain.wires plain.texts'.split (' ')
-		},
-		isCopper: true
-	},
-	"back-restrict": { // copper restrict
-
-	},
-	"back-keepout": { // component keepout
-
-	},
-	"back-mask-stop": {  // component placement open for mask
-
-	},
-	"back-paste-stencil": { // cutout for paste stencil
-
-	},
-	"back-silk-names": { // silkscreen names for components
-
-	},
-	"back-silk-values": { // silkscreen values for components
-
-	},
-	"back-silk-place": { // silkscreen outline for components
-
-	},
-	"back-origins": {// component origin
-		manufacturing: {order: 300}
-	},
-
-	"back-finish": { // gold finish
-
-	},
-	"back-glue": { // glue placement
-
-	},
-	"back-test": { // test points
-
-	},
-	"back-keepout": { // don't place the components here
-		manufacturing: {
-			order: -500,
-			draw: 'elements plain.wires plain.texts'.split (' ')
-		}
-	},
-	"back-docs": { // documentation
-		manufacturing: {
-			order: -500,
-			draw: 'elements plain.wires plain.texts'.split (' ')
-		}
-	},
-}
-
-// manufacturing is too long to write
-const MAKE_LAYERS = {
-	"front-silk": {
-
-	},
-	"front-mask": {
-
-	},
-	"front-copper": {
-
-	},
-	"back-copper": {
-
-	},
-	"back-mask": {
-
-	},
-	"back-silk": {
-
-	}
-}
-
-const VIEW_LAYERS = {
-	"outline": {
-		flipOrder: 1000,
-		order: 1000,
-		design: {
-			layers: 'outline milling'.split (' '),
-			draw: 'plain.holes plain.wires'.split (' ')
-		}
-	},
-	"front-docs": {
-		design: {
-			layers: 'front-docs front-keepout'.split (' '),
-			draw: 'elements plain.wires plain.texts'.split (' ')
-		},
-		order: 600
-	},
-	"front-silk": {
-		design: {
-			layers: 'front-silk-names front-silk-values front-silk-places'.split (' '),
-			draw: 'elements plain.wires plain.texts'.split (' ')
-		},
-		order: 500
-	},
-	"front-mask": {
-		make: {
-			layers: 'front-mask'
-		},
-		order: 400
-	},
-	"front-copper": {
-		design: {
-			// TODO: eagle copper polygons
-			layers: 'front-copper',
-			draw: 'elements signal.wires plain.texts'.split (' ')
-		},
-		order: 200
-	},
-	"vias": {
-		flipOrder: 300,
-		order: 300,
-		design: {
-			// TODO: eagle copper polygons
-			layers: 'front-copper back-copper'.split (' '),
-			draw: 'signal.vias'.split (' ')
-		},
-	},
-	"dim": {
-		flipOrder: 100,
-		order: 100,
-		design: {
-			layers: '*',
-			draw: 'dimCanvas'
-		}
-	},
-	"back-copper": {
-		design: {
-			// TODO: eagle copper polygons
-			layers: 'back-copper',
-			draw: 'elements signal.wires plain.texts'.split (' ')
-		},
-		order: -200
-	},
-	"back-mask": {
-		order: -400
-	},
-	"back-silk": {
-		design: {
-			layers: 'back-silk-names back-silk-values back-silk-places'.split (' '),
-			draw: 'elements plain.wires plain.texts'.split (' ')
-		},
-		order: -500
-	},
-	"back-docs": {
-		design: {
-			layers: 'back-docs back-keepout'.split (' '),
-			draw: 'elements plain.wires plain.texts'.split (' ')
-		},
-		order: -600
 	}
 
+	// manufacturing is too long to write
+	static get make () {
+		return {
+			"front-silk": {
+
+			},
+			"front-mask": {
+
+			},
+			"front-copper": {
+
+			},
+			"back-copper": {
+
+			},
+			"back-mask": {
+
+			},
+			"back-silk": {
+
+			}
+		}
+	}
+
+	static get view () {
+		return {
+			"outline": {
+				flipOrder: 1000,
+				order: 1000,
+				design: {
+					layers: 'outline milling'.split (' '),
+					draw: 'plain.holes plain.wires'.split (' ')
+				}
+			},
+			"front-docs": {
+				design: {
+					layers: 'front-docs front-keepout'.split (' '),
+					draw: 'elements plain.wires plain.texts'.split (' ')
+				},
+				order: 600
+			},
+			"front-silk": {
+				design: {
+					layers: 'front-silk front-silk-names front-silk-values front-silk-places'.split (' '),
+					draw: 'elements plain.wires plain.texts'.split (' ')
+				},
+				order: 500
+			},
+			"front-mask": {
+				make: {
+					layers: 'front-mask'
+				},
+				order: 400
+			},
+			"front-copper": {
+				design: {
+					// TODO: eagle copper polygons
+					layers: 'front-copper',
+					draw: 'elements signal.wires plain.texts'.split (' ')
+				},
+				order: 200
+			},
+			"vias": {
+				flipOrder: 300,
+				order: 300,
+				design: {
+					// TODO: eagle copper polygons
+					layers: 'front-copper back-copper'.split (' '),
+					draw: 'signal.vias'.split (' ')
+				},
+			},
+			"dim": {
+				flipOrder: 100,
+				order: 100,
+				design: {
+					layers: '*',
+					draw: 'dimCanvas'
+				}
+			},
+			"back-copper": {
+				design: {
+					// TODO: eagle copper polygons
+					layers: 'back-copper',
+					draw: 'elements signal.wires plain.texts'.split (' ')
+				},
+				order: -200
+			},
+			"back-mask": {
+				order: -400
+			},
+			"back-silk": {
+				design: {
+					layers: 'back-silk back-silk-names back-silk-values back-silk-places'.split (' '),
+					draw: 'elements plain.wires plain.texts'.split (' ')
+				},
+				order: -500
+			},
+			"back-docs": {
+				design: {
+					layers: 'back-docs back-keepout'.split (' '),
+					draw: 'elements plain.wires plain.texts'.split (' ')
+				},
+				order: -600
+			}
+
+		}
+	}
 }
 
 
@@ -268,19 +282,25 @@ export default class Layers {
 	// M-Layers; code below belongs to board format, not the base board class
 
 	constructor (sourceType) {
+
+		this.view   = LayersFactory.view;
+		this.make   = LayersFactory.make;
+		this.design = LayersFactory.design;
+		// this.image  = LayersFactory.image;
+
 		switch (sourceType.toLowerCase()) {
 			case 'make':
 			case 'manufacturing':
 				this.sourceType = 'make';
-				this.sourceLayers = MAKE_LAYERS;
+				this.source = this.make;
 				break;
 			case 'design':
 				this.sourceType = 'design';
-				this.sourceLayers = DESIGN_LAYERS;
+				this.source = this.design;
 				break;
 			case 'image':
 				this.sourceType = 'image';
-				this.sourceLayers = IMAGE_LAYERS;
+				this.source = this.image;
 				break;
 			default:
 				throw `Cannot instantiate layer object with sourceType === ${sourceType}`;
@@ -312,6 +332,14 @@ export default class Layers {
 		return layerName;
 	}
 
+	get cad () {
+		return this.design;
+	}
+
+	get cam () {
+		return this.make;
+	}
+
 	item (sourceType, layerName) {
 		// return layer info from sourceType layer information
 		if (arguments.length === 1) {
@@ -320,14 +348,14 @@ export default class Layers {
 
 		switch (sourceType) {
 			case 'view':
-				return VIEW_LAYERS[layerName];
+				return this.view[layerName];
 				break;
 			case 'make':
 			case 'manufacturing':
-				return MAKE_LAYERS[layerName];
+				return this.make[layerName];
 				break;
 			case 'design':
-				return DESIGN_LAYERS[layerName];
+				return this.design[layerName];
 				break;
 			default:
 				return;
@@ -336,18 +364,18 @@ export default class Layers {
 
 	viewOrder (flip) {
 		var flipMod = flip ? -1 : 1;
-		return Object.keys (VIEW_LAYERS).filter (
-			l => VIEW_LAYERS[l][this.sourceType] && Object.keys(VIEW_LAYERS[l][this.sourceType]).length
+		return Object.keys (this.view).filter (
+			l => this.view[l][this.sourceType] && Object.keys(this.view[l][this.sourceType]).length
 		).sort (
-			(l1, l2) => (VIEW_LAYERS[l1].flipOrder || VIEW_LAYERS[l1].order * flipMod || 0) - (VIEW_LAYERS[l2].flipOrder || VIEW_LAYERS[l2].order * flipMod || 0)
+			(l1, l2) => (this.view[l1].flipOrder || this.view[l1].order * flipMod || 0) - (this.view[l2].flipOrder || this.view[l2].order * flipMod || 0)
 		)
 	}
 
 	CAMOrder () {
 
-		return Object.keys (MAKE_LAYERS)
-			.filter (layerName => MAKE_LAYERS[layerName].manufacturing)
-			.sort ((l1, l2) => MAKE_LAYERS[l1].manufacturing.order - MAKE_LAYERS[l2].manufacturing.order)
+		return Object.keys (this.make)
+			.filter (layerName => this.make[layerName].manufacturing)
+			.sort ((l1, l2) => this.make[l1].manufacturing.order - this.make[l2].manufacturing.order)
 			//.reduce ((acc, layerName) => {
 			//	acc[layerName] = layersMeta[layerName].manufacturing
 			//	return acc;

@@ -280,9 +280,11 @@ export default class EagleXML {
 
 		board.coordYFlip = false;
 
-		board.sourceType = 'design';
-
 		this.board = board;
+	}
+
+	static get sourceType () {
+		return 'design';
 	}
 
 	static canParse (text) {

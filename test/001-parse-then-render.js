@@ -14,7 +14,7 @@ import ViewEEBoard from '../src/board';
 import EagleXMLParser from '../src/board/format-eagle-xml';
 
 import SVGRenderer from '../src/renderer/svg';
-import CanvasRenderer from '../src/canvas_renderer';
+import CanvasRenderer from '../src/renderer/canvas';
 
 describe (baseName + " running", () => {
 
@@ -28,7 +28,11 @@ describe (baseName + " running", () => {
 
 		board = ViewEEBoard.fromData (boardData);
 
-		// ex.parse (brdContents);
+		var bounds = board.calculateBounds (),
+			width  = Math.abs(bounds[2] - bounds[0]),
+			height = Math.abs(bounds[3] - bounds[1]);
+
+		console.log ('board dimensions: %sx%s', width, height);
 
 		console.log ('Signals:', Object.keys (board.signals).join (', '))
 

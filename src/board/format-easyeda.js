@@ -70,11 +70,13 @@ export default class EasyEDAPCB {
 
 		board.coordYFlip = false;
 
-		board.sourceType = 'design';
-
 		this.board = board;
 
 		this.LAYER_IDS = {};
+	}
+
+	static get sourceType () {
+		return 'design';
 	}
 
 	static canParse (text) {

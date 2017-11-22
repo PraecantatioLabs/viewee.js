@@ -1,7 +1,7 @@
 import * as Util from '../util';
 
 import EagleXMLFormat from './format-eagle-xml';
-// import KicadPcbParser from './parser-kicad-pcb';
+import KicadPcbParser from './format-kicad-pcbnew';
 // import GedaParser     from './parser-geda';
 import EasyEDAPCBFormat from './format-easyeda';
 
@@ -21,20 +21,23 @@ export default class ViewEEBoard {
 
 	}
 
+	static parsers () {
+		return [
+			EagleXMLFormat,
+			KicadPcbParser,
+			// GedaParser,
+			EasyEDAPCBFormat
+		];
+	}
+
 	/**
 	 * Find a parser which supports data
 	 * @param   {String|Buffer} data string or binary data
 	 * @returns {Array}         compatible parsers
 	 */
 	static findParsers (data) {
-		const parsers = [
-			EagleXMLFormat,
-			// KicadPcbParser,
-			// GedaParser,
-			EasyEDAPCBFormat
-		];
 
-		return parsers.filter (parser => {
+		return ViewEEBoard.parsers().filter (parser => {
 			if (!parser) return;
 
 			if (!parser.canParse (data))
@@ -45,19 +48,22 @@ export default class ViewEEBoard {
 	}
 
 	static fromData (data, options) {
-		const parsers = ViewEEBoard.findParsers (data);
-
 		const board = new ViewEEBoard (options);
+
+		const parsers = ViewEEBoard.findParsers (data);
 
 		const timerLabel = `parsing using ${parsers[0].name}`;
 		board.verbose && console.time (timerLabel);
 
 		// use first one, ignore others
-		const parser = new (parsers[0]) (board);
+		const Parser = parsers[0];
+
+		board.sourceType = Parser.sourceType;
+		board.layers = new Layers (Parser.sourceType);
+
+		const parser = new Parser (board);
 
 		parser.parse (data);
-
-		board.layers = new Layers (board.sourceType);
 
 		board.verbose && console.timeEnd (timerLabel);
 

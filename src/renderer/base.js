@@ -91,7 +91,7 @@ export default class PCBRenderer {
 		var drawingOps = [];
 
 		viewOrder.forEach (viewLayer => {
-			var layerSources = board.layers.item ('view', viewLayer)[sourceType];
+			var layerSources = board.layers.view[viewLayer][sourceType];
 			[].concat (layerSources.layers).forEach (sourceLayer => {
 				[].concat (layerSources.draw).forEach (drawScope => {
 					drawingOps.push (this.drawingMethod (drawScope, sourceLayer, ctx));
