@@ -450,6 +450,62 @@ export default class EasyEDAPCB {
 		return text;
 	}
 
+	parsePad ({attrs, parts}) {
+		console.log (attrs, this.LAYER_IDS[11]);
+		var pad = {
+			shape: attrs[1].toLowerCase(), // ELLIPSE/RECT/OVAL/POLYGON
+			x: parseFloat (attrs[2]),
+			y: parseFloat (attrs[3]),
+			width: parseFloat (attrs[4]),
+			height: parseFloat (attrs[5]),
+			layer: this.layerNameByNumber (attrs[6]),
+			net: attrs[7],
+			number: attrs[8],
+			drill: parseFloat (attrs[9])*2,
+			points: attrs[10].split (' ').filter (p => p).map (p => parseFloat (p)),
+			rot: "R" + parseInt (attrs[11]),
+			id: attrs[12],
+			slotLength: attrs[13],
+			slotPoints: attrs[14].split (' ').filter (p => p).map (p => parseFloat (p)),
+			plated: attrs[15] === 'N' ? false : true
+		};
+
+		if (!pad.drill || pad.drill < 0.2) { // reasonable drill size < 0.0508mm
+			return {
+				x1:    pad.x-0.5*pad.width,
+				y1:    pad.y-0.5*pad.height,
+				x2:    pad.x+0.5*pad.width,
+				y2:    pad.y+0.5*pad.height,
+				rot:   pad.rot,
+				roundness: pad.shape === 'ellipse' ? 100 : 0, // TODO: oval, polygon
+				name:  pad.number,
+				layer: pad.layer,
+				padType: 'smd'
+			};
+		}
+
+		var shapeConversion = {
+			ellipse: 'circle',
+			rect: 'square',
+			oval: 'cirle',
+			// polygon
+		};
+
+		// if (isNaN (diameter)) diameter = drill * 1.5;
+		// var padRot = pad.getAttribute('rot') || "R0"
+		return {
+			x:     pad.x,
+			y:     pad.y,
+			drill: pad.drill,
+			name:  pad.number,
+			shape: shapeConversion[pad.shape],
+			diameter: pad.width,
+			rot:   pad.rot,
+			padType: 'pad'
+		};
+
+	}
+
 	parseLib ({attrs, parts}) {
 		var common = {
 			x: attrs[1],
@@ -502,6 +558,20 @@ export default class EasyEDAPCB {
 
 						pkg.wires.push (wire);
 					});
+
+					break;
+				case "PAD":
+					try {
+					var pad = this.parsePad (shapeProps);
+					} catch (e) {
+						console.error (e);
+					}
+
+					if (pad.padType === 'smd') {
+						pkg.smds.push (pad);
+					} else if (pad.padType === 'pad') {
+						pkg.pads.push (pad);
+					}
 
 					break;
 				default:
