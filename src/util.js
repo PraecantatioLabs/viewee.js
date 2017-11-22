@@ -32,14 +32,10 @@ export function calcBBox (wires) {
 		-LARGE_NUMBER
 	];
 	wires.forEach (function (wireDict) {
-		if (wireDict.x1 < bbox[0]) { bbox[0] = wireDict.x1; }
-		if (wireDict.x1 > bbox[2]) { bbox[2] = wireDict.x1; }
-		if (wireDict.y1 < bbox[1]) { bbox[1] = wireDict.y1; }
-		if (wireDict.y1 > bbox[3]) { bbox[3] = wireDict.y1; }
-		if (wireDict.x2 < bbox[0]) { bbox[0] = wireDict.x2; }
-		if (wireDict.x2 > bbox[2]) { bbox[2] = wireDict.x2; }
-		if (wireDict.y2 < bbox[1]) { bbox[1] = wireDict.y2; }
-		if (wireDict.y2 > bbox[3]) { bbox[3] = wireDict.y2; }
+		bbox[0] = Math.min (wireDict.x1, wireDict.x2, bbox[0]);
+		bbox[1] = Math.min (wireDict.y1, wireDict.y2, bbox[1]);
+		bbox[2] = Math.max (wireDict.x1, wireDict.x2, bbox[2]);
+		bbox[3] = Math.max (wireDict.y1, wireDict.y2, bbox[3]);
 	});
 	if ((bbox[0] >= bbox[2]) || (bbox[1] >= bbox[3])) {
 		bbox = null;

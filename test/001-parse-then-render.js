@@ -19,7 +19,9 @@ import CanvasRenderer from '../src/renderer/canvas';
 describe (baseName + " running", () => {
 
 	var brdContents = fs.readFileSync ('problems/Arduino-DUE-V03.brd').toString();
-	var easyEDAPCBContents = fs.readFileSync ('problems/example.easyeda_pcb').toString();
+	//var easyEDAPCBContents = fs.readFileSync ('problems/Bench-power.easyeda').toString();
+	var easyEDAPCBContents = fs.readFileSync ('problems/Arduino-DUE-V03.easyeda').toString();
+	var kicadContents = fs.readFileSync ('problems/!HDMI2USB.kicad_pcb').toString();
 	var board;
 
 	function testBoard (boardData, done) {
@@ -34,7 +36,7 @@ describe (baseName + " running", () => {
 
 		console.log ('board dimensions: %sx%s', width, height);
 
-		console.log ('Signals:', Object.keys (board.signals).join (', '))
+		if (process.env.VERBOSE) console.log ('Signals:', Object.keys (board.signals).join (', '))
 
 		assert.ok (Object.keys (board.signals).length);
 		assert.ok (board.signals.GND);
@@ -47,14 +49,15 @@ describe (baseName + " running", () => {
 			"Board should have at least one ground wire in front or back layer " + JSON.stringify (board.signals.GND, null, "\t")
 		);
 
-		console.log ('Plain wires:', Object.keys (board.plain.wires).join (', '));
+		if (process.env.VERBOSE) console.log ('Plain wires:', Object.keys (board.plain.wires).join (', '));
 
-		console.log ('Board bounds:', board.calculateBounds ());
+		if (process.env.VERBOSE) console.log ('Board bounds:', board.calculateBounds ());
 
 		assert.ok (board.nativeSize[0] > 0); // width
 		assert.ok (board.nativeSize[1] > 0); // height
 
-		console.log ('Packages:', Object.keys (board.packagesByName).join (', '))
+		// if (process.env.VERBOSE)
+			console.log ('Packages:', Object.keys (board.packagesByName).join (', '))
 
 		assert.ok (Object.keys (board.packagesByName).length);
 		assert.ok (Object.keys (board.packagesByName).filter (
@@ -71,7 +74,7 @@ describe (baseName + " running", () => {
 	}
 
 	it.skip ("should parse kicad_pcb file", function (done) {
-		return testBoard.call (this, brdContents, done);
+		return testBoard.call (this, kicadContents, done);
 	});
 
 	it.skip ("should parse geda file", function (done) {
@@ -91,7 +94,7 @@ describe (baseName + " running", () => {
 
 		// console.log ([...gNodes].map (node => node.localName));
 
-		fs.writeFile ('./test/easyeda.svg', svgRenderer.toString (), done);
+		fs.writeFile ('./test/Arduino-DUE-03.easyeda.svg', svgRenderer.toString (), done);
 
 		// console.log (gNodes.length);
 		// console.log (gNodes);
@@ -124,7 +127,7 @@ describe (baseName + " running", () => {
 
 		// console.log ([...gNodes].map (node => node.localName));
 
-		fs.writeFile ('./test/Arduino-DUE-03.svg', svgRenderer.toString (), done);
+		fs.writeFile ('./test/Arduino-DUE-03.eagle.svg', svgRenderer.toString (), done);
 
 		// console.log (gNodes.length);
 		// console.log (gNodes);
@@ -154,7 +157,7 @@ describe (baseName + " running", () => {
 
 		pngRenderer.draw ();
 
-		var fileStream = fs.createWriteStream ('./test/Arduino-DUE-03.png');
+		var fileStream = fs.createWriteStream ('./test/Arduino-DUE-03.eagle.png');
 		var pngStream = pngRenderer.canvas.pngStream ();
 
 		pngStream.pipe (fileStream);
