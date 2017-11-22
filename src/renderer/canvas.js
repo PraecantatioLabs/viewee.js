@@ -1,9 +1,9 @@
-import PCBRenderer from './renderer/base';
+import PCBRenderer from './base';
 
 // import { createCanvas, loadImage } from 'canvas'; //canvas@2.x
 import Canvas from 'canvas'; //canvas@1.6.x
 
-import {angleForRot, matrixForRot} from './util';
+import {angleForRot, matrixForRot} from '../util';
 
 // ---------------
 // --- DRAWING ---
