@@ -286,47 +286,59 @@ export default class EasyEDAPCB {
 
 			var shapeProps = EasyEDAPCB.props (shapeStr);
 
+			function addWire (wire) {
+				var layerName = wire.layer;
+				var layerProps = board.layers[board.sourceType][layerName];
+				if (layerProps.isCopper) {
+					var signalLayers = signals[wire.signal] = signals[wire.signal] || {};
+
+					var layerItems = signalLayers[layerName] = signalLayers[layerName] || {};
+					var layerWires = layerItems['wires'] = layerItems['wires'] || [];
+					layerWires.push (wire);
+					// console.log ('WIRE w:%s l:%s', wire.width, wire.layer, wire.x1, wire.y1, wire.x2, wire.y2);
+				} else {
+					board.plain.wires[layerName] = board.plain.wires[layerName] || [];
+					board.plain.wires[layerName].push(wire);
+				}
+			}
+
 			switch (shapeProps.attrs[0]) {
 				case "TRACK":
 					var wires = this.parseTrack (shapeProps);
 
-					wires.forEach (wire => {
-						var layerName = wire.layer;
-						var layerProps = board.layers[board.sourceType][layerName];
-						if (layerProps.isCopper) {
-							var signalLayers = signals[wire.signal] = signals[wire.signal] || {};
-
-							var layerItems = signalLayers[layerName] = signalLayers[layerName] || {};
-							var layerWires = layerItems['wires'] = layerItems['wires'] || [];
-							layerWires.push (wire);
-						// console.log ('WIRE w:%s l:%s', wire.width, wire.layer, wire.x1, wire.y1, wire.x2, wire.y2);
-						} else {
-							board.plain.wires[layerName] = board.plain.wires[layerName] || [];
-							board.plain.wires[layerName].push(wire);
-						}
-					});
+					wires.forEach (wire => addWire (wire));
 
 					break;
-
+				case "CIRCLE":
+					var circle = this.parseCircle (shapeProps);
+					addWire (circle);
+					break;
+				/*
+				case "ARC":
+					var arc = this.parseArc (shapeProps);
+					if (arc) {
+						addWire (arc);
+					}
+					break;
+				*/
 				/*
 				case "COPPERAREA":
 					var poly = this.parsePolygon (shapeProps);
-				case "RECT":
-					var rect = this.parseRect (shapeProps);
-				case "CIRCLE":
-					var circle = this.parseCircle (shapeProps);
 				case "SOLIDREGION":
 					var poly = this.parsePolygon (shapeProps);
 
-				case "ARC":
-					var arc = this.parseArc (shapeProps);
 				case "PAD":
 					var pad = this.parsePad (shapeProps);
-				case "HOLE":
-					var hole = this.parseHole (shapeProps);
 				case "DIMENSION":
 					var dimension = this.parseDimension (shapeProps);
+				case "RECT":
+					var rect = this.parseRect (shapeProps);
+					break;
 				*/
+				case "HOLE":
+					var hole = this.parseHole (shapeProps);
+					board.plain.holes.push (hole);
+					break;
 				case "TEXT":
 					var text = this.parseText (shapeProps);
 					var layerName = this.layerNameByNumber (text.layer);
@@ -452,7 +464,6 @@ export default class EasyEDAPCB {
 	}
 
 	parsePad ({attrs, parts}) {
-		console.log (attrs, this.LAYER_IDS[11]);
 		var pad = {
 			shape: attrs[1].toLowerCase(), // ELLIPSE/RECT/OVAL/POLYGON
 			x: parseFloat (attrs[2]),
@@ -472,7 +483,7 @@ export default class EasyEDAPCB {
 		};
 
 		if (!pad.drill || pad.drill < 0.2) { // reasonable drill size < 0.0508mm
-			return {
+			if (['ellipse', 'rect'].indexOf (pad.shape) >= 0) return {
 				x1:    pad.x-0.5*pad.width,
 				y1:    pad.y-0.5*pad.height,
 				x2:    pad.x+0.5*pad.width,
@@ -483,6 +494,22 @@ export default class EasyEDAPCB {
 				layer: pad.layer,
 				padType: 'smd'
 			};
+
+			if (pad.shape === 'polygon') {
+				var points = pad.points,
+					vertexes = [],
+					x,
+					y;
+				while ([x, y, ...points] = points, points.length) {
+					vertexes.push ({x, y});
+				}
+
+				return {
+					vertexes: vertexes,
+					layer: pad.layer,
+					name: pad.number
+				}
+			}
 		}
 
 		var shapeConversion = {
@@ -505,6 +532,44 @@ export default class EasyEDAPCB {
 			padType: 'pad'
 		};
 
+	}
+
+	parseRect ({attrs, parts}) {
+		return {
+			x1:     parseFloat(attrs[1]),
+			y1:     parseFloat(attrs[2]),
+			x2:     parseFloat(attrs[1]) + parseFloat(attrs[3]),
+			y2:     parseFloat(attrs[2]) + parseFloat(attrs[4]),
+			layer:  this.layerNameByNumber (attrs[5]),
+			id:     attrs[6],
+			locked: attrs[7]
+		};
+	}
+
+	parseCircle ({attrs, parts}) {
+		return {
+			x:      parseFloat (attrs[1]),
+			y:      parseFloat (attrs[2]),
+			radius: parseFloat (attrs[3]),
+			width:  parseFloat (attrs[4]),
+			layer:  this.layerNameByNumber (attrs[5]),
+			// filled: width ? false : true,
+			start:  0,
+			angle:  Math.PI * 2,
+			curve:  360,
+			id:     attrs[6],
+			locked: attrs[7]
+		};
+	}
+
+	parseHole ({attrs, parts}) {
+		return {
+			x:      parseFloat(attrs[1]),
+			y:      parseFloat(attrs[2]),
+			drill:  parseFloat(attrs[3]),
+			id:     attrs[4],
+			locked: attrs[5]
+		};
 	}
 
 	parseLib ({attrs, parts}) {
@@ -564,18 +629,28 @@ export default class EasyEDAPCB {
 
 					break;
 				case "PAD":
-					try {
 					var pad = this.parsePad (shapeProps);
-					} catch (e) {
-						console.error (e);
-					}
 
 					if (pad.padType === 'smd') {
 						pkg.smds.push (pad);
 					} else if (pad.padType === 'pad') {
 						pkg.pads.push (pad);
+					} else if (pad.vertexes) {
+						pkg.polys.push (pad);
 					}
 
+					break;
+				case "HOLE":
+					var hole = this.parseHole (shapeProps);
+					pkg.holes.push (hole);
+					break;
+				case "CIRCLE":
+					var circle = this.parseCircle (shapeProps);
+					pkg.wires.push (circle);
+					break;
+				case "TEXT":
+					var text = this.parseText (shapeProps);
+					pkg.texts.push (text);
 					break;
 				default:
 					console.log ("unknown lib shape", shapeProps.attrs[0]);
