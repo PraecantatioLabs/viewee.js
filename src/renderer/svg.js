@@ -13,8 +13,11 @@ import {angleForRot, matrixForRot} from '../util';
 const significantDigits = 4;
 
 function polarToCartesian(centerX, centerY, radius, angleInDegrees, angleInRadians) {
-	if (!angleInRadians)
-		angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
+	if (angleInRadians === null || angleInRadians === undefined) {
+		angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+	} else {
+		// angleInRadians -= Math.PI/2;
+	}
 
 	return {
 		x: centerX + (radius * Math.cos(angleInRadians)),
@@ -24,7 +27,7 @@ function polarToCartesian(centerX, centerY, radius, angleInDegrees, angleInRadia
 
 function describeArc(x, y, radius, startAngle, endAngle){
 
-	console.log (startAngle, endAngle);
+	return describeArcRadians (x, y, radius, startAngle * Math.PI / 180.0, endAngle * Math.PI / 180.0);
 
 	var start = polarToCartesian(x, y, radius, startAngle);
 	var end   = polarToCartesian(x, y, radius, endAngle);
@@ -32,11 +35,13 @@ function describeArc(x, y, radius, startAngle, endAngle){
 //		var start = polarToCartesian(x, y, radius, endAngle);
 //		var end   = polarToCartesian(x, y, radius, startAngle);
 
-	var arcSweep = endAngle - startAngle <= 180 ? "1" : "0";
+	var largeArcFlag = endAngle - startAngle <= 180 ? "1" : "0";
+	var rotation = 0;
+	var sweepFlag = 0;
 
 	var d = [
 		"M", start.x.toFixed (significantDigits), start.y.toFixed (significantDigits),
-		"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (significantDigits), end.y.toFixed (significantDigits)
+		"A", radius, radius, rotation, largeArcFlag, sweepFlag, end.x.toFixed (significantDigits), end.y.toFixed (significantDigits)
 	].join(" ");
 
 	return d;
@@ -47,14 +52,21 @@ function describeArcRadians (x, y, radius, startAngle, endAngle){
 //		var start = polarToCartesian(x, y, radius, null, startAngle);
 //		var end   = polarToCartesian(x, y, radius, null, endAngle);
 
-	var start = polarToCartesian(x, y, radius, null, endAngle + 2*Math.PI);
-	var end   = polarToCartesian(x, y, radius, null, startAngle + 2*Math.PI);
+	//while (endAngle < startAngle) endAngle += 2*Math.PI;
 
-	var arcSweep = endAngle - startAngle <= Math.PI ? "0" : "1";
+	// var start = polarToCartesian(x, y, radius, null, endAngle + 2*Math.PI);
+	// var end   = polarToCartesian(x, y, radius, null, startAngle + 2*Math.PI);
+
+	var start = polarToCartesian(x, y, radius, null, endAngle);
+	var end   = polarToCartesian(x, y, radius, null, startAngle);
+
+	var largeArcFlag = (endAngle - startAngle <= Math.PI) ? "0" : "1";
+	var rotation = 0;
+	var sweepFlag = 0;
 
 	var d = [
 		"M", start.x.toFixed (significantDigits), start.y.toFixed (significantDigits),
-		"A", radius, radius, 0, arcSweep, 0, end.x.toFixed (significantDigits), end.y.toFixed (significantDigits)
+		"A", radius, radius, rotation, largeArcFlag, sweepFlag, end.x.toFixed (significantDigits), end.y.toFixed (significantDigits)
 	].join(" ");
 
 	if (d.match (/NaN/))
@@ -414,8 +426,15 @@ export default class SVGRenderer extends PCBRenderer {
 				radiusY = wire.radius[1];
 			}
 
+			// attrs.json = JSON.stringify (wire);
+
 			attrs.d = describeArcRadians (wire.x, wire.y, radiusX, startAngle, endAngle);
+
 			// attrs.transform = 'scale('+radiusX+','+radiusY+') translate('+wire.x+', '+wire.y+')';
+
+			// DEBUG
+			// var c = this.SVGEl ('circle', {cx: wire.x, cy: wire.y, r: wire.width});
+			// ctx.appendChild (c);
 		}
 
 		var path = this.SVGEl ('path', attrs);
