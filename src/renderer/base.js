@@ -143,6 +143,7 @@ export default class PCBRenderer {
 		var board = this.board;
 
 		var layerCtx = this.getScope (ctx, {name: layer});
+		var entityCtx = this.getScope (layerCtx, {name: 'plain-wires'})
 
 		var layerWires = board.plain.wires[layer] || [];
 		layerWires.forEach (function (wire) {
@@ -153,7 +154,7 @@ export default class PCBRenderer {
 					strokeStyle: this.layerColor (layer),
 					width: wire.width || board.minLineWidth,
 				}
-			), layerCtx);
+			), entityCtx);
 		}, this);
 	}
 
@@ -191,6 +192,8 @@ export default class PCBRenderer {
 
 		var layerCtx = this.getScope (ctx, {name: layer});
 
+		var entityCtx = this.getScope (layerCtx, {name: 'plain-holes'})
+
 		var board = this.board;
 
 		var layerHoles = board.plain.holes || [];
@@ -198,7 +201,7 @@ export default class PCBRenderer {
 			this.drawHole (Object.assign ({}, hole, {
 				strokeStyle: this.layerColor (layer),
 				strokeWidth: board.minLineWidth, // TODO: bad width
-			}), layerCtx);
+			}), entityCtx);
 		}, this);
 	}
 
@@ -233,6 +236,8 @@ export default class PCBRenderer {
 
 		var layerCtx = this.getScope (ctx, {name: layer});
 
+		var entityCtx = this.getScope (layerCtx, {name: 'plain-texts'})
+
 		var board = this.board;
 
 		var layerTexts = board.plain.texts[layer] || [];
@@ -248,7 +253,7 @@ export default class PCBRenderer {
 				content: content
 			};
 
-			this.drawText (attrs, text, layerCtx);
+			this.drawText (attrs, text, entityCtx);
 
 		}, this)
 	}
@@ -260,7 +265,7 @@ export default class PCBRenderer {
 
 		var board = this.board;
 
-		for (var elemKey in board.elements) {
+		Object.keys (board.elements).sort().forEach(elemKey => {
 			var elem = board.elements[elemKey];
 
 			var elemCtx = this.getScope (layerCtx, {name: elemKey});
@@ -481,7 +486,7 @@ export default class PCBRenderer {
 					x: x, y: y, content: content, color: color, rot: rot, flipText: flipText
 				}, text, elemCtx);
 			}
-		}
+		});
 	}
 
 	dimCanvas (ctx, alpha) {
