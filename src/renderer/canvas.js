@@ -339,7 +339,8 @@ drawText (attrs, text, ctx) {
 		textRot  = matrixForRot(rot),
 		fontSize = 10;
 
-	var font = ''+fontSize+'pt vector';	//Use a regular font size - very small sizes seem to mess up spacing / kerning
+	// vector => "OpenGost Type B TT", "GOST 26.008—85", "ISOCPEUR"
+	var font = ''+fontSize+'pt "OpenGost Type B TT"';	//Use a regular font size - very small sizes seem to mess up spacing / kerning
 
 	var strings = content.split (/\r?\n/);
 	var stringOffset = (text.interlinear || 50) * fontSize / 100;

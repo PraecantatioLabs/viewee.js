@@ -329,6 +329,10 @@ export default class SVGRenderer extends PCBRenderer {
 		var g;
 
 		svg.appendChild (this.SVGEl (
+			'style', {}, 'text { font-family: "OpenGost Type B TT", "GOST 26.008—85", "ISOCPEUR"}'
+		));
+
+		svg.appendChild (this.SVGEl (
 			'g', {
 				className: 'viewport'
 			}, this.SVGEl (
