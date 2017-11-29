@@ -1,6 +1,6 @@
 import {matrixForRot, angleForRot, wireFromSVGArc} from '../util';
 
-import {SVGPathData} from 'svg-pathdata';
+import {parsePath} from '../util/svg';
 
 // unusable https://github.com/garretfick/easyeda-importer/blob/master/src/easyeda/arc.js
 
@@ -457,16 +457,17 @@ export default class EasyEDAPCB {
 			locked: attrs[7],
 		};
 
-		var pathCmds = new SVGPathData(arc.path).commands;
-		if (pathCmds.length === 2 && pathCmds[0].type === 2 && pathCmds[1].type === 512) {
+		var pathCmds = parsePath (arc.path);
+
+		if (pathCmds.length === 2 && pathCmds[0][0] === 'M' && pathCmds[1][0] === 'A') {
 			var wire = wireFromSVGArc (
-				[pathCmds[0].x, pathCmds[0].y],
-				pathCmds[1].rX,
-				pathCmds[1].rY,
-				pathCmds[1].xRot,
-				pathCmds[1].lArcFlag,
-				pathCmds[1].sweepFlag,
-				[pathCmds[1].x, pathCmds[1].y]
+				[pathCmds[0][1], pathCmds[0][2]], // x, y
+				pathCmds[1][1], // rX
+				pathCmds[1][2], // rY
+				pathCmds[1][3], // rotation
+				pathCmds[1][4], // lArcFlag,
+				pathCmds[1][5], // sweepFlag,
+				[pathCmds[1][6], pathCmds[1][7]] // x, y
 			);
 
 			return Object.assign (arc, wire);
