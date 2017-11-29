@@ -18,10 +18,11 @@ import CanvasRenderer from '../src/renderer/canvas';
 
 describe (baseName + " running", () => {
 
-	var brdContents = fs.readFileSync ('problems/Arduino-DUE-V03.brd').toString();
+	var brdContents = fs.readFileSync ('samples/Arduino-DUE-V03.brd').toString();
 	//var easyEDAPCBContents = fs.readFileSync ('problems/Bench-power.easyeda').toString();
-	var easyEDAPCBContents = fs.readFileSync ('problems/Arduino-DUE-V03.easyeda').toString();
-	var kicadContents = fs.readFileSync ('problems/!HDMI2USB.kicad_pcb').toString();
+	// https://easyeda.com/oshw/Arduino_Due_Open_hardware-2mx7HhRdM
+	var easyEDAPCBContents = fs.readFileSync ('samples/Arduino-DUE-V03.easyeda').toString();
+	var kicadContents = fs.readFileSync ('samples/!HDMI2USB.kicad_pcb').toString();
 	var board;
 
 	function testBoard (boardData, done) {
@@ -56,7 +57,7 @@ describe (baseName + " running", () => {
 		assert.ok (board.nativeSize[0] > 0); // width
 		assert.ok (board.nativeSize[1] > 0); // height
 
-		// if (process.env.VERBOSE)
+		if (process.env.VERBOSE)
 			console.log ('Packages:', Object.keys (board.packagesByName).join (', '))
 
 		assert.ok (Object.keys (board.packagesByName).length);
