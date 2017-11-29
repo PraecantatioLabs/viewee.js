@@ -146,3 +146,79 @@ export function min() {
 		return !isNaN(val);
 	}));
 }
+
+export function wireFromSVGArc ([lastX, lastY], rx, ry, xAxisRotation,largeArcFlag,sweepFlag, [x, y]) {
+	//--------------------
+	// rx, ry, xAxisRotation, largeArcFlag, sweepFlag, x, y
+	// are the 6 data items in the SVG path declaration following the A
+	//
+	// lastX and lastY are the previous point on the path before the arc
+	//--------------------
+	// useful functions
+	var m   = function (   v) {return Math.sqrt (Math.pow (v[0],2) + Math.pow (v[1],2))};
+	var r   = function (u, v) {return (u[0]*v[0]+u[1]*v[1]) / (m(u)*m(v))};
+	var ang = function (u, v) {return (u[0]*v[1] < u[1]*v[0] ? -1 : 1) * Math.acos (r (u,v))};
+	//--------------------
+
+	var chord = {
+		middle: { // middle point of the chord
+			x: (lastX + x)/2,
+			y: (lastY + y)/2
+		},
+		// projections
+		dx: (lastX - x),
+		dy: (lastY - y),
+		len: Math.sqrt(Math.pow(lastX - x, 2) + Math.pow(lastY - y, 2)),
+	}
+
+	// var apothemLen = Math.sqrt(Math.abs (Math.pow(radius, 2) - Math.pow(chord.len, 2)));
+
+	var currpX =  Math.cos (xAxisRotation) * (lastX - x) / 2.0 + Math.sin (xAxisRotation) * (lastY - y) / 2.0 ;
+	var currpY = -Math.sin (xAxisRotation) * (lastX - x) / 2.0 + Math.cos (xAxisRotation) * (lastY - y) / 2.0 ;
+
+	var l = Math.pow (currpX,2) / Math.pow (rx,2) + Math.pow (currpY,2) / Math.pow (ry,2);
+	if (l > 1) {rx *= Math.sqrt (l); ry *= Math.sqrt (l)};
+	var s = (largeArcFlag == sweepFlag ? -1 : 1) * Math.sqrt
+	(( (Math.pow (rx,2) * Math.pow (ry    ,2)) - (Math.pow (rx,2) * Math.pow (currpY,2)) - (Math.pow (ry,2) * Math.pow (currpX,2)))
+	 / (Math.pow (rx,2) * Math.pow (currpY,2) +   Math.pow (ry,2) * Math.pow (currpX,2)));
+	if (isNaN (s)) s = 0 ;
+
+	var cppX = s *  rx * currpY / ry ;
+	var cppY = s * -ry * currpX / rx ;
+	var centpX = (lastX + x) / 2.0 + Math.cos (xAxisRotation) * cppX - Math.sin (xAxisRotation) * cppY ;
+	var centpY = (lastY + y) / 2.0 + Math.sin (xAxisRotation) * cppX + Math.cos (xAxisRotation) * cppY ;
+
+	var ang1 = ang ([1,0], [(currpX-cppX)/rx,(currpY-cppY)/ry]);
+	var w = [(  currpX-cppX)/rx,(currpY-cppY)/ry];
+	var x = [(-currpX-cppX)/rx,(-currpY-cppY)/ry];
+	var angd = ang (w,x);
+	if (r (w,x) <= -1) angd = Math.PI;
+	if (r (w,x) >=  1) angd = 0;
+
+	var r = rx > ry ? rx : ry;
+	var sx = rx > ry ? 1 : rx / ry;
+	var sy = rx > ry ? ry / rx : 1;
+
+	var result = {
+		x: centpX,
+		y: centpY,
+		start: ang1,
+		angle: angd,
+		end: (ang1 + angd),
+		curve: angd,
+		rX: rx,
+		rY: ry,
+		rot: "R" + (360 - xAxisRotation/ Math.PI * 180.0) % 360
+	};
+
+	if (!sweepFlag) {
+		[result.start, result.end, result.angle, result.curve] = [result.end, result.start, -result.angle, -result.curve];
+	}
+
+	if (rx === ry) {
+		result.radius = rx;
+	}
+
+	return result;
+
+}

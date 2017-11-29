@@ -1,4 +1,6 @@
-import {matrixForRot, angleForRot} from '../util';
+import {matrixForRot, angleForRot, wireFromSVGArc} from '../util';
+
+import {SVGPathData} from 'svg-pathdata';
 
 // unusable https://github.com/garretfick/easyeda-importer/blob/master/src/easyeda/arc.js
 
@@ -68,7 +70,8 @@ export default class EasyEDAPCB {
 		board.plain = {
 			wires: {},
 			texts: {},
-			holes: []
+			holes: [],
+			polys: []
 		};
 
 		board.coordYFlip = true;
@@ -313,19 +316,24 @@ export default class EasyEDAPCB {
 					var circle = this.parseCircle (shapeProps);
 					addWire (circle);
 					break;
-				/*
+
 				case "ARC":
 					var arc = this.parseArc (shapeProps);
 					if (arc) {
 						addWire (arc);
 					}
 					break;
-				*/
-				/*
 				case "COPPERAREA":
-					var poly = this.parsePolygon (shapeProps);
-				case "SOLIDREGION":
-					var poly = this.parsePolygon (shapeProps);
+					var poly = this.parseCopperarea (shapeProps);
+					var layerName = poly.layer;
+					var layerProps = board.layers[board.sourceType][layerName];
+					var signalLayers = signals[poly.signal] = signals[poly.signal] || {};
+
+					var layerItems = signalLayers[layerName] = signalLayers[layerName] || {};
+					var layerPolys = layerItems['polys'] = layerItems['polys'] || [];
+					layerPolys.push (poly);
+					break;
+				/*
 
 				case "PAD":
 					var pad = this.parsePad (shapeProps);
@@ -335,6 +343,10 @@ export default class EasyEDAPCB {
 					var rect = this.parseRect (shapeProps);
 					break;
 				*/
+				case "SOLIDREGION":
+					var poly = this.parseSolidregion (shapeProps);
+					board.plain.polys.push (poly);
+					break;
 				case "HOLE":
 					var hole = this.parseHole (shapeProps);
 					board.plain.holes.push (hole);
@@ -380,6 +392,37 @@ export default class EasyEDAPCB {
 
 	}
 
+	parseSolidregion ({attrs, parts}) {
+		var poly = {
+			layer: this.layerNameByNumber (attrs[1]),
+			signal: attrs[2],
+			vertexes: this.parsePolyVertexes (attrs[3].split (" ")),
+			type: attrs[4],
+			id: attrs[5],
+			locked: attrs[6],
+		};
+
+		return poly;
+	}
+
+	parseCopperarea ({attrs, parts}) {
+		var poly = {
+			width: parseFloat(attrs[1]),
+			layer: this.layerNameByNumber (attrs[2]),
+			signal: attrs[3],
+			vertexes: this.parsePolyVertexes (attrs[4].split (" ")),
+			clearance: parseFloat(attrs[5]),
+			fill: attrs[6], // solid | none
+			id: attrs[7],
+			thermal: attrs[8], // spoke/direct
+			keepIsland: attrs[9], // none/yes
+			svgPath: attrs[10],// [[\"M339,329 349,247 492,261 457,314z\"]] rings and holes
+			locked: attrs[11]
+		};
+
+		return poly;
+	}
+
 	parseTrack ({attrs, parts}) {
 		var common = {
 			width: parseFloat(attrs[1]),
@@ -403,27 +446,33 @@ export default class EasyEDAPCB {
 		}, [])
 	}
 
-	parseArc (args) {
-		var common = {
-			width: args[1],
-			layer: args[2],
-			signal: args[3],
-			// id: args[5],
-			// locked: args[6],
+	parseArc ({attrs, parts}) {
+		var arc = {
+			width:  parseFloat(attrs[1]),
+			layer:  this.layerNameByNumber (attrs[2]),
+			signal: attrs[3],
+			path:   attrs[4],
+			// helper dots: attrs[5]
+			id:     attrs[6],
+			locked: attrs[7],
 		};
 
-		return args[4].split (' ').reduce ((acc, item, idx, arr) => {
-			if (idx % 2 !== 0)
-				return acc;
-			if (arr.length - idx < 3)
-				return acc;
-			return acc.concat (Object.assign ({
-				x1: parseFloat (arr[idx]),
-				y1: parseFloat (arr[idx+1]),
-				x2: parseFloat (arr[idx+2]),
-				y2: parseFloat (arr[idx+3]),
-			}, common))
-		}, [])
+		var pathCmds = new SVGPathData(arc.path).commands;
+		if (pathCmds.length === 2 && pathCmds[0].type === 2 && pathCmds[1].type === 512) {
+			var wire = wireFromSVGArc (
+				[pathCmds[0].x, pathCmds[0].y],
+				pathCmds[1].rX,
+				pathCmds[1].rY,
+				pathCmds[1].xRot,
+				pathCmds[1].lArcFlag,
+				pathCmds[1].sweepFlag,
+				[pathCmds[1].x, pathCmds[1].y]
+			);
+
+			return Object.assign (arc, wire);
+			// console.log ('---\n', wire, '\n---');
+		}
+
 	}
 
 	parseVia ({attrs, parts}) {
@@ -463,6 +512,15 @@ export default class EasyEDAPCB {
 		return text;
 	}
 
+	parsePolyVertexes (points) {
+		var vertexes = [];
+		do {
+			vertexes.push ({x: points[0], y: points[1]});
+		} while (points = points.slice(2), points.length > 0);
+
+		return vertexes
+	}
+
 	parsePad ({attrs, parts}) {
 		var pad = {
 			shape: attrs[1].toLowerCase(), // ELLIPSE/RECT/OVAL/POLYGON
@@ -497,12 +555,7 @@ export default class EasyEDAPCB {
 
 			if (pad.shape === 'polygon') {
 				var points = pad.points,
-					vertexes = [],
-					x,
-					y;
-				while ([x, y, ...points] = points, points.length) {
-					vertexes.push ({x, y});
-				}
+					vertexes = this.parsePolyVertexes (points);
 
 				return {
 					vertexes: vertexes,
@@ -647,6 +700,10 @@ export default class EasyEDAPCB {
 				case "CIRCLE":
 					var circle = this.parseCircle (shapeProps);
 					pkg.wires.push (circle);
+					break;
+				case "ARC":
+					var arc = this.parseArc (shapeProps);
+					pkg.wires.push (arc);
 					break;
 				case "TEXT":
 					var text = this.parseText (shapeProps);

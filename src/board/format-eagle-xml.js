@@ -309,6 +309,15 @@ export default class EagleXML {
 				var elem = board.elements[elemName];
 				if (elem) elem.padSignals[padName] = name;
 			}
+
+			var polys = signal.getElementsByTagName('polygon');
+			for (var polyIdx = 0; polyIdx < polys.length; polyIdx++) {
+				var polyDict = this.parsePoly( polys[polyIdx] );
+				var layer = polyDict.layer;
+				var layerItems = signalLayers[layer] = signalLayers[layer] || {};
+				var layerPolys = layerItems['polys'] = layerItems['polys'] || [];
+				layerPolys.push (polyDict);
+			}
 		}
 
 		board.packagesByName = {};
